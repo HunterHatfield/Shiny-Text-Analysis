@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=Fira+Sans:wght@100&family=Inconsolata:wght@200&family=Space+Mono&display=swap');
+
+.btn {
+    border-radius: 5px;
+    color: black;
+    background-color: white;
+    padding: 8px 1em 8px 1em;
+
+}
+
+/* Primary buttons */
+.btn-primary{
+    width: 100%;
+    border: 1px solid royalblue;
+}
+
+.btn-primary:hover{
+    background-color: royalblue;
+    border: 1px solid royalblue;
+    color: white;
+} 
+
+/* Submit buttons */
+.btn-success{
+    width: 100%;
+    border: 1px solid rgb(138, 185, 45);
+}
+
+.btn-success:hover{
+    background-color: rgb(138, 185, 45);
+    border: 1px solid rgb(138, 185, 45);
+    color: white;
+} 
+
+/* Append button */
+.btn-warning{
+    width: 100%;
+    border: 1px solid rgba(255, 166, 0, 0.704);
+}
+
+.btn-warning:hover{
+    background-color: rgba(255, 166, 0, 0.704);
+    border: 1px solid rgba(255, 166, 0, 0.704);
+    color: white;
+} 
+
+/* Append button */
+.btn-danger{
+    width: 100%;
+    border: 1px solid crimson;
+}
+
+.btn-danger:hover{
+    background-color: crimson;
+    border: 1px solid crimson;
+    color: white;
+} 

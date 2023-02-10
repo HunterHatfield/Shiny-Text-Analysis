@@ -1,0 +1,39 @@
+---
+title: "Text Analysis Report"
+format: pdf
+params:
+  a: ""
+  b: ""
+  content: ""
+
+---
+
+Test 
+
+Rmarkdown basics: <https://quarto.org/docs/authoring/markdown-basics.html>
+Tutorial: <https://quarto.org/docs/get-started/authoring/rstudio.html>
+ <https://quarto.org>.
+ The `echo: false` option disables the printing of code (only output is displayed).
+
+You can add options to executable code like this
+```{r}
+#| echo: false
+2 * 2
+```
+
+```{r}
+params$a
+
+params$a$content
+
+params$b
+params$content
+params$d
+```
+
+```{r}
+params$[content]
+```
+
+
+

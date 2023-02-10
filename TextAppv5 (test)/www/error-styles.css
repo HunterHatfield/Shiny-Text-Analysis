@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=Fira+Sans:wght@300&family=Inconsolata:wght@400&family=Space+Mono&display=swap');
+
+.shiny-output-error-validation {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.shiny-output-error-validation-red {
+    color: crimson;
+    font-family: 'Inconsolata', monospace;
+    font-size: 1em;
+}
+
+.shiny-output-error-validation-red-center {
+    color: crimson;
+    font-family: 'Inconsolata', monospace;
+    font-size: 1em;
+    
+}
+
+.shiny-output-error-validation-italic{
+    font-size: 1em;
+    font-style: italic;
+}
