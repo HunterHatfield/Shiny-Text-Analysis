@@ -142,6 +142,16 @@ statsUI <- function(id){
 
       ), # end EDA well panel
       
+      box(title = NULL, 
+          status = "success", 
+          solidHeader = T, 
+          collapsible = T,
+          width = 12,
+          
+          plotlyOutput(ns("corr_plot")),
+          
+      ), # end box
+      
       sidebarLayout(
         sidebarPanel(
           width = 3,
@@ -195,30 +205,37 @@ statsUI <- function(id){
                  # Here render UI based on radio button selection
                  # Rendering same ui to choose vars for liner, log and poisson, 
                  # however different ui for mixed regression to choose random & fixed effects
-                 conditionalPanel(
-                   condition = paste0("input['", ns("regression_type"), 
-                                      "'] == 'linear'", "|| input['", 
-                                      ns("regression_type"), "'] == 'logistic' || input['",
-                                      ns("regression_type"), "'] == 'poisson'" ),
-                   uiOutput(ns("perform_lin_log_pois"))
-                 ),
-                 conditionalPanel(
-                   condition = paste0("input['", ns("regression_type"), 
-                                      "'] == 'mixed' "),
-                   p("perform mixed regression ui here")
-                 ),
+                 uiOutput(ns("perform_lin_log_pois"))
+                 
                  
                  ),
           
           column(width = 8, 
-                 uiOutput(ns("lin_log_pois_summary"))
+                   wellPanel(
+                     tabsetPanel(
+                       tabPanel("Tabularised summary", uiOutput(ns("lin_log_pois_res"))), 
+                       tabPanel("Raw model summary", 
+                                verbatimTextOutput(ns("reg_result_raw")))
+                     ),
+                   )
                  )
           
         ) # end fluid row
       ), # end regression analysis well panel 
       
       verbatimTextOutput(ns("test_stats")),
-      plotOutput(ns("test_plot"))
+      
+      wellPanel(
+        
+        h2("Model Checking"),
+        p("Check your model meets required assumptions regarding residuals and variances."),
+        
+        wellPanel(
+          plotOutput(ns("residual_plots"))
+        ),
+        
+      ), # end model checking well panel
+      
       
     ) # end fluidPage
   ) # end tagList
@@ -440,8 +457,6 @@ statsServer <- function(id, rv = rv){
       output$eda_qqplot <- renderPlot({
         
         req(eda_normality_var())
-        # var <- rv$content_stats[[input$eda_normality_var]]
-
         qqnorm(eda_normality_var())
         qqline(eda_normality_var())
         
@@ -468,138 +483,267 @@ statsServer <- function(id, rv = rv){
         tagList(
           
           # Select input for dependent (response) variable
-          varSelectInput(ns("dependent_lin_log_pois"), 
-                         label = "Choose the dependent (response) variable:", 
+          varSelectInput(ns("dependent"), 
+                         label = "Dependent (response) variable:", 
                          rv$content_stats, 
                          selected = NULL, 
                          multiple = FALSE
           ),
           
           # Select input for independent predictor variables
-          varSelectInput(ns("indep_lin_log_pois"), 
-                         label = "Choose independent (predictor) variable(s):", 
+          varSelectInput(ns("independents"), 
+                         label = "Independent (predictor) variable(s):", 
                          rv$content_stats, 
                          selected = NULL, 
                          multiple = TRUE
                          ),
           
+          checkboxInput(ns("include_interaction_lin_log_pois"), 
+                        label = "Include interaction (optional)"
+                        ),
+          
+          conditionalPanel(
+            condition = paste0("input['", ns("include_interaction_lin_log_pois"), 
+                               "'] == true "),
+            varSelectInput(ns("interactions"), 
+                           label = "Interacting variables:", 
+                           rv$content_stats, 
+                           selected = NULL, 
+                           multiple = TRUE
+            ),
+          ),
+          
+          conditionalPanel(
+            condition = paste0("input['", ns("regression_type"), 
+                               "'] == 'mixed' "),
+            uiOutput(ns("perform_mixed"))
+          ),
+
+          
           p("Selected regression formula:"),
-          renderPrint(formula_lin_log_pois()),
+          verbatimTextOutput(ns("formula_reg")),
           
           # Action button to actually perform regression once clicked
-          actionButton(ns("submit_lin_log_pois_regression"), 
+          actionButton(ns("submit_regression"), 
                        label = "Submit", 
                        class = "btn-success")
   
         )
-        
-      })
+      }) # end renderUI 
       
-      # Creating formulas for regression - creating separately so users can set up 
-      # and compare with other types of regression without refreshing
-      formula_lin_log_pois <- reactive({
+      
+      # Creating formulas for regression using formula() function defined in R/utils.R
+      # returns formula to pass into perform_regression() function also in utils.R
+      formula_reg <- reactive({
         req(rv$content_stats)
-        req(input$dependent_lin_log_pois)
-        req(input$indep_lin_log_pois) # [[1]]
+        req(input$dependent)
+        req(input$independents)
         
-        # formula() function defined in R/utils.R, returns formula for lm()
-        formula(input$dependent_lin_log_pois, input$indep_lin_log_pois)
+        # Remove interactions if not ticked to include
+        if(input$include_interaction_lin_log_pois == FALSE){
+          interactions <- NULL
+        } else {
+          interactions <- input$interactions
+        }
+        
+        # If checkbox to include interactions not checked, don't include
+        if(input$regression_type == "mixed"){
+          formula(input$regression_type, input$dependent, input$independents, 
+                  interactions, input$mixed_random_effects, 
+                  input$mixed_grouping_var)
+        } else {
+          formula(input$regression_type, input$dependent, input$independents, 
+                  interactions)
+        }
       })
       
       observe({
-        req(formula_lin_log_pois())
-        rv$formula_lin_log_pois <- formula_lin_log_pois()
+        req(formula_reg())
+        rv$formula_reg <- formula_reg()
+      })
+      
+      # Render text to display selected formula
+      output$formula_reg <- renderPrint({
+        formula_reg()
       })
       
       # When submit regression clicked, validate that regression is 
       # valid with try in need statement.
       # If error produced, indicate invalid with rv$is_valid_regression
       # If no error, save result of perform_regression() in rv
-      observeEvent(input$submit_lin_log_pois_regression, {
+      observeEvent(input$submit_regression, {
         req(rv$content_stats)
-        req(rv$formula_lin_log_pois)
+        req(rv$formula_reg)
         
         # First checking that regression can happen w try statement, 
-        reg_res <- try(perform_regression(rv$formula_lin_log_pois, 
+        reg_res <- try(perform_regression(rv$formula_reg, 
                                      input$regression_type,
                                      rv$content_stats))
-
         # If the try-catch produced error (class try-error), 
         # indicate with rv$is_valid_regression <- FALSE for global use 
         # If valid then indicate opposite 
-        if(class(reg_res) == "try-error"){
-          print("Regression Invalid")
-          print(reg_res)
+        if("try-error" %in% class(reg_res)){
           rv$is_valid_regression <- FALSE
-          rv$lin_log_pois_reg_error <- reg_res
-            
+          rv$reg_error <- reg_res
         } else { # regression is valid so save summary too
           rv$is_valid_regression <- TRUE
-          rv$lin_log_pois_summary_raw <- 
-            summary(perform_regression(rv$formula_lin_log_pois, 
+          rv$reg_result <- reg_res
+          rv$reg_summary_raw <- 
+            summary(perform_regression(rv$formula_reg, 
                                        input$regression_type,
                                        rv$content_stats))
         }
 
       }) # end observe event 
       
-      output$lin_log_pois_summary <- renderUI({
+      output$lin_log_pois_res <- renderUI({
         
         req(rv$content_stats)
-        # req(!is.null(rv$lin_log_pois_reg_res))
+        # req(!is.null(rv$reg_result_res))
         
         ns <- NS(id)
         
         # UI to be displayed if valid regression submitted
         validUI <- tagList(
-          h4("Regression Results Summary"), 
-          
-          verbatimTextOutput(ns("lin_log_pois_reg_table"))
-          
+          # Rendering results table as html output since using kable
+          htmlOutput(ns("reg_result"))
         )
         
         # UI to be displayed if regression produces error (invalid)
         invalidUI <- tagList(
-          
-          h4("Regression Results Summary"), 
           p("Submitted regression resulted in the following error:"),
-          
-          verbatimTextOutput(ns("lin_log_pois_reg_error"))
-          
+          verbatimTextOutput(ns("reg_error"))
+        )
+        
+        validate(
+          need(!is.null(rv$is_valid_regression), 
+               "Submit a valid formula to begin.")
         )
         
         if(rv$is_valid_regression){
           return(validUI)
-        } else {
+        } else if(!rv$is_valid_regression){
           return(invalidUI)
-        }
+        } 
         
       })
       
       # Render text with regression error if present
-      output$lin_log_pois_reg_error <- renderPrint({
-        rv$lin_log_pois_reg_error
+      output$reg_error <- renderPrint({
+        rv$reg_error
       })
       
       # Render datatable of regression results
-      output$lin_log_pois_reg_table <- renderPrint(
-        rv$lin_log_pois_summary_raw
-      )
-
-      #### Testing stuff ####
-      output$test_stats <- renderPrint({
-
-        req(rv$content_stats)
-        req(rv$formula_lin_log_pois)
+      output$reg_result <- renderText({
         
-        rv$is_valid_regression
-        rv$lin_log_pois_reg_res
-        
+        table <- sjPlot::tab_model(rv$reg_result, 
+                                   show.fstat = TRUE, 
+                                   show.aic = TRUE, 
+                                   show.se = TRUE, 
+                                   # show.std = TRUE, 
+                                   show.stat = TRUE,
+                                   CSS = list(
+                                     css.thead = 'font-size: 14px;', 
+                                     css.summary = 'font-weight: bold;'
+                                   ))
+        HTML(table$knitr)
       })
       
-      output$test_plot <- renderPlot({
-        req(rv$is_valid_regression)
-        plot(rv$lin_log_pois_reg_res)
+      # Rendering raw model output
+      output$reg_result_raw <- renderPrint({
+        
+        validate(
+          need(!is.null(rv$is_valid_regression), 
+               "Submit a valid formula to begin.")
+          )
+        
+        if(rv$is_valid_regression){
+          rv$reg_summary_raw
+        } else {
+          rv$reg_error
+        }
+        
+      })
+
+      
+      #### Perform mixed regression ####
+      # RenderUI to only render when linear, log or poisson regression option chosen
+      output$perform_mixed <- renderUI({
+        req(rv$content_stats)
+        
+        ns <- NS(id)
+        tagList(
+          
+          # Var selector for random effects
+          varSelectInput(ns("mixed_random_effects"), 
+                         label = "Random effect(s)", 
+                         rv$content_stats, 
+                         selected = NULL, 
+                         multiple = TRUE
+          ),
+          
+          # Var selector for grouping var
+          varSelectInput(ns("mixed_grouping_var"), 
+                         label = "Grouping variable", 
+                         rv$content_stats, 
+                         selected = NULL, 
+                         multiple = FALSE
+          ),
+
+        )
+      }) # end renderUI 
+      
+      # Creating correlation matrix for heatmap correlation plot
+      output$corr_plot <- renderPlotly({
+        
+        validate(
+          need(!is.null(rv$content_stats), 
+               "Submit text files to continue.")
+        )
+        
+        # Filtering to only include numeric data
+        content_stats_numeric <- rv$content_stats %>%
+          dplyr::select(where(is.numeric))
+        
+        # Creating correlation matrix
+        corr <- cor(content_stats_numeric)
+
+        # Reshaping data to has three cols (pair of vars & cor coef)
+        cor_melted <- melt(corr)
+        
+        plot_ly(data = cor_melted, x = ~Var1, 
+                y = ~Var2, z = ~value, type = "heatmap", 
+                colors = "RdBu") %>%
+          layout(title = "Correlation Heatmap", 
+                 xaxis = list(title = ""), 
+                 yaxis = list(title = "")) %>%
+          colorbar(limits = c(-1,1)) 
+
+      })
+      
+      
+      # Generating residual plots for fitted model
+      output$residual_plots <- renderPlot({
+        
+        validate(
+          need(!is.null(rv$is_valid_regression),
+               "Submit a valid formula to begin."),
+          need(rv$is_valid_regression, 
+               "Submit regression to begin.")
+        )
+        
+        if(input$regression_type == "mixed"){
+          plot(fitted(rv$reg_result), residuals(rv$reg_result), 
+               xlab = "Fitted", ylab = "Residuals")
+          abline(h = 0, lty = 2)
+          lines(smooth.spline(fitted(rv$reg_result), residuals(rv$reg_result)))
+        } else {
+          autoplot(rv$reg_result) + 
+            theme(panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank())
+        }
+
+        
       })
       
       

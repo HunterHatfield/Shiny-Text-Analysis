@@ -97,24 +97,15 @@ apply_transformation <- function(var, transformation){
   
   transformed_var <- switch(transformation,
                         "none" = var,
-                        "log" = 
-                          log(var + 1), 
-                        "sqrt" = 
-                          sqrt(var), 
-                        "arcsine" = 
-                          asin(sqrt(var)),
-                        "recip" = 
-                          1/var
+                        "log" = log(var + 1), 
+                        "sqrt" = sqrt(var), 
+                        "arcsine" = asin(sqrt(var)),
+                        "recip" = 1/var
                       )
   
   return(transformed_var)
   
 }
-
-
-
-
-
 
 #### formula function ####
 # Takes a list of dependent and list of independent variables and returns a formula
@@ -129,23 +120,30 @@ apply_transformation <- function(var, transformation){
 #   }
 # }
 # formula
-formula <- function(dependent, independent){
+formula <- function(regression_type, dependent, independent, 
+                    interactions = NULL, random_effects = NULL, grouping_var = NULL){
 
   # First create formula with dependent in front with "~"
   formula <- paste0(dependent, " ~ ")
   
-  #For each predictor selected in the var select list, append them to the formula
-  # except for the first variable which doesn't need a + before it
-  for(i in independent){
-    
-    # First make sure no spaces in the variable name
-    
-    if(i == independent[[1]]){
-      formula <- paste0(formula, independent[[1]])
-    } else {
-      formula <- paste0(formula, " + ", i)
-    }
-  }
+  # Combining list of independents into a string 
+  independents <- paste(independent, collapse = " + ")
+  
+  # Adding independents to the formula
+  formula <- paste0(formula, independents)
+
+  # if interactions are present then add them to formula before returning
+  if(!is.null(interactions)){
+    # Combining list of interactions into a string 
+    interactions_formula <- paste(interactions, collapse = "*")
+    formula <- paste0(formula, " + ", interactions_formula)
+  } 
+  
+  if(regression_type == "mixed"){
+    randoms_formula <- paste(random_effects, collapse = " + ")
+    mixed_formula <- paste("(", randoms_formula, "|", grouping_var, ")")
+    return(paste(formula, " + ", mixed_formula))
+  } 
   
   return(formula)
 }
@@ -163,6 +161,8 @@ perform_regression <- function(formula, regression_type, data){
     res <- glm(formula, family = binomial(link = "logit"), data)
   } else if(regression_type == "poisson"){
     res <- glm(formula, family = poisson(link = "log"), data)
+  } else if(regression_type == "mixed"){
+    res <- lmer(formula, data)
   }
 
   return(res)

@@ -161,6 +161,11 @@ main-sidebar .user-panel, .sidebar-menu, .sidebar-menu>li.header {
     background-color: royalblue;
 }
 
+/* tabsetPanel styling */
+.tab-content{
+    padding: 30px;
+}
+
 /* Notification styling */
 .shiny-notification-message{
     color:white;
