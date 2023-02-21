@@ -186,6 +186,16 @@ statsUI <- function(id){
                                  "'] == 'logistic' "),
               uiOutput(ns("info_logistic"))
             ),
+            conditionalPanel(
+              condition = paste0("input['", ns("regression_type"), 
+                                 "'] == 'poisson' "),
+              uiOutput(ns("info_poisson"))
+            ),
+            conditionalPanel(
+              condition = paste0("input['", ns("regression_type"), 
+                                 "'] == 'mixed' "),
+              uiOutput(ns("info_mixed"))
+            ),
             # Add other regression types
             
           ), # end information box
@@ -262,6 +272,23 @@ statsServer <- function(id, rv = rv){
         tagList(
           h3("Logistic Regression"),
           em("Information regarding logistic regression...")
+        )
+      })
+      
+      output$info_poisson <- renderUI({
+        ns <- NS(id)
+        tagList(
+          h3("Poisson Regression"),
+          em("Information regarding poisson regression...")
+        )
+      })
+      
+      output$info_mixed <- renderUI({
+        ns <- NS(id)
+        tagList(
+          h3("Mixed Effects Regression"),
+          em("Information regarding mixed effects regression..."), 
+          tags$a(href = "https://mspeekenbrink.github.io/sdam-r-companion/linear-mixed-effects-models.html")
         )
       })
 

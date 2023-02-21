@@ -139,8 +139,13 @@ formula <- function(regression_type, dependent, independent,
     formula <- paste0(formula, " + ", interactions_formula)
   } 
   
+  # If mixed regression selected, first check if random slopes added, 
+  # if not just 1 | intercept for the random formula
   if(regression_type == "mixed"){
-    randoms_formula <- paste(random_effects, collapse = " + ")
+    randoms_formula <- ifelse(length(random_effects) == 0, 
+                              paste("1"),
+                              paste(random_effects, collapse = " + "))
+    # randoms_formula <- paste(random_effects, collapse = " + ")
     mixed_formula <- paste("(", randoms_formula, "|", grouping_var, ")")
     return(paste(formula, " + ", mixed_formula))
   } 
@@ -162,7 +167,7 @@ perform_regression <- function(formula, regression_type, data){
   } else if(regression_type == "poisson"){
     res <- glm(formula, family = poisson(link = "log"), data)
   } else if(regression_type == "mixed"){
-    res <- lmer(formula, data)
+    res <- lme4::lmer(formula, data)
   }
 
   return(res)
