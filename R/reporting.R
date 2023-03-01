@@ -621,17 +621,11 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
 
       validate(need(rv$is_tokenised, NULL))
       
-      print("Printing content parameterised")
-      print(rv$content_parameterised)
-      
       dat <- rv$content_parameterised %>%
         filter(ID == rv$content_single_ID) %>%
         count(Token, sort=T) %>%
         mutate(Proportion = n/sum(n)) %>% # proportion calc
         mutate(Source = rv$content_single_ID)
-      
-      print("Content param single created:")
-      print(dat)
       
       dat
 
@@ -674,10 +668,6 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
 
       # Assigning col names
       colnames(content_comp_freq) <- c("Token", "Single", "Corpus")
-      print(colnames(content_comp_freq))
-      print(content_param_single())
-      print(content_param_rest())
-      print(content_comp_freq)
 
       # Calculating difference in proportions of each token
       # between the single file and rest of corpus.
@@ -1062,10 +1052,14 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     })
 
     ####  Interactive data table ####
-
-    output$interact_DT <- DT::renderDataTable(
+    interact_DT <- reactive({
+      req(rv$content_tf_idf)
+      
       rv$content_tf_idf %>%
-        dplyr::select(-tf),
+        dplyr::select(-tf)
+    })
+    output$interact_DT <- DT::renderDataTable(
+      interact_DT(),
       options = list(
         # dom = "tfirp",
         ordering = TRUE,

@@ -121,7 +121,9 @@ apply_transformation <- function(var, transformation){
 # }
 # formula
 formula <- function(regression_type, dependent, independent, 
-                    interactions = NULL, random_effects = NULL, grouping_var = NULL){
+                    interactions = NULL, random_slope_1 = NULL, 
+                    random_intercept_1 = NULL, 
+                    random_slope_2 = NULL, random_intercept_2 = NULL){
 
   # First create formula with dependent in front with "~"
   formula <- paste0(dependent, " ~ ")
@@ -142,12 +144,25 @@ formula <- function(regression_type, dependent, independent,
   # If mixed regression selected, first check if random slopes added, 
   # if not just 1 | intercept for the random formula
   if(regression_type == "mixed"){
-    randoms_formula <- ifelse(length(random_effects) == 0, 
+    randoms_formula_1 <- ifelse(length(random_slope_1) == 0, 
                               paste("1"),
-                              paste(random_effects, collapse = " + "))
-    # randoms_formula <- paste(random_effects, collapse = " + ")
-    mixed_formula <- paste("(", randoms_formula, "|", grouping_var, ")")
-    return(paste(formula, " + ", mixed_formula))
+                              paste(random_slope_1, collapse = " + "))
+    mixed_formula_1 <- paste("(", randoms_formula_1, "|", random_intercept_1, ")")
+    
+    # Checking if a secondary term selected
+    if(length(random_intercept_2) > 0){
+      randoms_formula_2 <- ifelse(length(random_slope_2) == 0, 
+                                  paste("1"),
+                                  paste(random_slope_2, collapse = " + "))
+      mixed_formula_2 <- paste("(", randoms_formula_2, "|", random_intercept_2, ")")
+      
+      return(paste(formula, " + ", mixed_formula_1, " + ", mixed_formula_2))
+      
+    } else {
+      
+      return(paste(formula, " + ", mixed_formula_1))
+    }
+
   } 
   
   return(formula)

@@ -44,6 +44,7 @@ library(lme4)
 library(plotly)
 library(reshape2)
 library(ggfortify)
+library(nortest)
 
 # Setting shiny options
 # file upload limit to 10MB (override 5MB limit)
@@ -64,7 +65,7 @@ textApp <- function(...){
       sidebarMenu(id = "sidebar",
         menuItem("Home", 
                  tabName = "home", 
-                 icon = icon("home")
+                 icon = icon("house")
                  ),
         menuItem("Text Selector", 
                  tabName = "textSelectorTab",
@@ -81,7 +82,7 @@ textApp <- function(...){
         ),
         menuItem("Statistical Analysis", 
                  tabName = "statsTab",
-                 icon = icon("bar-chart")
+                 icon = icon("chart-column")
         ),
                  
        menuItem("Reporting", 

@@ -24,6 +24,9 @@ statsUI <- function(id){
                                    "Parameterised data" = "parameterised", 
                                    "Tf-idf data" = "tfidf"
                                  )),
+                     hr(),
+                     checkboxInput(ns("show_eda_summary_stats"), 
+                                   label = "Show summary statistics")
           
         ),
         
@@ -31,7 +34,8 @@ statsUI <- function(id){
           
           wellPanel(
             h3("Selected Data"),
-            DT::dataTableOutput(ns("content_stats_display"))
+            
+            uiOutput(ns("content_stats_display"))
           ),
 
           
@@ -126,98 +130,122 @@ statsUI <- function(id){
                                       "N/A")
                  ),
                  
+                 radioButtons(ns("normality_test_type"), 
+                              label = "Type of statistical test:", 
+                              choices = list("Shapiro-Wilk (default)" = "shapiro", 
+                                             "Anderson-Darling (n > 500)" = "anderson"))
+                 
                  ), # end normality testing column
-          column(width = 6, 
+          column(width = 5, 
                  plotOutput(ns("eda_qqplot"))
                  ),
-          column(width = 3, 
-                 h3("Shapiro-Wilk Statistical Test"),
-                 em("Used to test whether the selected variable approximates a normal distribution. A significantly low p-value indicates the null hypothesis of normality can be rejected."),
+          column(width = 4, 
+                 h3("Statistical Test for Normality"),
+                 p("Used to test whether the selected variable approximates a normal distribution. A significantly low p-value indicates the null hypothesis of normality can be rejected."),
                  hr(),
-                 wellPanel(
-                   tableOutput(ns("eda_shapiro_wilk")),
+                 
+                 # Render the different statistical tests for normality depending on user
+                 # selection
+                 conditionalPanel(
+                   condition = paste0("input['", ns("normality_test_type"), 
+                                      "'] == 'shapiro' "),
+                   verbatimTextOutput(ns("eda_shapiro_wilk")),
                  ),
+                 conditionalPanel(
+                   condition = paste0("input['", ns("normality_test_type"), 
+                                      "'] == 'anderson' "),
+                   verbatimTextOutput(ns("eda_anderson_darling"))
+                 ),
+                 
                  ),
         ) # end fluid row
 
       ), # end EDA well panel
       
-      box(title = NULL, 
-          status = "success", 
-          solidHeader = T, 
-          collapsible = T,
-          width = 12,
+      fluidRow(
+        
+        
+          box(title = NULL, 
+              status = "success", 
+              solidHeader = T, 
+              collapsible = T,
+              width = 12,
+              
+              plotlyOutput(ns("corr_plot")),
+              
+          ), # end box
           
-          plotlyOutput(ns("corr_plot")),
           
-      ), # end box
-      
-      sidebarLayout(
-        sidebarPanel(
-          width = 3,
-          
-          h3("Regression Type"),
-          em("Select a type of regression to show a brief summary of the method and perform an analysis"),
-          hr(),
-          radioButtons(ns("regression_type"), 
-                       label = NULL,
-                       choices = list("Linear" = "linear", 
-                                      "Logistic" = "logistic", 
-                                      "Poisson" = "poisson", 
-                                      "Mixed effects" = "mixed"
-                                      )
-          ),
-          
-        ), # end sidebar panel
-        mainPanel(
-          width = 9,
-          box(
-            status = "primary",
-            width = 12,
-            
-            # Here render UI based on radio button selection
-            conditionalPanel(
-              condition = paste0("input['", ns("regression_type"), 
-                                 "'] == 'linear' "),
-              uiOutput(ns("info_linear"))
-            ),
-            conditionalPanel(
-              condition = paste0("input['", ns("regression_type"), 
-                                 "'] == 'logistic' "),
-              uiOutput(ns("info_logistic"))
-            ),
-            conditionalPanel(
-              condition = paste0("input['", ns("regression_type"), 
-                                 "'] == 'poisson' "),
-              uiOutput(ns("info_poisson"))
-            ),
-            conditionalPanel(
-              condition = paste0("input['", ns("regression_type"), 
-                                 "'] == 'mixed' "),
-              uiOutput(ns("info_mixed"))
-            ),
-            # Add other regression types
-            
-          ), # end information box
-          
-        ), # end main panel
-      ), # end sidebar layout
+      ), # end corr plot fluid row
       
       wellPanel(
         h2("Regression Analysis"), 
-        p("Perform a customisable regression analysis."),
+        p("Perform regression analysis to gain a deeper understanding of the relationships between your variables and to uncover patterns and insights in your data."),
+        em("Disclaimer: Not all regression models make sense, and the validity of results from a regression model depends on several factors. Please consider carefully whether the models you fit are appropriate for your data. "),
         hr(), 
         
         fluidRow(
+            column(
+              width = 4,
+              
+              h3("Regression Type"),
+              p("Select a type of regression to show a brief summary of the method and perform an analysis"),
+              
+              hr(),
+              radioButtons(ns("regression_type"), 
+                           label = NULL,
+                           choices = list("Linear" = "linear", 
+                                          "Logistic" = "logistic", 
+                                          "Poisson" = "poisson", 
+                                          "Mixed effects" = "mixed"
+                           )
+              ),
+              
+            ), # end column
+            
+            column(
+              width = 8,
+              box(
+                status = "primary",
+                width = 12,
+                
+                # Here render UI based on radio button selection
+                conditionalPanel(
+                  condition = paste0("input['", ns("regression_type"), 
+                                     "'] == 'linear' "),
+                  uiOutput(ns("info_linear"))
+                ),
+                conditionalPanel(
+                  condition = paste0("input['", ns("regression_type"), 
+                                     "'] == 'logistic' "),
+                  uiOutput(ns("info_logistic"))
+                ),
+                conditionalPanel(
+                  condition = paste0("input['", ns("regression_type"), 
+                                     "'] == 'poisson' "),
+                  uiOutput(ns("info_poisson"))
+                ),
+                conditionalPanel(
+                  condition = paste0("input['", ns("regression_type"), 
+                                     "'] == 'mixed' "),
+                  uiOutput(ns("info_mixed"))
+                ),
+                # Add other regression types
+                
+              ), # end information box
+            ), # end column
           
+        ), # end regression type & info fluid row
+        
+        hr(), 
+        
+        fluidRow(
           column(width = 4, 
-                 
                  # Here render UI based on radio button selection
-                 # Rendering same ui to choose vars for liner, log and poisson, 
-                 # however different ui for mixed regression to choose random & fixed effects
-                 uiOutput(ns("perform_lin_log_pois"))
-                 
-                 
+                 # Rendering same ui to choose vars for liner, log 
+                 # and poisson, however different ui for mixed 
+                 # regression to choose random & fixed effects
+                 uiOutput(ns("perform_regression"))
                  ),
           
           column(width = 8, 
@@ -245,6 +273,28 @@ statsUI <- function(id){
         ),
         
       ), # end model checking well panel
+      
+    
+      wellPanel(
+        fluidRow(
+        h2("Analysis of Variances (ANOVA)"),
+        p("Perform simple and factorial ANOVA based on previously specified formulas."),
+        
+        column(width = 12, 
+               wellPanel(
+                 tabsetPanel(
+                   tabPanel("Tabularised summary", 
+                            verbatimTextOutput(ns("anova_res_raw"))
+                   ), 
+                   tabPanel("Raw model summary", 
+                            # verbatimTextOutput(ns("anova_res_raw"))
+                   )
+                 ),
+               )
+          ),
+          
+        ), # end anova well panel
+      )
       
       
     ) # end fluidPage
@@ -313,7 +363,6 @@ statsServer <- function(id, rv = rv){
             dplyr::select(-`Term freq.`, -`Mean token count`, -`Corpus token count`) %>%
             clean_names()
         }
-        
       })
       
       # Ensuring rv$content_stats updated to content_stats() created above
@@ -322,31 +371,86 @@ statsServer <- function(id, rv = rv){
         rv$content_stats <- content_stats()
       })
       
-      # observeEvent(input$content_stats_choose == "submitted", {
-        output$content_stats_display <- DT::renderDataTable(
-          rv$content_stats,
-          options = list(
-            paging = TRUE,
-            pageLength = 5,
-            scrollX = TRUE,
-            scrollY = TRUE,
-            dom = 'frtip',
-            columnDefs =
-              list(
-                list(targets = 1,
-                     render = JS("function(data, type, row, meta) {",
-                                 "return type === 'display' && data.length > 100 ?",
-                                 "'<span title=\"' + data + '\">' + data
-                          .substr(0, 100) + '...</span>' : data;","}"
-                     )
-                )
+      # Table output for raw content stats
+      output$content_stats_raw <- DT::renderDataTable(
+        rv$content_stats,
+        options = list(
+          paging = TRUE,
+          pageLength = 5,
+          scrollX = TRUE,
+          scrollY = TRUE,
+          dom = 'frtip',
+          columnDefs =
+            list(
+              list(targets = 1,
+                   render = JS("function(data, type, row, meta) {",
+                               "return type === 'display' && data.length > 100 ?",
+                               "'<span title=\"' + data + '\">' + data
+                        .substr(0, 100) + '...</span>' : data;","}"
+                   )
               )
-          ),
-          selection = 'none',
-          rownames = FALSE
+            )
+        ),
+        selection = 'none',
+        rownames = FALSE
+      )
+      
+      # Glimpse from finalfit package used to show summary stats
+      eda_summary_stats <- reactive({
+        req(rv$content_stats)
+        finalfit::ff_glimpse(rv$content_stats)
+      })
+      
+      # Saving only the summary stats for continuous variables
+      observe({
+        req(eda_summary_stats())
+        rv$content_stats_summary <- eda_summary_stats()$Continuous
+      })
+      
+      # Table output for summary stats for content stats selected
+      output$content_stats_summary <- renderDataTable({
+        DT::datatable(rv$content_stats_summary,
+                      rownames=FALSE, 
+                      colnames = c("", "N", "Missing N", "Missing %", "Mean", "SD", "Min", "25% quartile", "Median", "75% quartile", "Max"),
+                      options = list(dom = 't', 
+                                     scrollX = TRUE, 
+                                     paging=FALSE,
+                                     fixedColumns = list(leftColumns = 1, 
+                                                         rightColumns = 0),
+                                     searching = FALSE
+                      )
         )
-      # }) # end observe event
-  
+      })
+      
+      # Generating ui for content stats display. If user selects checkbox to 
+      # show summary stats, this will be rendered instead of raw data
+      output$content_stats_display <- renderUI({
+        validate(
+          need(
+            rv$content_stats,
+            "Select and submit text data to continue"
+          ),
+          
+          errorClass = "validation-red")
+        
+        ns <- NS(id)
+        raw <- tagList(
+          DT::dataTableOutput(ns("content_stats_raw"))
+        )
+        
+        summary_stats <- tagList(
+          
+          DT::dataTableOutput(ns("content_stats_summary"))
+        )
+        
+        # Rendering either raw or summary of content stats depending on input
+        if(input$show_eda_summary_stats){
+          summary_stats
+        } else {
+          raw
+        }
+        
+      })
       #### Exploratory data analysis ####
       
       # Updates dropdown for histogram to column names as soon 
@@ -385,7 +489,6 @@ statsServer <- function(id, rv = rv){
       # applies the given transformation based on inputted variable and returns
       # transformed vector
       eda_hist_plot_var <- reactive({
-        
         selected_var <- input$eda_hist_var
         transformation <- input$eda_transformation
         
@@ -397,11 +500,6 @@ statsServer <- function(id, rv = rv){
       # Validate statements to ensure numeric value selected for histogram
       # Not neccessary to check if tokenised anymore
       eda_hist_plot <- reactive({
-        # validate(need(
-        #   rv$is_tokenised,
-        #   "Submit and tokenise data to continue analysis."),
-        #   errorClass = "validation-italic")
-
         req(rv$content_stats)
 
         validate(
@@ -451,6 +549,7 @@ statsServer <- function(id, rv = rv){
         }
       })
       
+      # When button clicked to save transformation...
       observeEvent(input$eda_save_transformed_var, {
         req(rv$content_stats)
         req(eda_hist_plot_var())
@@ -481,6 +580,7 @@ statsServer <- function(id, rv = rv){
         
       })
       
+      # Rendering qqplot
       output$eda_qqplot <- renderPlot({
         
         req(eda_normality_var())
@@ -489,21 +589,39 @@ statsServer <- function(id, rv = rv){
         
       })
       
-      output$eda_shapiro_wilk <- renderTable({
-        shapiro_test <- shapiro.test(eda_normality_var())
-        
-        res <- tibble("Statistic" = shapiro_test$statistic, 
-                      "p-value" = shapiro_test$p.value)
-        res
-      }, 
-      align = 'c', # aligning in center
-      digits = -1, # negative value means scientific format used
-      )
+      #### Normality statistical tests ####
+      # Saving shapiro wilk test result
+      shapiro_wilk_res <- reactive({
+        req(eda_normality_var())
+        shapiro.test(eda_normality_var())
+      })
+      
+      # Saving Anderson-darling test result
+      anderson_darling_res <- reactive({
+        req(eda_normality_var())
+        nortest::ad.test(eda_normality_var())
+      })
+      
+      # saving shapiro result in reactive value list
+      observe({
+        rv$shapiro_wilk_res <- shapiro_wilk_res()
+        rv$anderson_darling_res <- anderson_darling_res()
+      })
+      
+      # Rendering table with shapiro-wilk result
+      output$eda_shapiro_wilk <- renderPrint({
+        rv$shapiro_wilk_res
+      })
+      
+      # Rendering table with Anderson-darling result
+      output$eda_anderson_darling <- renderPrint({
+        rv$anderson_darling_res
+      })
       
       
       #### Perform regression ####
       # RenderUI to only render when linear, log or poisson regression option chosen
-      output$perform_lin_log_pois <- renderUI({
+      output$perform_regression <- renderUI({
         req(rv$content_stats)
         
         ns <- NS(id)
@@ -529,6 +647,7 @@ statsServer <- function(id, rv = rv){
                         label = "Include interaction (optional)"
                         ),
           
+          # If include interaction box ticked, 
           conditionalPanel(
             condition = paste0("input['", ns("include_interaction_lin_log_pois"), 
                                "'] == true "),
@@ -576,8 +695,9 @@ statsServer <- function(id, rv = rv){
         # If checkbox to include interactions not checked, don't include
         if(input$regression_type == "mixed"){
           formula(input$regression_type, input$dependent, input$independents, 
-                  interactions, input$mixed_random_effects, 
-                  input$mixed_grouping_var)
+                  interactions, input$mixed_random_slopes_1, 
+                  input$mixed_random_intercept_1, input$mixed_random_slopes_2, 
+                  input$mixed_random_intercept_2)
         } else {
           formula(input$regression_type, input$dependent, input$independents, 
                   interactions)
@@ -661,6 +781,7 @@ statsServer <- function(id, rv = rv){
       })
       
       # Render datatable of regression results
+      # Using tab_model to generate, then returning HTML
       output$reg_result <- renderText({
         
         table <- sjPlot::tab_model(rv$reg_result, 
@@ -701,24 +822,54 @@ statsServer <- function(id, rv = rv){
         ns <- NS(id)
         tagList(
           
-          # Var selector for random effects
-          varSelectInput(ns("mixed_random_effects"), 
-                         label = "Random effect(s)", 
-                         rv$content_stats, 
-                         selected = NULL, 
-                         multiple = TRUE
+          fluidRow(
+            column(width = 6, 
+                   # Var selector for random effects
+                   varSelectInput(ns("mixed_random_slopes_1"), 
+                                  label = "Random slope(s)", 
+                                  rv$content_stats, 
+                                  selected = NULL, 
+                                  multiple = TRUE
+                   ),
+                  ), 
+            column(width = 6, 
+                   # Var selector for random effects
+                   varSelectInput(ns("mixed_random_slopes_2"), 
+                                  label = "Secondary random slope(s) (optional)", 
+                                  rv$content_stats, 
+                                  selected = NULL, 
+                                  multiple = TRUE)
+                   ),
           ),
-          
-          # Var selector for grouping var
-          varSelectInput(ns("mixed_grouping_var"), 
-                         label = "Grouping variable", 
-                         rv$content_stats, 
-                         selected = NULL, 
-                         multiple = FALSE
-          ),
-
-        )
+            
+          fluidRow(
+            column(width = 6, 
+                   
+                   # Var selector for grouping var
+                   varSelectInput(ns("mixed_random_intercept_1"), 
+                                  label = "Random intercept", 
+                                  rv$content_stats, 
+                                  selected = NULL, 
+                                  multiple = FALSE)
+                   ),
+            
+            column(width = 6, 
+                   # varSelectize used to enable nothing to be selected
+                   varSelectizeInput(ns("mixed_random_intercept_2"),
+                                     label = 
+                                       "Secondary random intercept 
+                                     (optional)",
+                                     rv$content_stats,
+                                     selected = NULL,
+                                     options = list(create = TRUE, 
+                                                    maxItems = 1))
+             )
+             
+            )
+          )
       }) # end renderUI 
+      
+      
       
       # Creating correlation matrix for heatmap correlation plot
       output$corr_plot <- renderPlotly({
@@ -733,19 +884,26 @@ statsServer <- function(id, rv = rv){
           dplyr::select(where(is.numeric))
         
         # Creating correlation matrix
-        corr <- cor(content_stats_numeric)
+        corr <- round(cor(content_stats_numeric), 3)
 
         # Reshaping data to has three cols (pair of vars & cor coef)
         cor_melted <- melt(corr)
         
-        plot_ly(data = cor_melted, x = ~Var1, 
-                y = ~Var2, z = ~value, type = "heatmap", 
-                colors = "RdBu") %>%
-          layout(title = "Correlation Heatmap", 
-                 xaxis = list(title = ""), 
-                 yaxis = list(title = "")) %>%
-          colorbar(limits = c(-1,1)) 
+        # Generating heat map with ggplot
+        ggheatmap <- ggplot(cor_melted, aes(Var2, Var1, fill = value))+
+          geom_tile()+
+          geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+          scale_fill_gradient2(low = "royalblue", high = "darkred", mid = "white", 
+                               midpoint = 0, limit = c(-1,1), space = "Lab", 
+                               name="Pearson\nCorrelation") +
+          theme_minimal() + # minimal theme
+          theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                           size = 12, hjust = 1)
+                ) +
+          ggtitle("Correlation matrix heatmap")
 
+        # Converting ggplot object into plotly object to be interactive
+        ggplotly(ggheatmap)
       })
       
       
@@ -770,7 +928,15 @@ statsServer <- function(id, rv = rv){
                   panel.grid.minor = element_blank())
         }
 
+      })
+      
+      output$anova_res_raw <- renderPrint({
+        req(rv$formula_reg)
+        req(rv$is_valid_regression)
         
+        aov_res <- aov(rv$formula_reg, data = rv$content_stats)
+        
+        print(aov_res)
       })
       
       

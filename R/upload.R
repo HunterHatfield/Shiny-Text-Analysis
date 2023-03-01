@@ -35,7 +35,6 @@ uploadUI <- function(id, label = "Choose file(s):"){
     hr(),
     
     wellPanel(
-      # h3(textOutput(ns("title2"))), # looks better without
       em(textOutput(ns("selected_subtitle"))),
       DT::dataTableOutput(ns("file_display")),
     ),
