@@ -45,6 +45,8 @@ library(plotly)
 library(reshape2)
 library(ggfortify)
 library(nortest)
+library(rstatix)
+library(schoRsch)
 
 # Setting shiny options
 # file upload limit to 10MB (override 5MB limit)

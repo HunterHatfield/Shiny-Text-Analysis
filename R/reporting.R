@@ -782,20 +782,33 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
       comp_freq_plot()
     })
 
+    # Saving correlation test result in rv list
     observe({
-
       req(rv$content_parameterised)
       req(rv$content_comp_freq$Single)
       req(rv$content_comp_freq$Corpus)
-
-      rv$cor_test <- cor.test(rv$content_comp_freq$Single,
-                              rv$content_comp_freq$Corpus)
+      
+      # First checking that corr test can happen w try statement, 
+      corr_test <- try(cor.test(rv$content_comp_freq$Single,
+                                rv$content_comp_freq$Corpus))
+      # If the try-catch produced error (class try-error), indicate this
+      if("try-error" %in% class(corr_test)){
+        rv$cor_test <- "Error"
+      } else { 
+        rv$cor_test <- cor.test(rv$content_comp_freq$Single,
+                                rv$content_comp_freq$Corpus)
+      }
 
     })
 
+    # Rendering the correlation test result to display
     output$cor_value <- renderText({
-
-      if(!is.null(rv$cor_test)){
+      req(rv$cor_test)
+      
+      # If correlation test try() produced an error, save this
+      if("Error" %in% rv$cor_test){
+        text <- paste0("Error: Not enough finite observations to perform correlation test.")
+      } else {
         text <- paste(c("The estimate of correlation obtained
                  from a product-moment
                  correaltion test is ",
@@ -806,11 +819,9 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
                  format(round(rv$cor_test$conf.int[2], 3)),
                  ").")
                  )
-        return(text)
-
-      } else {
-        return(NULL)
       }
+      
+      return(text)
 
     })
 

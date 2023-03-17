@@ -25,9 +25,29 @@ statsUI <- function(id){
                                    "Tf-idf data" = "tfidf"
                                  )),
                      hr(),
+                     
+                     h3("Data filtering"),
+                     p("Use the interactive datatable to filter attributes of your text data. Save your filtered data to use in further analyses."),
+                     
+                     fluidRow(
+                       column(width = 6, 
+                              actionButton(ns("submit_filters"), 
+                                           label = "Submit filters", 
+                                           class = "btn-primary")
+                              ),
+                       column(width = 6, 
+                              actionButton(ns("undo_filters"), 
+                                           label = "Undo filters", 
+                                           class = "btn-danger")
+                              )
+                     ),
+                     
+                     hr(),
+                     
+                     h3("Summary statistics"),
+                     p("Render summary statistics for your selected data using the checkbox option below."),
                      checkboxInput(ns("show_eda_summary_stats"), 
                                    label = "Show summary statistics")
-          
         ),
         
         mainPanel(width = 9,
@@ -36,9 +56,9 @@ statsUI <- function(id){
             h3("Selected Data"),
             
             uiOutput(ns("content_stats_display"))
+            
           ),
 
-          
         ),
       ),
       
@@ -163,8 +183,6 @@ statsUI <- function(id){
       ), # end EDA well panel
       
       fluidRow(
-        
-        
           box(title = NULL, 
               status = "success", 
               solidHeader = T, 
@@ -276,24 +294,81 @@ statsUI <- function(id){
       
     
       wellPanel(
-        fluidRow(
-        h2("Analysis of Variances (ANOVA)"),
-        p("Perform simple and factorial ANOVA based on previously specified formulas."),
         
-        column(width = 12, 
-               wellPanel(
-                 tabsetPanel(
-                   tabPanel("Tabularised summary", 
-                            verbatimTextOutput(ns("anova_res_raw"))
-                   ), 
-                   tabPanel("Raw model summary", 
-                            # verbatimTextOutput(ns("anova_res_raw"))
-                   )
-                 ),
-               )
-          ),
-          
-        ), # end anova well panel
+        h2("Further Statistical Testing"),
+        p("Perform analyses of variances, t-tests, and/or Chi-squared tests based on previously specified formulas."),
+        hr(),
+        
+         navlistPanel(
+           tabPanel(
+             
+             "Analysis of Variances (ANOVA)", 
+                    h3("Analysis of Variances (ANOVA)"),
+                    p("The ANOVA test is used to determine if there is a statistically significant difference between the means of three or more independent groups."),
+                    hr(),
+             
+               tabsetPanel(
+                 tabPanel("Tabularised summary", tableOutput(ns("anova_table"))), 
+                 tabPanel("Raw model summary", verbatimTextOutput(ns("anova_res_raw")))
+               ),
+           ), 
+           tabPanel("T-test", 
+                    h3("T-test"), 
+                    p("A t-test is a statistical test used to determine if their is a significant difference in the means of two independent groups being compared."),
+                    hr(),
+                    tabsetPanel(
+                      tabPanel("Tabularised summary", htmlOutput(ns("t_test_res_table"))), 
+                      tabPanel("Raw model summary", verbatimTextOutput(ns("t_test_res_raw")))
+                    ),
+           ), 
+           tabPanel("Chi-square test", 
+                    h3("Chi-square test"), 
+                    p("The Chi-square test is used to determine whether there is a significant association between two categorical variables."),
+                    hr(),
+                    uiOutput(ns("perform_chisq"))
+                    
+           ), 
+           tabPanel("Non-parametric tests", 
+                    
+                    h3("Non-parametric Tests"),
+                    p("Non-parametric tests do not require any assumptions to be made about data being analyzed, so can be used to analyze data that is not normally distributed or does not meet the assumptions of parametric tests."),
+                    hr(),
+                    
+                    tabsetPanel(
+                      tabPanel("Kruskal-Wallis", 
+                               
+                               h3("Kruskal-Wallis"), 
+                               p("The Kruskal-Wallis test is used to test whether there are statistically significant differences between the medians of two or more independent groups. As this test is non-parametric, it does not assume normality of residuals.
+The parametric equivalent of the Kruskal-Wallis is the one-way ANOVA."),
+                               
+                               verbatimTextOutput(ns("kw_res")),
+                               
+                               ), 
+                      tabPanel("Welch one-way test", 
+                               
+                               h3("Welch one-way test"),
+                               p("The Welch one-way test is used to test if there is a statistically significant difference in the means of two or more groups. This test is useful when the assumption of equal variances between groups is violated."),
+                               p("The parametric equivalent of the Welch one-way test is the independent samples t-test."),
+                               
+                               verbatimTextOutput(ns("welch_res")),
+                               
+                               ),
+                      
+                      tabPanel("Mann-Whitney U Test", 
+                               
+                               h3("Mann-Whitney U Test"),
+                               p("The Mann-Whitney U Test (also know as the Wilcoxon rank-sum test) is used to compare two independent samples which are not normally distributed and of small size (n < 30)"),
+                               p("The parametric equivalent of this test is the two-sample independent t-test."),
+                               
+                               verbatimTextOutput(ns("mann_wil_res")),
+                               
+                      ),
+                      
+                      
+                    ), # end tabset panel of non-para tests
+                  
+           ), 
+         ),
       )
       
       
@@ -307,40 +382,6 @@ statsServer <- function(id, rv = rv){
   moduleServer(
     id, 
     function(input, output, session){
-      
-      #### Information on regression types ####
-      output$info_linear <- renderUI({
-        ns <- NS(id)
-        tagList(
-          h3("Linear Regression"),
-          em("Information regarding linear regression...")
-        )
-      })
-
-      output$info_logistic <- renderUI({
-        ns <- NS(id)
-        tagList(
-          h3("Logistic Regression"),
-          em("Information regarding logistic regression...")
-        )
-      })
-      
-      output$info_poisson <- renderUI({
-        ns <- NS(id)
-        tagList(
-          h3("Poisson Regression"),
-          em("Information regarding poisson regression...")
-        )
-      })
-      
-      output$info_mixed <- renderUI({
-        ns <- NS(id)
-        tagList(
-          h3("Mixed Effects Regression"),
-          em("Information regarding mixed effects regression..."), 
-          tags$a(href = "https://mspeekenbrink.github.io/sdam-r-companion/linear-mixed-effects-models.html")
-        )
-      })
 
       #### Creating contents_stats to be used  ####
       # Content stats is rendered to be whatever is selected in drop-down
@@ -374,6 +415,7 @@ statsServer <- function(id, rv = rv){
       # Table output for raw content stats
       output$content_stats_raw <- DT::renderDataTable(
         rv$content_stats,
+        filter = 'top',
         options = list(
           paging = TRUE,
           pageLength = 5,
@@ -439,7 +481,6 @@ statsServer <- function(id, rv = rv){
         )
         
         summary_stats <- tagList(
-          
           DT::dataTableOutput(ns("content_stats_summary"))
         )
         
@@ -451,6 +492,32 @@ statsServer <- function(id, rv = rv){
         }
         
       })
+      
+      #### Filtering data #####
+      # When submit filters clicked, subset content_stats by filtered rows
+      observeEvent(input$submit_filters, {
+        
+        req(rv$content_stats)
+        
+        # Creating temporary storage hold 
+        temp <- rv$content_stats
+        
+        # Subsetting content_stats by filters
+        rv$content_stats <- 
+          temp[input[["content_stats_raw_rows_all"]], ]
+        
+      })
+      
+      # When undo filters button clicked, revert content_stats to original
+      observeEvent(input$undo_filters, {
+        
+        req(content_stats()) # require original reactive value
+        
+        rv$content_stats <- content_stats() # revert to original 
+        
+      })
+      
+      
       #### Exploratory data analysis ####
       
       # Updates dropdown for histogram to column names as soon 
@@ -554,21 +621,24 @@ statsServer <- function(id, rv = rv){
         req(rv$content_stats)
         req(eda_hist_plot_var())
         
-        # Create copy of content_stats to avoid rv$content_stats calling itself
-        temp <- cbind(rv$content_stats, 
-                      "Transformed var" = eda_hist_plot_var())
-        
-        rv$content_stats <- temp
-        
-        # Renaming column name to transformation and variable used 
-        colnames(rv$content_stats)[which(names(rv$content_stats) == "Transformed var")] <- paste0(input$eda_transformation, "_", input$eda_hist_var)
+        if(input$eda_transformation != "none"){
+          # Create copy of content_stats to avoid rv$content_stats calling itself
+          temp <- cbind(rv$content_stats, 
+                        "Transformed var" = eda_hist_plot_var())
+          rv$content_stats <- temp
+          
+          # Renaming column name to transformation and variable used 
+          colnames(rv$content_stats)[which(names(rv$content_stats) == "Transformed var")] <- paste0(input$eda_transformation, "_", input$eda_hist_var)
+        }
         
       }) # end observe event save transformed var
       
+      # Isolating and saving the selected variable to use in normality testing
       eda_normality_var <- reactive({
         req(rv$content_stats)
         var <- rv$content_stats[[input$eda_normality_var]]
         
+        # ensuring variable is numeric
         validate(
           need(
             is_numeric(var),
@@ -582,7 +652,6 @@ statsServer <- function(id, rv = rv){
       
       # Rendering qqplot
       output$eda_qqplot <- renderPlot({
-        
         req(eda_normality_var())
         qqnorm(eda_normality_var())
         qqline(eda_normality_var())
@@ -593,29 +662,71 @@ statsServer <- function(id, rv = rv){
       # Saving shapiro wilk test result
       shapiro_wilk_res <- reactive({
         req(eda_normality_var())
+        req(length(eda_normality_var()) < 5000)
+        
         shapiro.test(eda_normality_var())
       })
       
       # Saving Anderson-darling test result
       anderson_darling_res <- reactive({
         req(eda_normality_var())
+        req(length(eda_normality_var()) > 7)
+        
         nortest::ad.test(eda_normality_var())
       })
       
-      # saving shapiro result in reactive value list
+      # saving SW & AD results in reactive value list
       observe({
-        rv$shapiro_wilk_res <- shapiro_wilk_res()
         rv$anderson_darling_res <- anderson_darling_res()
+        rv$shapiro_wilk_res <- shapiro_wilk_res()
       })
       
       # Rendering table with shapiro-wilk result
       output$eda_shapiro_wilk <- renderPrint({
-        rv$shapiro_wilk_res
+        
+        # If SW length too high thus null, give user instructions 
+        ifelse(length(eda_normality_var()) > 5000, 
+               paste0("n > 5000, use Anderson-Darling test for normality."), 
+               rv$shapiro_wilk_res)
       })
       
       # Rendering table with Anderson-darling result
       output$eda_anderson_darling <- renderPrint({
         rv$anderson_darling_res
+      })
+      
+      #### Information on regression types ####
+      output$info_linear <- renderUI({
+        ns <- NS(id)
+        tagList(
+          h3("Linear Regression"),
+          p("Linear regression is a statistical method used to predict a continuous outcome variable based on one or more predictor variables.")
+        )
+      })
+      
+      output$info_logistic <- renderUI({
+        ns <- NS(id)
+        tagList(
+          h3("Logistic Regression"),
+          em("Information regarding logistic regression...")
+        )
+      })
+      
+      output$info_poisson <- renderUI({
+        ns <- NS(id)
+        tagList(
+          h3("Poisson Regression"),
+          em("Information regarding poisson regression...")
+        )
+      })
+      
+      output$info_mixed <- renderUI({
+        ns <- NS(id)
+        tagList(
+          h3("Mixed Effects Regression"),
+          em("Information regarding mixed effects regression..."), 
+          tags$a(href = "https://mspeekenbrink.github.io/sdam-r-companion/linear-mixed-effects-models.html")
+        )
       })
       
       
@@ -703,11 +814,7 @@ statsServer <- function(id, rv = rv){
                   interactions)
         }
       })
-      
-      observe({
-        req(formula_reg())
-        rv$formula_reg <- formula_reg()
-      })
+
       
       # Render text to display selected formula
       output$formula_reg <- renderPrint({
@@ -720,21 +827,22 @@ statsServer <- function(id, rv = rv){
       # If no error, save result of perform_regression() in rv
       observeEvent(input$submit_regression, {
         req(rv$content_stats)
-        req(rv$formula_reg)
+        req(formula_reg()) # req(rv$formula_reg) 
+        rv$formula_reg <- formula_reg()
         
         # First checking that regression can happen w try statement, 
-        reg_res <- try(perform_regression(rv$formula_reg, 
+        reg_model <- try(perform_regression(rv$formula_reg, 
                                      input$regression_type,
                                      rv$content_stats))
         # If the try-catch produced error (class try-error), 
         # indicate with rv$is_valid_regression <- FALSE for global use 
         # If valid then indicate opposite 
-        if("try-error" %in% class(reg_res)){
+        if("try-error" %in% class(reg_model)){
           rv$is_valid_regression <- FALSE
-          rv$reg_error <- reg_res
+          rv$reg_error <- reg_model
         } else { # regression is valid so save summary too
           rv$is_valid_regression <- TRUE
-          rv$reg_result <- reg_res
+          rv$reg_model <- reg_model
           rv$reg_summary_raw <- 
             summary(perform_regression(rv$formula_reg, 
                                        input$regression_type,
@@ -753,7 +861,7 @@ statsServer <- function(id, rv = rv){
         # UI to be displayed if valid regression submitted
         validUI <- tagList(
           # Rendering results table as html output since using kable
-          htmlOutput(ns("reg_result"))
+          htmlOutput(ns("reg_model"))
         )
         
         # UI to be displayed if regression produces error (invalid)
@@ -782,9 +890,9 @@ statsServer <- function(id, rv = rv){
       
       # Render datatable of regression results
       # Using tab_model to generate, then returning HTML
-      output$reg_result <- renderText({
+      output$reg_model <- renderText({
         
-        table <- sjPlot::tab_model(rv$reg_result, 
+        table <- sjPlot::tab_model(rv$reg_model, 
                                    show.fstat = TRUE, 
                                    show.aic = TRUE, 
                                    show.se = TRUE, 
@@ -876,7 +984,9 @@ statsServer <- function(id, rv = rv){
         
         validate(
           need(!is.null(rv$content_stats), 
-               "Submit text files to continue.")
+               "Submit text files to continue."), 
+          need(length(rv$content_stats) > 2, 
+               "Not enough finite observations to produce heatmap."), 
         )
         
         # Filtering to only include numeric data
@@ -918,29 +1028,254 @@ statsServer <- function(id, rv = rv){
         )
         
         if(input$regression_type == "mixed"){
-          plot(fitted(rv$reg_result), residuals(rv$reg_result), 
+          plot(fitted(rv$reg_model), residuals(rv$reg_model), 
                xlab = "Fitted", ylab = "Residuals")
           abline(h = 0, lty = 2)
-          lines(smooth.spline(fitted(rv$reg_result), residuals(rv$reg_result)))
+          lines(smooth.spline(fitted(rv$reg_model), residuals(rv$reg_model)))
         } else {
-          autoplot(rv$reg_result) + 
+          autoplot(rv$reg_model) + 
             theme(panel.grid.major = element_blank(), 
                   panel.grid.minor = element_blank())
         }
 
       })
       
-      output$anova_res_raw <- renderPrint({
+      # Performing anova
+      anova_res <- reactive({
         req(rv$formula_reg)
         req(rv$is_valid_regression)
         
-        aov_res <- aov(rv$formula_reg, data = rv$content_stats)
-        
-        print(aov_res)
+        rstatix::anova_test(rv$reg_model)
+      })
+      
+      # Saving anova result
+      observe({
+        req(anova_res())
+        rv$anova_res <- anova_res()
+      })
+      
+      # Rendering raw anova output
+      output$anova_res_raw <- renderPrint({
+        validate(
+          need(rv$anova_res, "Submit a valid regression model to perform ANOVA.")
+        )
+        rv$anova_res
       })
       
       
+      # Render datatable of ANOVA results
+      # Using tab_model to generate, then returning HTML
+      output$anova_table <- renderTable({
+        get_anova_table(rv$anova_res)
+      })
+      
+      # Performing t-test
+      ttest_res <- reactive({
+        req(rv$formula_reg)
+        tt_formula <- try(as.formula(rv$formula_reg))
+        
+        validate(
+          need(!("try-error" %in% class(tt_formula)), "Submit valid data and formula to perform t-test.")
+        )
+        
+        # Put in try-catch
+        return(try(rstatix::t_test(data = rv$content_stats, formula = tt_formula)))
+      })
+      
+      # Saving t-test result
+      observe({
+        rv$ttest_res <- ttest_res()
+      })
+      
+      # Rendering raw t-test result
+      output$t_test_res_raw <- renderPrint({
+        # Check that the t-test result is not an error
+        validate(
+          need(rv$formula_reg, "Submit valid data and formula to perform t-test."),
+          need(!("try-error" %in% class(rv$ttest_res)), paste0("T-test yielded the following error: ", rv$ttest_res))
+        )
+
+        rv$ttest_res
+      })
+      
+      # Rendering formatted t-test result, rendering HTML with kable
+      output$t_test_res_table <- renderText({
+        # Check that the t-test result is not an error
+        validate(
+          need(rv$formula_reg, "Submit valid data and formula to perform t-test."),
+          need(!("try-error" %in% class(rv$ttest_res)), paste0("T-test yielded the following error: ", rv$ttest_res))
+        )
+        
+        kable(rv$ttest_res) %>% 
+          kable_styling(latex_options = 'striped')
+        
+      })
+      
+      #### Chi-square testing ####
+      output$perform_chisq <- renderUI({
+        ns <- NS(id)
+        tagList(
+          
+          fluidRow(
+            column(width = 4, 
+                   varSelectInput(ns("chisq_var1"), 
+                                  label = "Select variables for testing:", 
+                                  rv$content_stats, 
+                                  selected = NULL),
+                   varSelectInput(ns("chisq_var2"), 
+                                  label = NULL, 
+                                  rv$content_stats, 
+                                  selected = NULL),
+                   actionButton(ns("submit_chisq"),
+                                label = "Perform test",
+                                class = "btn-success"),
+            ),
+            column(width = 8, 
+                   verbatimTextOutput(ns("chisq_res"))
+            ),
+          ),
+          
+        )
+      })
+      
+      # When perform chisq button clicked, perform with selected variables
+      observeEvent(input$submit_chisq, {
+        
+        # Try handler to ensure conversion to factors does not produce a fatal error
+        var1 <- try(as.factor(rv$content_stats[[input$chisq_var1]]))
+        var2 <- try(as.factor(rv$content_stats[[input$chisq_var2]]))
+        
+        # Ensure that var1 & var2 are both categorical/can be converted to categorical
+        
+        validate(need(!("try-error" %in% class(var1)), "Select a categorical variable."), 
+                 need(!("try-error" %in% class(var2)), "Select a categorical variable."))
+        
+        # Creating table of selected vars
+        chisq_table <- table(var1, var2)
+        
+        # Saving reactive variable
+        chisq_res <- reactive({
+          req(chisq_table)
+          res <- try(stats::chisq.test(chisq_table))
+          
+          if("try-error" %in% class(res)){
+            paste0("Invalid categorical variables selected. Error returned: ", res)
+          } else {
+            res
+          }
+        })
+        
+        # Saving in reactive list to eventually export to report generation
+        req(chisq_res())
+        rv$chisq_res <- chisq_res()
+        
+      })
+      
+      output$chisq_res <- renderPrint({
+        validate(need(rv$chisq_res, "Submit categorical variables to begin."))
+        
+        rv$chisq_res
+      })
+      
+      #### Kruskal-Wallis test ####
+      kw_res <- reactive({
+        
+        req(rv$formula_reg)
+        
+        formula <- try(as.formula(rv$formula_reg))
+        
+        res <- try(kruskal.test(formula, data = rv$content_stats))
+        
+        if("try-error" %in% class(res)){
+          paste0("Invalid variables selected. Error returned: ", res)
+        } else {
+          res
+        }
+        
+      })
+      
+      observe({
+        req(kw_res())
+        rv$kw_res <- kw_res()
+      })
+      
+      output$kw_res <- renderPrint({
+        validate(need(rv$kw_res, "Submit valid data and formula to perform Kruskal-Wallis test."))
+        
+        rv$kw_res
+        
+      })
+      
+      #### Welch one-way test ####
+      welch_res <- reactive({
+        
+        req(rv$formula_reg)
+        
+        formula <- try(as.formula(rv$formula_reg))
+        
+        res <- try(oneway.test(formula, data = rv$content_stats, var.equal = FALSE))
+        
+        if("try-error" %in% class(res)){
+          paste0("Invalid variables selected. Error returned: ", res)
+        } else {
+          res
+        }
+        
+      })
+      
+      observe({
+        req(welch_res())
+        rv$welch_res <- welch_res()
+      })
+      
+      output$welch_res <- renderPrint({
+        validate(need(rv$welch_res, "Submit valid data and formula to perform 
+                      Welch one-way test."))
+        
+        rv$welch_res
+        
+      })
       
       
+      #### Mann-whitney/Wilcoxon ####
+      mann_wil_res <- reactive({
+
+        req(rv$formula_reg)
+
+        formula <- try(as.formula(rv$formula_reg))
+
+        res <- try(wilcox.test(formula, data = rv$content_stats))
+
+        if("try-error" %in% class(res)){
+          paste0("Invalid variables selected. Error returned: ", res)
+        } else {
+          res
+        }
+
+      })
+
+      observe({
+        req(mann_wil_res())
+        rv$mann_wil_res <- mann_wil_res()
+      })
+
+      output$mann_wil_res <- renderPrint({
+        validate(need(rv$mann_wil_res,
+      "Submit valid data and formula to perform Mann-Whitney test."))
+
+        rv$mann_wil_res
+
+      })
+      
+
     }) # end module server inner function
 } # end module server
+
+
+
+
+
+
+
+
+

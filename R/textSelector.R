@@ -420,12 +420,10 @@ textSelectorServer <- function(id, rv = rv, session = session){
         # and rv$content_secondary ready to join
         rv$content_primary <- rv$content
         
-        # Saving the selected columns to join on 
-        rv$join_col_primary <- input$col_primary
+        rv$join_col_primary <- input$col_primary # Saving the selected columns to join on 
         rv$join_col_secondary <- input$col_secondary
         
-        # Saving type of join
-        rv$join_type <- input$join_type
+        rv$join_type <- input$join_type # Saving type of join
         
         # Performing join using join_secondary function outlined in 
         # utils.R - basically joins tibbles based on col names and join
