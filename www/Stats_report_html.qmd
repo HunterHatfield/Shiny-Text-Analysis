@@ -1,0 +1,193 @@
+---
+title: "Statistical Analysis Report"
+date: 'Date: `r Sys.Date()`'
+author: "_via Hatfield & Hogg's Text Analysis App_"
+format: html
+params:
+  report_rv: ""
+  stats_report_rv: ""
+always_allow_html: true
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| error: false
+
+library(knitr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(kableExtra)
+library(readr)
+library(stringr)
+library(flextable)
+
+opts_chunk$set(fig.align = 'center',
+               out.width = 650, 
+               fig.width = 10)
+```
+
+---
+
+\
+
+```{r}
+#| echo: false
+#| warning: false
+# 
+# data <- params$report_rv$content_tf_idf
+# summary <- tibble(`Token type` = params$report_rv$token,
+#                   `Mean document token count` = 
+#                     mean_token_count, 
+#                   `Std. dev.` = c(sd(data$`Token Count`)),
+#                   `Min.` = min(data$`Token Count`), 
+#                   `Max.` = max(data$`Token Count`), 
+#                   `Total corpus count` = total_tokens
+#                   )
+# 
+# flextable(summary, cwidth = 2) %>% 
+#   set_caption(caption =  "Table 1. Summary statistics for the current corpus.") %>% 
+#   autofit()
+```
+
+
+\
+
+```{r }
+#| echo: false
+#| warning: false
+#| error: false
+
+# Generating titles for stuff
+
+if(!is.null(params$stats_report_rv$corr_plot) && params$stats_report_rv$corr_plot != ""){
+  corr_title <- "Correlation heat-map"
+} else {
+  corr_title <- NULL
+}
+```
+
+\
+
+---
+
+## Correlation Matrix Heat-map
+
+Below shows a correlation heat-map of the submitted variables. 
+
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+#| message: false
+if(!is.null(params$stats_report_rv$corr_plot) && params$stats_report_rv$corr_plot != ""){
+  params$stats_report_rv$corr_plot
+}
+```
+
+---
+
+## Regression Analysis
+
+### Model formulation
+
+The following outlines the regression formula and summary of the model fitted.\
+
+\
+
+```{r fig1}
+#| echo: false
+#| warning: false
+#| error: false
+
+if(!is.null(params$stats_report_rv$formula_reg) && params$stats_report_rv$formula_reg != ""){
+  params$stats_report_rv$formula_reg
+}
+
+if(!is.null(params$stats_report_rv$reg_result_table) && params$stats_report_rv$reg_result_table != ""){
+  params$stats_report_rv$reg_result_table
+}
+```
+
+\
+
+---
+
+
+## Residual Plots
+
+The residual plots for the fitted regression model are shown below.\
+
+\
+
+
+```{r fig2, R.options= list(width = 10)}
+#| echo: false
+#| warning: false
+
+# if(!is.null(params$stats_report_rv$residual_plots) && params$stats_report_rv$residual_plots != ""){
+  params$stats_report_rv$residual_plots
+# }
+```
+
+\
+
+\
+
+
+---
+
+
+## Statistical Tests
+
+The ANOVA test is used to determine if there is a statistically significant difference between the means of three or more independent groups. ANOVA test results for the fitted model are shown below.
+
+```{r}
+#| echo: false
+#| warning: false
+
+if(!is.null(params$stats_report_rv$anova_table) && params$stats_report_rv$anova_table != ""){
+  params$stats_report_rv$anova_table
+}
+```
+
+\
+
+\
+
+A t-test is a statistical test used to determine if their is a significant difference in the means of two independent groups being compared. The results of the t-test for the fitted model are shown below.
+
+```{r}
+#| echo: false
+#| warning: false
+
+if(!is.null(params$stats_report_rv$ttest_table) && params$stats_report_rv$ttest_table != ""){
+  params$stats_report_rv$ttest_table
+}
+```
+
+\
+
+\
+
+<!-- The Chi-square test is used to determine whether there is a significant association between two categorical variables. The results of the chi square test for the fitted model are shown below. -->
+
+<!-- ```{r} -->
+<!-- #| echo: false -->
+<!-- #| warning: false -->
+
+<!-- if(!is.null(params$stats_report_rv$chisq_res) && params$stats_report_rv$chisq_res != ""){ -->
+<!--   params$stats_report_rv$chisq_res -->
+<!-- } -->
+<!-- ``` -->
+
+\
+
+\
+
+\
+
+\
+---

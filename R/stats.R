@@ -70,7 +70,7 @@ statsUI <- function(id){
           column(width = 8,
                  
                  wellPanel(
-                   plotOutput(ns("eda_hist_plot"))
+                   plotOutput(ns("eda_hist_plot_display"))
                  ),
                  
                  
@@ -561,11 +561,10 @@ statsServer <- function(id, rv = rv){
         
         apply_transformation(var = rv$content_stats[[selected_var]],
                              transformation = transformation)
-        
       })
 
       # Validate statements to ensure numeric value selected for histogram
-      # Not neccessary to check if tokenised anymore
+      # Not necessary to check if tokenised anymore
       eda_hist_plot <- reactive({
         req(rv$content_stats)
 
@@ -597,7 +596,8 @@ statsServer <- function(id, rv = rv){
 
       # If checkbox to include density curve is checked, the 
       # lines function is used to render on top of histogram
-      output$eda_hist_plot <- renderPlot({
+      output$eda_hist_plot_display <- renderPlot({
+        req(eda_hist_plot_var())
         req(eda_hist_plot())
 
         eda_hist_plot()
@@ -616,7 +616,7 @@ statsServer <- function(id, rv = rv){
         }
       })
       
-      # When button clicked to save transformation...
+      ##### When button clicked to save transformation... ####
       observeEvent(input$eda_save_transformed_var, {
         req(rv$content_stats)
         req(eda_hist_plot_var())
@@ -650,12 +650,15 @@ statsServer <- function(id, rv = rv){
         
       })
       
-      # Rendering qqplot
-      output$eda_qqplot <- renderPlot({
+      #### Rendering qqplot ####
+      eda_qqplot <- reactive({
         req(eda_normality_var())
         qqnorm(eda_normality_var())
         qqline(eda_normality_var())
-        
+      })
+      
+      output$eda_qqplot <- renderPlot({
+        eda_qqplot()
       })
       
       #### Normality statistical tests ####
@@ -694,6 +697,55 @@ statsServer <- function(id, rv = rv){
       output$eda_anderson_darling <- renderPrint({
         rv$anderson_darling_res
       })
+      
+      # Creating correlation heatmap
+      corr_plot <- reactive({
+        validate(
+          need(!is.null(rv$content_stats),
+               "Submit text files to continue."),
+          need(length(rv$content_stats) > 2,
+               "Not enough finite observations to produce heatmap."),
+        )
+        
+        # Filtering to only include numeric data
+        content_stats_numeric <- rv$content_stats %>%
+          dplyr::select(where(is.numeric))
+        
+        # Creating correlation matrix
+        corr <- round(cor(content_stats_numeric), 3)
+        
+        # Reshaping data to has three cols (pair of vars & cor coef)
+        cor_melted <- melt(corr)
+        
+        # Generating heat map with ggplot
+        ggheatmap <- ggplot(cor_melted, aes(Var2, Var1, fill = value))+
+          geom_tile()+
+          geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+          scale_fill_gradient2(low = "royalblue", high = "darkred", mid = "white",
+                               midpoint = 0, limit = c(-1,1), space = "Lab",
+                               name="Pearson\nCorrelation") +
+          theme_minimal() + # minimal theme
+          theme(axis.text.x = element_text(angle = 45, vjust = 1,
+                                           size = 12, hjust = 1)
+          ) +
+          ggtitle("Correlation matrix heatmap")
+        
+        # Converting ggplot object into plotly object to be interactive
+        ggplotly(ggheatmap)
+      })
+      
+      # Rendering corr_plot object with plotly
+      output$corr_plot <- renderPlotly({
+        req(corr_plot())
+        corr_plot()
+      })
+      
+      # Saving corr_plot object to rv list 
+      observe({
+        req(corr_plot())
+        rv$corr_plot <- corr_plot()
+      })
+      
       
       #### Information on regression types ####
       output$info_linear <- renderUI({
@@ -891,19 +943,23 @@ statsServer <- function(id, rv = rv){
       # Render datatable of regression results
       # Using tab_model to generate, then returning HTML
       output$reg_model <- renderText({
-        
-        table <- sjPlot::tab_model(rv$reg_model, 
-                                   show.fstat = TRUE, 
-                                   show.aic = TRUE, 
-                                   show.se = TRUE, 
-                                   # show.std = TRUE, 
+
+        table <- sjPlot::tab_model(rv$reg_model,
+                                   show.fstat = TRUE,
+                                   show.aic = TRUE,
+                                   show.se = TRUE,
+                                   # show.std = TRUE,
                                    show.stat = TRUE,
                                    CSS = list(
-                                     css.thead = 'font-size: 14px;', 
+                                     css.thead = 'font-size: 14px;',
                                      css.summary = 'font-weight: bold;'
                                    ))
+        
+        rv$reg_result_table <- table # saving table in rv list
+        
         HTML(table$knitr)
       })
+      
       
       # Rendering raw model output
       output$reg_result_raw <- renderPrint({
@@ -920,7 +976,7 @@ statsServer <- function(id, rv = rv){
         }
         
       })
-
+      
       
       #### Perform mixed regression ####
       # RenderUI to only render when linear, log or poisson regression option chosen
@@ -977,67 +1033,59 @@ statsServer <- function(id, rv = rv){
           )
       }) # end renderUI 
       
-      
-      
-      # Creating correlation matrix for heatmap correlation plot
-      output$corr_plot <- renderPlotly({
-        
-        validate(
-          need(!is.null(rv$content_stats), 
-               "Submit text files to continue."), 
-          need(length(rv$content_stats) > 2, 
-               "Not enough finite observations to produce heatmap."), 
-        )
-        
-        # Filtering to only include numeric data
-        content_stats_numeric <- rv$content_stats %>%
-          dplyr::select(where(is.numeric))
-        
-        # Creating correlation matrix
-        corr <- round(cor(content_stats_numeric), 3)
-
-        # Reshaping data to has three cols (pair of vars & cor coef)
-        cor_melted <- melt(corr)
-        
-        # Generating heat map with ggplot
-        ggheatmap <- ggplot(cor_melted, aes(Var2, Var1, fill = value))+
-          geom_tile()+
-          geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
-          scale_fill_gradient2(low = "royalblue", high = "darkred", mid = "white", 
-                               midpoint = 0, limit = c(-1,1), space = "Lab", 
-                               name="Pearson\nCorrelation") +
-          theme_minimal() + # minimal theme
-          theme(axis.text.x = element_text(angle = 45, vjust = 1, 
-                                           size = 12, hjust = 1)
-                ) +
-          ggtitle("Correlation matrix heatmap")
-
-        # Converting ggplot object into plotly object to be interactive
-        ggplotly(ggheatmap)
-      })
-      
-      
       # Generating residual plots for fitted model
-      output$residual_plots <- renderPlot({
-        
+      # output$residual_plots <- renderPlot({
+      # 
+      #   validate(
+      #     need(!is.null(rv$is_valid_regression),
+      #          "Submit a valid formula to begin."),
+      #     need(rv$is_valid_regression,
+      #          "Submit regression to begin.")
+      #   )
+      # 
+      #   if(input$regression_type == "mixed"){
+      #     plot(fitted(rv$reg_model), residuals(rv$reg_model),
+      #          xlab = "Fitted", ylab = "Residuals")
+      #     abline(h = 0, lty = 2)
+      #     lines(smooth.spline(fitted(rv$reg_model), residuals(rv$reg_model)))
+      #   } else {
+      #     autoplot(rv$reg_model) +
+      #       theme(panel.grid.major = element_blank(),
+      #             panel.grid.minor = element_blank())
+      #   }
+      # 
+      # })
+      
+      # Generating residual plots
+      residual_plots <- reactive({
         validate(
           need(!is.null(rv$is_valid_regression),
                "Submit a valid formula to begin."),
-          need(rv$is_valid_regression, 
+          need(rv$is_valid_regression,
                "Submit regression to begin.")
         )
-        
+
         if(input$regression_type == "mixed"){
-          plot(fitted(rv$reg_model), residuals(rv$reg_model), 
+          plot(fitted(rv$reg_model), residuals(rv$reg_model),
                xlab = "Fitted", ylab = "Residuals")
           abline(h = 0, lty = 2)
           lines(smooth.spline(fitted(rv$reg_model), residuals(rv$reg_model)))
         } else {
-          autoplot(rv$reg_model) + 
-            theme(panel.grid.major = element_blank(), 
+          autoplot(rv$reg_model) +
+            theme(panel.grid.major = element_blank(),
                   panel.grid.minor = element_blank())
         }
+      })
 
+      # Displaying residual plots
+      output$residual_plots <- renderPlot({
+        req(residual_plots())
+        residual_plots()
+      })
+      
+      observe({
+        req(residual_plots())
+        rv$residual_plots <- residual_plots()
       })
       
       # Performing anova
@@ -1065,8 +1113,18 @@ statsServer <- function(id, rv = rv){
       
       # Render datatable of ANOVA results
       # Using tab_model to generate, then returning HTML
-      output$anova_table <- renderTable({
+      anova_table <- reactive({
+        req(rv$anova_res)
         get_anova_table(rv$anova_res)
+      })
+      
+      output$anova_table <- renderTable({
+        req(anova_table())
+        anova_table()
+      })
+      
+      observe({
+        rv$anova_table <- anova_table()
       })
       
       # Performing t-test
@@ -1106,9 +1164,12 @@ statsServer <- function(id, rv = rv){
           need(!("try-error" %in% class(rv$ttest_res)), paste0("T-test yielded the following error: ", rv$ttest_res))
         )
         
-        kable(rv$ttest_res) %>% 
-          kable_styling(latex_options = 'striped')
+        table <- kable(rv$ttest_res) %>% 
+                  kable_styling(latex_options = 'striped')
         
+        rv$ttest_table <- table
+        
+        table
       })
       
       #### Chi-square testing ####

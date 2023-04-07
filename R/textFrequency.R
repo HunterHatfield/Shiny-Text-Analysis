@@ -616,7 +616,8 @@ textFreqServer <- function(id, rv = rv){
       onStop(function() {
         cat("This will run on session stop")
         outputDir <- "R"
-
+        
+        print(rv)
         print(report_rv)
       })
     }

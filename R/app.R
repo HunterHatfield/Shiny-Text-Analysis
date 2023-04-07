@@ -55,6 +55,7 @@ options(shiny.maxRequestSize = 10*1024^2)
 rv <- shiny::reactiveValues() # creating reactive values list
 report_rv <- shiny::reactiveValues() # creating rv list for the report
 mini_rv <- shiny::reactiveValues()
+stats_report_rv <- shiny::reactiveValues() 
 
 textApp <- function(...){
   

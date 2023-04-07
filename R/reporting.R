@@ -15,18 +15,6 @@ library(xgxr)
 
 outputDir <- "R"
 
-pleasetokeniseUI <- function(id){
-  ns <- NS(id)
-  tagList(
-    
-      h3("Tokenise your data to render visualisations.", 
-         style = "color: crimson"),
-      em("Select the 'Tokenisation' tab at the top of this page, 
-         then click 'Tokenise'.")
-      
-  )
-}
-
 ##### Reporting tab module ######
 
 reportingUI <- function(id){
@@ -38,9 +26,6 @@ reportingUI <- function(id){
       h1(paste(c("02| Visualise"), sep = ",")),
       em("Generate custom visualisations by interacting with settings.")
     ),
-    
-    # For testing
-    # verbatimTextOutput(ns("test")),
     
     fluidRow(
       box(title = " ",
