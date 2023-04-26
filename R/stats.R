@@ -680,6 +680,8 @@ statsServer <- function(id, rv = rv){
       
       # saving SW & AD results in reactive value list
       observe({
+        req(anderson_darling_res())
+        req(shapiro_wilk_res()) 
         rv$anderson_darling_res <- anderson_darling_res()
         rv$shapiro_wilk_res <- shapiro_wilk_res()
       })
@@ -687,6 +689,7 @@ statsServer <- function(id, rv = rv){
       # Rendering table with shapiro-wilk result
       output$eda_shapiro_wilk <- renderPrint({
         
+        req(eda_normality_var())
         # If SW length too high thus null, give user instructions 
         ifelse(length(eda_normality_var()) > 5000, 
                paste0("n > 5000, use Anderson-Darling test for normality."), 

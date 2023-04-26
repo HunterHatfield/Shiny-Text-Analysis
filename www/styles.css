@@ -5,7 +5,12 @@
     /* font-family: 'Fira Sans', sans-serif;  
 } */
 
-h1, h2, h3, h4, h5, h6{
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: 'Inconsolata', monospace;
 }
 
@@ -23,36 +28,36 @@ h3 {
     font-size: 2em;
 }
 
-.control-label{
+.control-label {
     font-weight: inherit;
 }
 
 /* Welcome page styling */
 
-.welcome-title{
+.welcome-title {
     font-size: 10vw;
 }
 
-#shiny-tab-home{
+#shiny-tab-home {
     margin: 1vw;
     padding: 5vw;
 }
 
-.title-fluid-row{
+.title-fluid-row {
     margin: 1vw;
 }
 
 /* Toggle nav bar button style */
-.skin-black .main-header .navbar{
+.skin-black .main-header .navbar {
     background-color: black;
 }
 
-.skin-black .main-header .navbar> .sidebar-toggle{
+.skin-black .main-header .navbar>.sidebar-toggle {
     border: none;
     color: white;
 }
 
-.skin-black .main-header .navbar> .sidebar-toggle:hover{
+.skin-black .main-header .navbar>.sidebar-toggle:hover {
     color: white;
     background-color: royalblue;
 }
@@ -74,16 +79,19 @@ h3 {
 
 /* Sidebar style */
 
-#sidebarCollapsed{
-    background-color: black;   
+#sidebarCollapsed {
+    background-color: black;
 }
 
-main-sidebar .user-panel, .sidebar-menu, .sidebar-menu>li.header {
+main-sidebar .user-panel,
+.sidebar-menu,
+.sidebar-menu>li.header {
     white-space: normal;
     border-radius: 5px;
 }
 
-.skin-black .sidebar-menu>li.active>a, .skin-black .sidebar-menu>li:hover>a {
+.skin-black .sidebar-menu>li.active>a,
+.skin-black .sidebar-menu>li:hover>a {
     color: #fff;
     background: royalblue;
     border-left: 1px solid white;
@@ -98,22 +106,23 @@ main-sidebar .user-panel, .sidebar-menu, .sidebar-menu>li.header {
     border-top: 1px solid black; */
 }
 
-.well-stop-words{
+.well-stop-words {
     border: none;
 }
 
 /* Nav tabs style */
-.nav-tabs-custom{
+.nav-tabs-custom {
     border: 0.5px solid royalblue;
     border-radius: 5px;
 }
+
 .nav-tabs-custom>.nav-tabs>li.active {
     border-top-color: royalblue;
     background: royalblue;
 }
 
 /* Box div styles */
-.box-body{
+.box-body {
     padding: 30px;
 }
 
@@ -134,41 +143,41 @@ main-sidebar .user-panel, .sidebar-menu, .sidebar-menu>li.header {
     border-radius: 0px;
     box-shadow: none;
     background-color: transparent;
-    
+
 }
 
-.box.box-solid>.box-header .btn:hover{
+.box.box-solid>.box-header .btn:hover {
     background-color: white;
     color: black;
 }
 
 /* Different colors for diff types of boxes */
-.box.box-solid.box-primary{
+.box.box-solid.box-primary {
     border: 1px solid black;
 }
 
-.box.box-solid.box-primary>.box-header{
+.box.box-solid.box-primary>.box-header {
     background: black;
     background-color: black;
 }
 
-.box.box-solid.box-success{
+.box.box-solid.box-success {
     border: 1px solid royalblue;
 }
 
-.box.box-solid.box-success>.box-header{
+.box.box-solid.box-success>.box-header {
     background: royalblue;
     background-color: royalblue;
 }
 
 /* tabsetPanel styling */
-.tab-content{
+.tab-content {
     padding: 30px;
 }
 
 /* Notification styling */
-.shiny-notification-message{
-    color:white;
+.shiny-notification-message {
+    color: white;
     background-color: rgb(138, 185, 45);
     border: none;
     box-shadow: 10px 5px 5px grey;
@@ -176,6 +185,6 @@ main-sidebar .user-panel, .sidebar-menu, .sidebar-menu>li.header {
 
 /* Background */
 
-.content-wrapper{
+.content-wrapper {
     background-color: white;
 }

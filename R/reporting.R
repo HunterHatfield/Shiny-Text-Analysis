@@ -22,11 +22,6 @@ reportingUI <- function(id){
   tagList(
     useShinyjs(),
     
-    wellPanel(
-      h1(paste(c("02| Visualise"), sep = ",")),
-      em("Generate custom visualisations by interacting with settings.")
-    ),
-    
     fluidRow(
       box(title = " ",
           status = "success", 
@@ -102,15 +97,6 @@ reportingUI <- function(id){
                     value = "Figure 1: Frequency of most common tokens across the corpus."),
 
           hr(),
-          # radioButtons(inputId = "token_freq_plot_type",
-          #              label = "Choose a plot type:",
-          #              choiceNames = list(
-          #                "Something",
-          #                "Something else"
-          #              ),
-          #              choiceValues = list(
-          #                "hist", "scatter")
-          # )
           
           h4("Download figure"),
           
@@ -385,6 +371,7 @@ reportingUI <- function(id){
 }
 
 
+
 reportingServer <- function(id, rv = rv, report_rv = report_rv){
   moduleServer(id, function(input, output, session){
     
@@ -392,20 +379,24 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
    # choices
     choices_ID <- reactive({
 
-      if(!is.null(rv$content_parameterised)){
-        return(unique(rv$content_parameterised$ID))
+      if(!is.null(rv$content_prepared)){
+        return(unique(rv$content_prepared$ID))
       }
 
       return("N/A")
     })
 
     # To generate the list of IDs from
-    # content_parameterised for the selectInput
+    # content_prepared for the selectInput
     # drop down for single vs. corpus figure,
     # need to use observe & updateSelectInput
     observe({
 
       rv$choices_ID <- choices_ID()
+      print("content_prepared from reporting server")
+      print(rv$content_prepared)
+      print("unique choices of ID from reporting server")
+      print(rv$choices_ID)
 
       updateSelectInput(session, "content_single_ID",
                         choices = rv$choices_ID,
@@ -467,8 +458,8 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
                                      })
 
 
-    output$content_parameterised <- DT::renderDataTable(
-      rv$content_parameterised,
+    output$content_prepared <- DT::renderDataTable(
+      rv$content_prepared,
        options = list(
          dom = "tfrp",
          ordering = TRUE,
@@ -487,13 +478,13 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     # Creating content_freq(), which has frequency of words across entire corpus
     content_freq <- reactive({
 
-      req(rv$content_parameterised)
+      req(rv$content_prepared)
       req(rv$content_stop_rm)
 
       # If the column 'Token' exists (a proxy for data being tokenised)
-      if(colnames(rv$content_parameterised)[2] == "Token"){
+      if(colnames(rv$content_prepared)[2] == "Token"){
 
-        rv$content_parameterised %>%
+        rv$content_prepared %>%
           # filter(!grepl("pppp", Token, fixed = TRUE)) %>%
           # mutate(Token = str_extract(Token, "[0-9A-Za-z'\"\"]+")) %>%
           # using str_extract to get just words & numbers since UTF-8
@@ -583,30 +574,30 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     })
 
     # To plot the comparison of frequency of tokens between a single vs. corpus,
-    # proportion is used for this, and ultimately content_parameterised is
+    # proportion is used for this, and ultimately content_prepared is
     # manipulated to calculate proportions for the single file, corpus and then these
     # are combined to create content_corr_freq
 
     # Creating content_freq_single tibble with just single selected file's data by
-    # filtering content_parameterised ID column
+    # filtering content_prepared ID column
     content_param_single <- reactive({
 
       req(rv$is_tokenised)
-      req(rv$content_parameterised)
+      req(rv$content_prepared)
       # If a user uploads primary, tokenises, then goes back to upload
       # secondary, joins that, and tokenises it, the selected rv$content_single_ID
       # from the drop down menu for the frequency comparison data may not be 
-      # present in rv$content_parameterised after the join. So need to check
+      # present in rv$content_prepared after the join. So need to check
       # that the selected ID is present in the data
       req(rv$content_single_ID)
       # Require that filtering by selected ID doesn't return nothing (so a valid
       # ID has been selected). Test written as similar as possible to what happens
       # a few lines down
-      req(nrow(filter(rv$content_parameterised, ID == rv$content_single_ID)) > 0)
+      req(nrow(filter(rv$content_prepared, ID == rv$content_single_ID)) > 0)
 
       validate(need(rv$is_tokenised, NULL))
       
-      dat <- rv$content_parameterised %>%
+      dat <- rv$content_prepared %>%
         filter(ID == rv$content_single_ID) %>%
         count(Token, sort=T) %>%
         mutate(Proportion = n/sum(n)) %>% # proportion calc
@@ -616,22 +607,22 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
 
     })
 
-    # Filtering content_parameterised to be the rest of the corpus
+    # Filtering content_prepared to be the rest of the corpus
     content_param_rest <- reactive({
 
       req(rv$content_single_ID)
-      req(rv$content_parameterised$Token)
+      req(rv$content_prepared$Token)
 
       validate(need(rv$is_tokenised, NULL))
 
-      if(rv$is_tokenised && unique(rv$content_parameterised$ID) > 1){
-        rv$content_parameterised %>%
+      if(rv$is_tokenised && unique(rv$content_prepared$ID) > 1){
+        rv$content_prepared %>%
           filter(ID != rv$content_single_ID) %>%
           count(Token, sort = T) %>%
           mutate(Proportion = n/sum(n)) %>% # proportion calc
           mutate(Source = "Corpus")
       } else if(!rv$is_tokenised &&
-                unique(rv$content_parameterised$ID) == 1) {
+                unique(rv$content_prepared$ID) == 1) {
         content_param_single()
       }
 
@@ -769,7 +760,7 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
 
     # Saving correlation test result in rv list
     observe({
-      req(rv$content_parameterised)
+      req(rv$content_prepared)
       req(rv$content_comp_freq$Single)
       req(rv$content_comp_freq$Corpus)
       
@@ -824,11 +815,11 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     # could be counting up bi-grams instead of words
     content_zipf <- reactive({
 
-      req(rv$content_parameterised$Token)
+      req(rv$content_prepared$Token)
 
       # Only perform is data is tokenised
       if(rv$is_tokenised){
-        token_counts <- rv$content_parameterised %>%
+        token_counts <- rv$content_prepared %>%
           count(ID, Token, sort = T) %>%
           rename("Freq." = "n")
 
@@ -942,7 +933,7 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
 
     tf_idf_plot <- reactive({
 
-      req(rv$content_parameterised)
+      req(rv$content_prepared)
       req(rv$content_tf_idf)
       req(rv$tf_idf_IDs)
 

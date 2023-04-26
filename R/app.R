@@ -47,6 +47,7 @@ library(ggfortify)
 library(nortest)
 library(rstatix)
 library(schoRsch)
+library(hunspell)
 
 # Setting shiny options
 # file upload limit to 10MB (override 5MB limit)
@@ -66,34 +67,38 @@ textApp <- function(...){
     
     dashboardSidebar(
       sidebarMenu(id = "sidebar",
+                  
         menuItem("Home", 
                  tabName = "home", 
                  icon = icon("house")
-                 ),
+        ),
         menuItem("Text Selector", 
                  tabName = "textSelectorTab",
-                 icon = icon("envelope-open")
-                 ),
+                 icon = icon("file-import")
+        ),
+        menuItem("Text Preparation", 
+                 tabName = "textPrepTab", 
+                 icon = icon("filter")
+        ),
         menuItem("Text Frequency", 
                  tabName = "textFreqTab",
-                 icon = icon("dashboard")
-        ),
-        
-        menuItem("Search/Concordance", 
-                 tabName = "concordanceTab",
-                 icon = icon("dashboard")
-        ),
-        menuItem("Statistical Analysis", 
-                 tabName = "statsTab",
                  icon = icon("chart-column")
         ),
-                 
+        # menuItem("Search/Concordance", 
+        #          tabName = "concordanceTab",
+        #          icon = icon("dashboard")
+        # ),
+        menuItem("Statistical Analysis", 
+                 tabName = "statsTab",
+                 icon = icon("calculator")
+        ),
        menuItem("Reporting", 
                 tabName = "reportingTab",
-                icon = icon("envelope")
+                icon = icon("scroll")
         )
-      )
-    ),
+       
+      ) # end sidebar menu
+    ), # end dashboard sidebar
     
     dashboardBody(
       
@@ -109,17 +114,24 @@ textApp <- function(...){
                 ),
         
         tabItem(tabName = "textSelectorTab",
-                textSelectorUI("textSelector",  label = "Choose text file(s):")
-        ),
+                textSelectorUI("textSelector",  
+                               label = "Choose text file(s):")
+                ),
+        
+        # Text preparation UI
+        tabItem(tabName = "textPrepTab", 
+                textPrepUI("textPrep")
+                ),
         
         # Text frequency UI
         tabItem(tabName = "textFreqTab",
-                  textFreqUI("textFreq")),
+                  textFreqUI("textFreq")
+                ),
         
         # Concordance UI
-        tabItem(tabName = "concordanceTab",
-                # concordanceUI("concordance")
-                ),
+        # tabItem(tabName = "concordanceTab",
+        #         # concordanceUI("concordance")
+        #         ),
         
         # Stat UI
         tabItem(tabName = "statsTab",
@@ -130,7 +142,7 @@ textApp <- function(...){
                 reportMakerUI("reportMaker")
         )
       )
-    )
+    ) # end dashboard body
   )
 
   ############# Main server ###########################
@@ -143,7 +155,7 @@ textApp <- function(...){
     parameterServer("parameter", rv = rv)
     textSelectorServer("textSelector", rv = rv)
     textFreqServer("textFreq", rv = rv)
-    
+    textPrepServer("textPrep", rv = rv)
     statsServer("stats", rv = rv)
 
   }
