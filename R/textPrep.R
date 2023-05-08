@@ -462,7 +462,7 @@ textPrepUI <- function(id){
   tagList(
     
     fluidPage(
-      
+       
       wellPanel(
         h1("02 | Text Preparation"),
         em("Include stop-words, tokenise, and/or filter your text data below."),
@@ -470,11 +470,106 @@ textPrepUI <- function(id){
       hr(),
       
       fluidRow(
+      
+        # Box for data editing 
+        box(title = "Data editing", 
+            status = "primary", 
+            solidHeader = T, 
+            collapsible = T,
+            width = 12,
+         
+            fluidRow(
+            
+              column(4, 
+                   
+                   h3("Mutate data"), 
+                   p("Edit your text data by double-clicking on the table and/or add a column using the mutating tools."),
+                   
+                   textInput(ns("mutate_colname"), 
+                            label = "Choose a name for your new column:",
+                             value = "new_column"),
+                   
+                   textInput(ns("mutate_to_insert"), 
+                             label = "Input value(s) to populate the new column:",
+                             placeholder = "e.g. 1, apple, TRUE"),
+                   
+                   fluidRow(
+                     column(width = 6, 
+                            actionButton(ns("submit_mutate"), 
+                                         label = "Mutate", 
+                                         class = "btn-primary")
+                     ),
+                     column(width = 6, 
+                            actionButton(ns("undo_mutate"), 
+                                         label = "Undo", 
+                                         class = "btn-danger")
+                     )
+                   ),
+                   
+                   hr(),
+                   
+                   h3("Filter data"),
+                   p("Use the interactive datatable to filter attributes of your text data. Save your filtered data to use in further analyses."),
+                   
+                   fluidRow(
+                     column(width = 6, 
+                            actionButton(ns("submit_filters"), 
+                                         label = "Filter", 
+                                         class = "btn-primary")
+                     ),
+                     column(width = 6, 
+                            actionButton(ns("undo_filters"), 
+                                         label = "Undo filters", 
+                                         class = "btn-danger")
+                     )
+                   ),
+                   ), # end col 1
+            
+            column(8, 
+                   # Display DT to filter data
+                   h4(textOutput(ns("parameterised_subtitle1")) %>%
+                        tagAppendAttributes(style = "background-color: crimson;
+                            color: white;")
+                   ),
+                   
+                   DT::dataTableOutput(ns("content_prepared_DT")),
+                   
+                   ), # end col 2
+            ), # end fluid row
+            
+            # Subsetting options
+            # h4("Subset data"), 
+            # p("Save the filtered subset of data for comparison."),
+            # 
+            # fluidRow(
+            #   column(width = 6, 
+            #          actionButton(ns("save_subset_one"), 
+            #                       label = "Save as subset I", 
+            #                       class = "btn-success"),
+            #   ), 
+            #   column(width = 6, 
+            #          actionButton(ns("save_subset_two"), 
+            #                       label = "Save as subset II", 
+            #                       class = "btn-success"),
+            #   ),
+            # ), # end fluid row
+            
+
+          
+
+          ), # end box
+               
+        
+      ), # end outer fluid row
+      
+      
+      fluidRow(
         column(5,
 
            tabBox( side = "left", 
                    selected = "Stop-words", 
                    width = 12, 
+                   
                    
                    tabPanel(title = "Stop-words",
                             
@@ -504,47 +599,6 @@ textPrepUI <- function(id){
                         ) # end well panel
                    ), # end tab panel
                    
-                   tabPanel(title = "Filtering", 
-                            
-                      wellPanel(
-                        h4("Filter data"),
-                        p("Use the interactive datatable to filter attributes of your text data. Save your filtered data to use in further analyses."),
-                        
-                        fluidRow(
-                          column(width = 6, 
-                                 actionButton(ns("submit_filters"), 
-                                              label = "Filter", 
-                                              class = "btn-primary")
-                          ),
-                          column(width = 6, 
-                                 actionButton(ns("undo_filters"), 
-                                              label = "Undo filters", 
-                                              class = "btn-danger")
-                          )
-                        ),
-                        
-                        hr(), 
-                        
-                        # Subsetting options
-                        h4("Subset data"), 
-                        p("Save the filtered subset of data for comparison."),
-                        
-                        fluidRow(
-                          column(width = 6, 
-                                 actionButton(ns("save_subset_one"), 
-                                              label = "Save as subset I", 
-                                              class = "btn-success"),
-                          ), 
-                          column(width = 6, 
-                                 actionButton(ns("save_subset_two"), 
-                                              label = "Save as subset II", 
-                                              class = "btn-success"),
-                          ),
-                        ), # end fluid row
-                        
-                      ), # end well panel
-                      
-                    ), # end tab panel
                  ), # end tab box
 
                box(title = "Checkpoint", 
@@ -574,29 +628,6 @@ textPrepUI <- function(id){
                
         ), # end col 1
         
-        column(7, 
-               box(title = " ", 
-                   status = "primary", 
-                   solidHeader = T, 
-                   collapsible = T,
-                   width = 12, # width is relative to to column
-                   
-                   # Display tokenised text data
-                   h2("Parameterised Text Data"),
-                   p("Your parameterised text data with stop-words removed and 
-              tokensiation complete where specified."),
-                   hr(),
-                   
-                   h4(textOutput(ns("parameterised_subtitle1")) %>%
-                        tagAppendAttributes(style = "background-color: crimson;
-                                              color: white;")
-                   ),
-                   
-                   # DT::dataTableOutput(ns("content_prepared_display")),
-                   DT::dataTableOutput(ns("content_prepared_DT")),
-               ),
-               
-        ), # end col 
       ), # end outer fluid row
       
       fluidRow(
@@ -685,37 +716,99 @@ textPrepServer <- function(id, rv = rv){
       # })
       
       
-      rv$is_filtered <- FALSE
+      rv$is_content_filtered <- FALSE
+      rv$is_content_mutated <- FALSE
       
-      #### Filtering data #####
+      # # Creating handsontable to be editable for editing section
+      # output$content_edited <- renderRHandsontable({
+      #   rhandsontable(rv$content_prepared,
+      #                 height = 500, 
+      #                 stretchH = "all", 
+      #                 useTypes = FALSE) %>%
+      #     hot_cols(fixedColumnsLeft = 1, 
+      #              columnSorting = TRUE) %>%
+      #     hot_context_menu(
+      #       customOpts = list(
+      #         search = list(name = "Search",
+      #                       callback = htmlwidgets::JS(
+      #                         "function (key, options) {
+      #                    var srch = prompt('Search criteria');
+      # 
+      #                    this.search.query(srch);
+      #                    this.render();
+      #                  }"))))
+      #   })
+      
+      
+      ###########################
+      ###### Mutating data ###### 
+      ###########################
+      
+      observeEvent(input$submit_mutate, {
+        
+        req(rv$content_edited) # is either content if no editing yet, or
+        # is the result of mutating and/or filtering
+        req(rv$content_prepared)
+        
+        # Saving temp in case user wants to undo changes
+        rv$pre_mutated_temp <- rv$content_prepared
+        
+        # Saving what is in data table, so 
+        # user can mutate and add column values to just filtered
+        # data rows if they wish as opposed to every row
+        in_datatable <- rv$content_prepared[input[["content_prepared_DT_rows_all"]], ]
+          # rv$content_edited[input[["content_prepared_DT_rows_all"]], ]
+        
+        # Mutating content: if the content_edited ID column is in the 
+        # data table selected, add the value to insert, otherwise null
+        rv$content_mutated <- rv$content_prepared %>% # rv$content_edited %>% 
+          mutate(user_added_col = 
+                   if_else(.$ID %in% in_datatable$ID, input$mutate_to_insert, NULL))
+        
+        # Renaming column to user inputted name
+        colnames(rv$content_mutated)[which(names(rv$content_mutated) == "user_added_column")] <- input$mutate_colname
+        
+        rv$is_content_mutated <- TRUE
+        
+        # Setting content_edited and content_prepared to the new mutated content
+        rv$content_edited <- rv$content_mutated
+        rv$content_prepared <- rv$content_mutated
+        
+        print("Content prepared after mutating in text prep tab:")
+        print(rv$content_prepared)
+      })
+      
+      
+      ###########################
+      ###### Filtering data #####
+      ###########################
+      
       # When submit filters clicked, subset content_stats by filtered rows
       observeEvent(input$submit_filters, {
         
         req(rv$content_prepared)
         
         # Creating temporary storage hold 
-        rv$temp <- rv$content_prepared
+        rv$pre_filtered_temp <- rv$content_prepared
 
         # Subsetting content_stats by filters
         rv$content_prepared <- 
-          rv$temp[input[["content_prepared_DT_rows_all"]], ]
+          rv$pre_filtered_temp[input[["content_prepared_DT_rows_all"]], ]
         
-        print("filtering")
-        print(rv$content_prepared)
-        
-        rv$is_filtered <- TRUE
+        rv$is_content_filtered <- TRUE
         
       })
       
       # When undo filters button clicked, revert content_stats to original
       observeEvent(input$undo_filters, {
         
-        req(rv$temp) # require original reactive value
+        req(rv$is_content_filtered)
+        req(rv$pre_filtered_temp) # require original reactive value
         
-        rv$content_parameterised <- rv$temp # revert to original 
+        rv$content_parameterised <- rv$pre_filtered_temp # revert to original 
         rv$content_prepared <- rv$content_parameterised
         
-        rv$is_filtered <- FALSE
+        rv$is_content_filtered <- FALSE
       })
       
       # Rendering table of data to display
@@ -727,8 +820,15 @@ textPrepServer <- function(id, rv = rv){
         req(rv$content)
         # if neither stop-words or tokenisation performed yet,
         # render rv$content
-        if(!(rv$is_stop_removed) && !(rv$is_tokenised)){
-          print("content_prepared set to content in text prep server")
+        # if(!(rv$is_stop_removed) && !(rv$is_tokenised)){
+        #   print("content_prepared set to content in text prep server")
+        #   rv$content_prepared <- rv$content
+        # }
+        
+        # if content not filtered or mutated, set content_prepared <- content
+        if(!(rv$is_content_filtered) && !(rv$is_content_mutated)){
+          print("content_edited & content_prepared set to content in text prep server")
+          rv$content_edited <- rv$content
           rv$content_prepared <- rv$content
         }
         
@@ -738,6 +838,7 @@ textPrepServer <- function(id, rv = rv){
       output$content_prepared_DT <- DT::renderDataTable(
         rv$content_prepared,
         filter = 'top',
+        # server = TRUE,
         options = list(
           paging = TRUE,
           pageLength = 7,
@@ -756,7 +857,8 @@ textPrepServer <- function(id, rv = rv){
             )
         ),
         selection = 'none',
-        rownames = FALSE
+        rownames = FALSE,
+        editable = 'column'
       )
       
       

@@ -20,6 +20,7 @@
 # usethis::use_package("devtools")
 # usethis::use_package("openxlsx")
 
+
 library(shiny)
 library(DT)
 library(shinyFiles)
@@ -48,6 +49,8 @@ library(nortest)
 library(rstatix)
 library(schoRsch)
 library(hunspell)
+
+library(rhandsontable)
 
 # Setting shiny options
 # file upload limit to 10MB (override 5MB limit)
