@@ -462,7 +462,6 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
       rv$content_prepared,
        options = list(
          dom = "tfrp",
-         ordering = TRUE,
          paging = TRUE,
          pageLength = 5,
          searching = TRUE

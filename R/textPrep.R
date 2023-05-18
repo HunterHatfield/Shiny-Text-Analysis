@@ -185,14 +185,14 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv){
                        pageLength = 5,
                        scrollX = TRUE,
                        scrollY = TRUE,
-                       dom = 'frtip', # buttons render below DT
+                       dom = 'frtipB', # buttons render below DT
                        buttons = list(
                          "csv",
                          "excel"
                         )
         ),
         escape = FALSE,
-        # extensions = 'Buttons',
+        extensions = 'Buttons',
         selection = 'none',
         rownames = FALSE  # don't show row numbers
       )
@@ -485,26 +485,54 @@ textPrepUI <- function(id){
                    h3("Mutate data"), 
                    p("Edit your text data by double-clicking on the table and/or add a column using the mutating tools."),
                    
-                   textInput(ns("mutate_colname"), 
-                            label = "Choose a name for your new column:",
-                             value = "new_column"),
+                   # Radio buttons to render which type of mutation controls
+                   radioButtons(ns("mutate_options"), 
+                                label = "Choose a mutate method:", 
+                                choices = list("Add new column" = "mutate_new", 
+                                               "Update existing column" = "mutate_update")),
                    
-                   textInput(ns("mutate_to_insert"), 
-                             label = "Input value(s) to populate the new column:",
-                             placeholder = "e.g. 1, apple, TRUE"),
-                   
-                   fluidRow(
-                     column(width = 6, 
-                            actionButton(ns("submit_mutate"), 
-                                         label = "Mutate", 
-                                         class = "btn-primary")
+                   wellPanel(
+                     
+                     # Conditional panel renders either new col name box or dropdown box of
+                     # existing columns depending on the mutate method option selected
+                     conditionalPanel(paste0("input['", ns("mutate_options"), 
+                                             "'] == 'mutate_new' "),
+                                      uiOutput(ns("mutate_new_UI"))),
+                     conditionalPanel(paste0("input['", ns("mutate_options"), 
+                                             "'] == 'mutate_update' "),
+                                      uiOutput(ns("mutate_update_UI"))),
+                     
+                     # Conditional panel for simple or advanced mutate options
+                     conditionalPanel(paste0("input['", ns("is_advanced_mutate"), 
+                                             "'] == true "),
+                                      uiOutput(ns("advanced_mutate_UI"))
                      ),
-                     column(width = 6, 
-                            actionButton(ns("undo_mutate"), 
-                                         label = "Undo", 
-                                         class = "btn-danger")
-                     )
-                   ),
+                     conditionalPanel(paste0("input['", ns("is_advanced_mutate"), 
+                                             "'] == false "),
+                                      textInput(ns("mutate_to_insert_simple"), 
+                                                label = 
+                                                  "Value to insert:",
+                                                placeholder = "e.g. 1, apple, TRUE"),
+                     ),
+                     
+                     checkboxInput(ns("is_advanced_mutate"), 
+                                   "Advanced mutate"), 
+
+                     
+                     fluidRow(
+                       column(width = 6, 
+                              actionButton(ns("submit_mutate"), 
+                                           label = "Mutate", 
+                                           class = "btn-primary")
+                       ),
+                       column(width = 6, 
+                              actionButton(ns("undo_mutate"), 
+                                           label = "Undo", 
+                                           class = "btn-danger")
+                       )
+                     ),
+                     
+                   ), # end mutating options well panel
                    
                    hr(),
                    
@@ -532,7 +560,31 @@ textPrepUI <- function(id){
                             color: white;")
                    ),
                    
-                   DT::dataTableOutput(ns("content_prepared_DT")),
+                   wellPanel(
+                     # DT::dataTableOutput(ns("content_prepared_DT")),
+                     DT::DTOutput(ns("content_prepared_DT")),
+                   ),
+                   
+                   fluidRow(
+                     column(width = 3, 
+                            hr()
+                     ),
+                     column(width = 3, 
+                            actionButton(ns("save_content_edits"), 
+                                         label = "Save edits", 
+                                         class = "btn-success")
+                     ),
+                     column(width = 3, 
+                            actionButton(ns("add_content_row"), 
+                                         label = "Add row", 
+                                         class = "btn-warning")
+                     ),
+                     column(width = 3, 
+                            actionButton(ns("remove_content_row"), 
+                                         label = "Delete row", 
+                                         class = "btn-danger")
+                     )
+                   ), # end fluid row
                    
                    ), # end col 2
             ), # end fluid row
@@ -555,11 +607,8 @@ textPrepUI <- function(id){
             # ), # end fluid row
             
 
-          
-
           ), # end box
                
-        
       ), # end outer fluid row
       
       
@@ -569,7 +618,6 @@ textPrepUI <- function(id){
            tabBox( side = "left", 
                    selected = "Stop-words", 
                    width = 12, 
-                   
                    
                    tabPanel(title = "Stop-words",
                             
@@ -593,12 +641,33 @@ textPrepUI <- function(id){
                    tabPanel(title = "Tokenisation",
                             
                         wellPanel(
-                          
                           tokenizeUI(ns("tokenize"))
-                          
                         ) # end well panel
+                        
                    ), # end tab panel
                    
+                   tabPanel(title = "Stemming", 
+
+                               wellPanel(
+                                 h4("Stemming"),
+                                 p("Performing stemming of the current tokenised data."),
+                                 em("Note: data must be tokenised to perform stemming."),
+                                 
+                                 fluidRow(
+                                   column(width = 6, 
+                                          actionButton(ns("submit_stemming"), 
+                                                       label = "Submit", 
+                                                       class = "btn-success"),
+                                          ),
+                                   column(width = 6, 
+                                          actionButton(ns("undo_stemming"), 
+                                                       label = "Undo", 
+                                                       class = "btn-danger"),
+                                   )
+                                 ),
+                               ),
+                        
+                    ), # end stemming tabpanel
                  ), # end tab box
 
                box(title = "Checkpoint", 
@@ -628,60 +697,24 @@ textPrepUI <- function(id){
                
         ), # end col 1
         
-      ), # end outer fluid row
-      
-      fluidRow(
+        column(7, 
+               
+               tabBox( side = "right", 
+                       width = 12, 
+                       
+                       tabPanel(title = " ",
+                                
+                                wellPanel(
+                                  
+                                  DT::dataTableOutput(ns("content_prepared_DT_2"))
+                                  
+                                ) # end well panel
+                       ), # end tab panel 
+               ) # end tab box
+               
+        ) # end col 2
         
-       box(title = "Search/Concordance", 
-           status = "primary", 
-           solidHeader = T, 
-           collapsible = T,
-           width = 12,
-           
-           h3("Search/Concordance"), 
-           
-           fluidRow(
-             column(width = 6, 
-                      wellPanel(
-                        h4("Stemming"),
-                        p("Specify stems to search for within text data."),
-                        
-                        hr(), 
-                        textInput(ns("stem_input"), 
-                                  label = "Enter stem", 
-                                  placeholder = "e.g. run"),
-                        
-                        hr(),
-                        
-                        selectInput(ns("stem_group_by_input"), 
-                                    label = "(Optional) Choose a variable to group frequencies by)", 
-                                    choices = 
-                                      list("Choices" = 
-                                             "N/A")
-                        ),
-                        
-                        actionButton(ns("submit_stem"), 
-                                     label = "Submit", 
-                                     class = "btn-success"),
-                        
-                        hr(),
-                      ),
-                    
-                    ),
-             
-             column(width = 6,  
-                    wellPanel(
-                      DT::dataTableOutput(ns("test"))
-                    ),
-                    
-                    ) # end column
-             
-           ) # end fluid row
-           
-       ), # end box
-              
-      ), # end fluid row
-      
+      ), # end outer fluid row
     ) # end fluid page
   )
 }
@@ -715,67 +748,238 @@ textPrepServer <- function(id, rv = rv){
       #   return(NULL)
       # })
       
-      
       rv$is_content_filtered <- FALSE
       rv$is_content_mutated <- FALSE
       
-      # # Creating handsontable to be editable for editing section
-      # output$content_edited <- renderRHandsontable({
-      #   rhandsontable(rv$content_prepared,
-      #                 height = 500, 
-      #                 stretchH = "all", 
-      #                 useTypes = FALSE) %>%
-      #     hot_cols(fixedColumnsLeft = 1, 
-      #              columnSorting = TRUE) %>%
-      #     hot_context_menu(
-      #       customOpts = list(
-      #         search = list(name = "Search",
-      #                       callback = htmlwidgets::JS(
-      #                         "function (key, options) {
-      #                    var srch = prompt('Search criteria');
-      # 
-      #                    this.search.query(srch);
-      #                    this.render();
-      #                  }"))))
-      #   })
+      # Rendering table of data to display
+      # if no stop-words/tokenising performed, show content
+      # in observe event submit stop-words: if stop-words submitted, render content_stop_rm
+      # in observe event submit tokenise: if tokenised, render content_tokenised
+      observe({
+        
+        req(rv$content)
+        # if neither stop-words or tokenisation performed yet, render rv$content
+        # if(!(rv$is_stop_removed) && !(rv$is_tokenised)){
+        #   print("content_prepared set to content in text prep server")
+        #   rv$content_prepared <- rv$content
+        # }
+        
+        # if content not filtered or mutated, set content_prepared <- content
+        if(!(rv$is_content_filtered) && !(rv$is_content_mutated)){
+          print("content_edited & content_prepared set to content in text prep server")
+          rv$content_edited <- rv$content
+          rv$content_prepared <- rv$content
+        }
+        
+      })
       
+      # Creating datatable of content parameterised at top of page 
+      output$content_prepared_DT <- DT::renderDataTable(
+        rv$content_prepared,
+        filter = 'top',
+        server = TRUE,
+        options = list(
+          paging = TRUE,
+          pageLength = 7,
+          scrollX = TRUE,
+          scrollY = TRUE,
+          dom = 'frtip',
+          columnDefs =
+            list(
+              list(targets = 1,
+                   render = JS("function(data, type, row, meta) {",
+                               "return type === 'display' && data.length > 100 ?",
+                               "'<span title=\"' + data + '\">' + data
+                        .substr(0, 100) + '...</span>' : data;","}"
+                   )
+              )
+            )
+        ),
+        selection = 'single',
+        rownames = FALSE,
+        editable = TRUE
+      )
+      
+      
+      #######################
+      #### Editing table ####
+      #######################
+      
+      # Observe event for each time a cell is edited, so it is saved
+      # When edit occurs, subset content_prepared with user-entered value
+      # in the datatable display. Result is that the data in server gets
+      # updated whenever user makes edits on front end
+      # R col indexes start at 1 whilst DT at 0, so col + 1 is used
+      observeEvent(input$content_prepared_DT_cell_edit, {
+        
+        print("event observed: content_prepared_DT_cell_edit")
+        
+        rv$content_prepared[input$content_prepared_DT_cell_edit$row, input$content_prepared_DT_cell_edit$col+1] <<- input$content_prepared_DT_cell_edit$value
+        
+        print("content_prepared after edits made:")
+        print(rv$content_prepared)
+      })
+      
+      # Observe event for save button - when save clicked, save current content_prepared
+      # state 
+      observeEvent(input$save_content_edits, {
+        
+        req(rv$content_prepared)
+        
+        print("saving content clicked, not sure what to do yet tho")
+
+        # rv$content_prepared <- temp[input[["content_prepared_DT"]], ]
+
+      })
       
       ###########################
-      ###### Mutating data ###### 
+      ###### Mutating UI ########
+      ###########################
+      
+      #### Creating ui for new column mutation ####
+      output$mutate_new_UI <- renderUI({
+        ns <- NS(id)
+        tagList(
+        
+          textInput(ns("mutate_new_col_name"), 
+                    label = "Choose a name for your new column:",
+                    value = "new_column"),
+          
+        ) # end tagList of renderUI
+      }) # end renderUI
+      
+      output$mutate_update_UI <- renderUI({
+        ns <- NS(id)
+        tagList(
+          
+          # Select input for dependent (response) variable
+          varSelectInput(ns("mutate_update_col"), 
+                         label = "Choose a column to update:", 
+                         rv$content_prepared, 
+                         selected = 2, 
+                         multiple = FALSE
+          ),
+          
+        ) # end tagList of renderUI
+      }) # end renderUI
+      
+      output$advanced_mutate_UI <- renderUI({
+        ns <- NS(id)
+        tagList(
+          
+          p("Specify condition and values to insert"),
+          #  if <selected_col> equals <inputted char> then fill with <inputted char> else fill with <inputted char>
+          # Select input for dependent (response) variable
+          varSelectInput(ns("mutate_advanced_update_col"), 
+                         label = "If:", 
+                         rv$content_prepared, 
+                         selected = 2, 
+                         multiple = FALSE
+          ),
+          
+          fluidRow(
+            column(width = 6, 
+                   selectInput(ns("mutate_advanced_condition"), 
+                               label = NULL, 
+                               choices = list("is equal to" = "is equal to", 
+                                              "is less than" = "is less than", 
+                                              "is greater than" = "is greater than", 
+                                              "contains" = "contains"))
+            ),
+            column(width = 6, 
+                   textInput(ns("mutate_advanced_condition_input"), 
+                             label = NULL,
+                             value = NULL),
+            )
+          ),
+          
+          fluidRow(
+            column(width = 6, 
+                textInput(ns("mutate_advanced_equals_true"), 
+                          label = "Then fill with:",
+                          value = 'TRUE'),
+                ),
+            column(width = 6, 
+                textInput(ns("mutate_advanced_equals_true"), 
+                          label = "Else fill with:",
+                          value = 'FALSE'),
+            )
+          ),
+          
+          
+          
+        ) # end tagList of renderUI
+      }) # end renderUI
+      
+      ###########################
+      ###### Mutating data ######
       ###########################
       
       observeEvent(input$submit_mutate, {
         
-        req(rv$content_edited) # is either content if no editing yet, or
-        # is the result of mutating and/or filtering
-        req(rv$content_prepared)
+        req(rv$content_edited) # is either content if no editing yet, or the result of mutating
+        req(rv$content_prepared) # is either content or result of filtering/mutating
         
         # Saving temp in case user wants to undo changes
         rv$pre_mutated_temp <- rv$content_prepared
         
-        # Saving what is in data table, so 
-        # user can mutate and add column values to just filtered
-        # data rows if they wish as opposed to every row
+        # Saving what is in data table, so user can mutate and add column values 
+        # to just filtered data rows if they wish as opposed to every row
         in_datatable <- rv$content_prepared[input[["content_prepared_DT_rows_all"]], ]
-          # rv$content_edited[input[["content_prepared_DT_rows_all"]], ]
         
-        # Mutating content: if the content_edited ID column is in the 
-        # data table selected, add the value to insert, otherwise null
-        rv$content_mutated <- rv$content_prepared %>% # rv$content_edited %>% 
-          mutate(user_added_col = 
-                   if_else(.$ID %in% in_datatable$ID, input$mutate_to_insert, NULL))
+        # If mutate option to add new column selected, add new col, 
+        # else if mutate option to update existing selected, update 
+        if(input$mutate_options == "mutate_new"){
+          
+          # Mutating content: if the content_prepared ID column is in the 
+          # data table selected, add the value to insert, otherwise null
+          rv$content_mutated <- rv$content_prepared %>% 
+            mutate(user_added_column = 
+                     if_else(.$ID %in% in_datatable$ID, input$mutate_to_insert_simple, NULL))
+          
+          # Renaming column to user inputted name
+          colnames(rv$content_mutated)[which(names(rv$content_mutated) == "user_added_column")] <- paste0(input$mutate_new_col_name)
+          
+          rv$is_content_mutated <- TRUE
+          
+          
+        } else if(input$mutate_options == "mutate_update"){
+          
+          # To update existing column, need to fill current col with values to insert
+          # only fill with values to insert for number of rows in current datatable, 
+          # stored in in_datatable
+          print(rv$content_prepared[input$mutate_update_col])
+          rv$content_prepared[input$mutate_update_col] <- rep(input$mutate_to_insert_simple, 
+                                                              nrow(in_datatable))
+          rv$content_mutated <- rv$content_prepared
+          
+          rv$is_content_mutated <- TRUE
+          
+        }
         
-        # Renaming column to user inputted name
-        colnames(rv$content_mutated)[which(names(rv$content_mutated) == "user_added_column")] <- input$mutate_colname
-        
-        rv$is_content_mutated <- TRUE
-        
+       
         # Setting content_edited and content_prepared to the new mutated content
+        req(rv$content_mutated)
         rv$content_edited <- rv$content_mutated
         rv$content_prepared <- rv$content_mutated
         
         print("Content prepared after mutating in text prep tab:")
         print(rv$content_prepared)
+      })
+      
+      
+      ## Undo mutations:
+      ## If content has been mutated, revert to pre_mutated_temp
+      observeEvent(input$undo_mutate, {
+        
+        req(rv$is_content_mutated)
+        
+        # rv$content_parameterised <- rv$pre_mutated_temp # revert to original
+        rv$content_prepared <- rv$pre_mutated_temp
+        rv$content_edited <- rv$pre_mutated_temp
+        
+        rv$is_content_mutated <- FALSE
+        
       })
       
       
@@ -790,7 +994,7 @@ textPrepServer <- function(id, rv = rv){
         
         # Creating temporary storage hold 
         rv$pre_filtered_temp <- rv$content_prepared
-
+        
         # Subsetting content_stats by filters
         rv$content_prepared <- 
           rv$pre_filtered_temp[input[["content_prepared_DT_rows_all"]], ]
@@ -810,58 +1014,12 @@ textPrepServer <- function(id, rv = rv){
         
         rv$is_content_filtered <- FALSE
       })
+    
+    
       
-      # Rendering table of data to display
-      # if no stop-words/tokenising performed, show content
-      # in observe event submit stop-words: if stop-words submitted, render content_stop_rm
-      # in observe event submit tokenise: if tokenised, render content_tokenised
-      observe({
-        
-        req(rv$content)
-        # if neither stop-words or tokenisation performed yet,
-        # render rv$content
-        # if(!(rv$is_stop_removed) && !(rv$is_tokenised)){
-        #   print("content_prepared set to content in text prep server")
-        #   rv$content_prepared <- rv$content
-        # }
-        
-        # if content not filtered or mutated, set content_prepared <- content
-        if(!(rv$is_content_filtered) && !(rv$is_content_mutated)){
-          print("content_edited & content_prepared set to content in text prep server")
-          rv$content_edited <- rv$content
-          rv$content_prepared <- rv$content
-        }
-        
-      })
-      
-      # Creating datatable of content parameterised
-      output$content_prepared_DT <- DT::renderDataTable(
-        rv$content_prepared,
-        filter = 'top',
-        # server = TRUE,
-        options = list(
-          paging = TRUE,
-          pageLength = 7,
-          scrollX = TRUE,
-          scrollY = TRUE,
-          dom = 'frtip',
-          columnDefs =
-            list(
-              list(targets = 1,
-                   render = JS("function(data, type, row, meta) {",
-                               "return type === 'display' && data.length > 100 ?",
-                               "'<span title=\"' + data + '\">' + data
-                        .substr(0, 100) + '...</span>' : data;","}"
-                   )
-              )
-            )
-        ),
-        selection = 'none',
-        rownames = FALSE,
-        editable = 'column'
-      )
-      
-      
+      ###########################
+      #### Downloading data #####
+      ###########################
       # Rendering a download button with downloadHandler()
       output$download_parameterised_csv <- downloadHandler(
         filename = function() {
@@ -883,73 +1041,68 @@ textPrepServer <- function(id, rv = rv){
       )
       
       
-      # Stemming 
-      observeEvent(input$submit_stem, {
-        
-        content_stemmed <- reactive({
-          
-          req(rv$content)
-          req(rv$is_tokenised)
-          
-          stem <- input$stem_input
-          
-          stemmed <- rv$content_prepared %>%
-            mutate(stem = hunspell_stem(stem)) # %>% 
-            # unnest(token) %>%
-            # group_by(ID) %>%
-            # count(stem)
-          
-          stemmed
-          
-        })
-        
-        output$test <- DT::renderDataTable(
-          content_stemmed(),
-          options = list(
-            paging = TRUE,
-            pageLength = 5,
-            scrollX = TRUE,
-            scrollY = TRUE,
-            dom = 'frtip',
-            columnDefs =
-              list(
-                list(targets = 1,
-                     render = JS("function(data, type, row, meta) {",
-                                 "return type === 'display' && data.length > 100 ?",
-                                 "'<span title=\"' + data + '\">' + data
+      # Creating datatable 2 of content parameterised after stop word removal
+      output$content_prepared_DT_2 <- DT::renderDataTable(
+        rv$content_prepared,
+        options = list(
+          paging = TRUE,
+          pageLength = 7,
+          scrollX = TRUE,
+          scrollY = TRUE,
+          dom = 'rtip',
+          columnDefs =
+            list(
+              list(targets = 1,
+                   render = JS("function(data, type, row, meta) {",
+                               "return type === 'display' && data.length > 100 ?",
+                               "'<span title=\"' + data + '\">' + data
                         .substr(0, 100) + '...</span>' : data;","}"
-                     )
-                )
+                   )
               )
-          ),
-          selection = 'none',
-          rownames = FALSE
-        )
+            )
+        ),
+        selection = 'none',
+        rownames = FALSE,
+      )
+      
+      
+      #######################
+      ####### Stemming ######
+      #######################
+      
+      observeEvent(input$submit_stemming, {
+        
+        req(rv$is_tokenised)
+        req(rv$content_prepared)
+        
+        rv$pre_stemmed_content <- rv$content_prepared
+        
+        
+        rv$content_stemmed <- rv$content_prepared %>%
+            mutate(Stems = hunspell_stem(Token)) #%>%
+            # select(ID, Stems) %>%
+            # mutate(Token = Stems) %>%
+            # select(ID, Token)
+        
+        rv$content_prepared <- rv$content_stemmed
+        
+        rv$is_stemmed <- TRUE
+        print("stemming content performed") 
+        
+        
+      }) # end observe event submit stemming
+      
+      observeEvent(input$undo_stemming, {
+        
+        req(rv$is_stemmed)
+        
+        rv$content_stemmed <- NULL
+        rv$content_prepared <- rv$pre_stemmed_content
         
       })
       
-      # To update select group by variable
-      stem_choices <- reactive({
-        
-        if(!is.null(rv$content_prepared)){
-          return(colnames(rv$content_prepared))
-        }
-        
-        return("N/A")
-      })
-      
-      observe({
-        
-        rv$stem_choices <- stem_choices()
-        
-        updateSelectInput(session, "stem_group_by_input",
-                          choices = rv$stem_choices,
-                          selected= rv$stem_choices[1])
-      })
       
       
-      
-      # output$test <- renderPrint(rv$content_prepared)
       
       
 

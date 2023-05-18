@@ -570,7 +570,7 @@ statsServer <- function(id, rv = rv){
 
         validate(
           need(
-            is_numeric(rv$content_stats[[input$eda_hist_var]]),
+            is.numeric(rv$content_stats[[input$eda_hist_var]]),
             "Select a numeric variable."
           ),
           errorClass = "validation-red")
@@ -641,7 +641,7 @@ statsServer <- function(id, rv = rv){
         # ensuring variable is numeric
         validate(
           need(
-            is_numeric(var),
+            is.numeric(var),
             "Select a numeric variable."
           ),
           errorClass = "validation-red")
