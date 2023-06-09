@@ -221,7 +221,9 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv){
       # Doing separately to other columns in content so they are not lost in grouping
       req(rv$content)
       
-      rv$content_stop_rm <- rv$content # create a copy to modify
+      rv$content_stop_rm <- rv$content_prepared # create a copy to modify
+      # used to be rv$content - but mutating done first so need to 
+      # pass through 
       
       # Removing stop-words with an anti-join on Contents column
       # Then grouping by ID and collapsing back into paragraphs ready 
@@ -399,9 +401,13 @@ tokenizeServer <- function(id, rv = rv){
         if(!rv$is_stop_removed){ 
           
           req(rv$content)
+          req(rv$content_prepared)
           # if content_stop_rm is null then no stop-words have been submitted,
           # so first set content_stop_rm <- content
-          rv$content_stop_rm <- rv$content
+          # used to be content_stop_rm <- content but updated
+          # to content_stop_rm <- content_prepared since mutating
+          # done first
+          rv$content_stop_rm <- rv$content_prepared
           print("set content_stop_rm to content in tokenise server")
         }
         
@@ -486,7 +492,7 @@ textPrepUI <- function(id){
                    p("Edit your text data by double-clicking on the table and/or add a column using the mutating tools."),
                    
                    # Radio buttons to render which type of mutation controls
-                   radioButtons(ns("mutate_options"), 
+                   radioButtons(ns("mutate_option"), 
                                 label = "Choose a mutate method:", 
                                 choices = list("Add new column" = "mutate_new", 
                                                "Update existing column" = "mutate_update")),
@@ -495,10 +501,10 @@ textPrepUI <- function(id){
                      
                      # Conditional panel renders either new col name box or dropdown box of
                      # existing columns depending on the mutate method option selected
-                     conditionalPanel(paste0("input['", ns("mutate_options"), 
+                     conditionalPanel(paste0("input['", ns("mutate_option"), 
                                              "'] == 'mutate_new' "),
                                       uiOutput(ns("mutate_new_UI"))),
-                     conditionalPanel(paste0("input['", ns("mutate_options"), 
+                     conditionalPanel(paste0("input['", ns("mutate_option"), 
                                              "'] == 'mutate_update' "),
                                       uiOutput(ns("mutate_update_UI"))),
                      
@@ -900,7 +906,7 @@ textPrepServer <- function(id, rv = rv){
                           value = 'TRUE'),
                 ),
             column(width = 6, 
-                textInput(ns("mutate_advanced_equals_true"), 
+                textInput(ns("mutate_advanced_equals_false"), 
                           label = "Else fill with:",
                           value = 'FALSE'),
             )
@@ -917,11 +923,9 @@ textPrepServer <- function(id, rv = rv){
       
       observeEvent(input$submit_mutate, {
         
-        req(rv$content_edited) # is either content if no editing yet, or the result of mutating
+        req(rv$content_edited) # is content if no editing yet, or result of mutating
         req(rv$content_prepared) # is either content or result of filtering/mutating
-        
-        # Saving temp in case user wants to undo changes
-        rv$pre_mutated_temp <- rv$content_prepared
+        rv$pre_mutated_temp <- rv$content_prepared  # Saving temp in case of undo
         
         # Saving what is in data table, so user can mutate and add column values 
         # to just filtered data rows if they wish as opposed to every row
@@ -929,36 +933,90 @@ textPrepServer <- function(id, rv = rv){
         
         # If mutate option to add new column selected, add new col, 
         # else if mutate option to update existing selected, update 
-        if(input$mutate_options == "mutate_new"){
+        if(input$mutate_option == "mutate_new")
           
+          {
+          
+          # Where non-advanced mutate selected...
+          if(input$is_advanced_mutate == FALSE)
+            
+            {
+            
           # Mutating content: if the content_prepared ID column is in the 
           # data table selected, add the value to insert, otherwise null
           rv$content_mutated <- rv$content_prepared %>% 
             mutate(user_added_column = 
-                     if_else(.$ID %in% in_datatable$ID, input$mutate_to_insert_simple, NULL))
+                     if_else(.$ID %in% in_datatable$ID, 
+                             input$mutate_to_insert_simple, NULL))
           
           # Renaming column to user inputted name
           colnames(rv$content_mutated)[which(names(rv$content_mutated) == "user_added_column")] <- paste0(input$mutate_new_col_name)
           
-          rv$is_content_mutated <- TRUE
+          
+            } 
+          
+          else  # Where advanced mutate is checked...
+            
+            {  
+            
+              print("Advanced mutate new selected")
+            
+            }
           
           
-        } else if(input$mutate_options == "mutate_update"){
+          } # end mutate new logic
+        
+        # Where update column is selected
+        else if(input$mutate_option == "mutate_update"){
           
-          # To update existing column, need to fill current col with values to insert
-          # only fill with values to insert for number of rows in current datatable, 
-          # stored in in_datatable
-          print(rv$content_prepared[input$mutate_update_col])
-          rv$content_prepared[input$mutate_update_col] <- rep(input$mutate_to_insert_simple, 
-                                                              nrow(in_datatable))
+          # Where advanced mutate is selected
+          if(input$is_advanced_mutate == FALSE){
+          
+          # To update existing column, need to fill chosen col with values to insert.
+          # If row is in datatable, insert the value specified, 
+          # else input what is originally content_prep but not in datatable displayed
+          # If datatable has been filtered but filters not submitted, update is performed on the displayed rows and other rows are left alone. If filters have been selected and submitted, update is performed on all rows
+          for(i in 1:nrow(rv$content_prepared[input$mutate_update_col])){
+            if(rv$content_prepared$ID[i] %in% in_datatable$ID[i]){
+              rv$content_prepared[[input$mutate_update_col]][[i]] <- 
+                input$mutate_to_insert_simple
+            }
+          }
+          
+          
           rv$content_mutated <- rv$content_prepared
           
           rv$is_content_mutated <- TRUE
-          
+        
+          } else {
+            
+            print("Advanced mutate update selected")
+            
+            # rv$content_prepared[input$mutate_update_col] <- 
+            res <- 
+              advanced_mutate(rv$content_prepared, 
+                              in_datatable,
+                              input$mutate_option,
+                              input$mutate_update_col,
+                              input$mutate_advanced_update_col,
+                              input$mutate_advanced_condition,
+                              input$mutate_advanced_condition_input,
+                              input$mutate_advanced_equals_true,
+                              input$mutate_advanced_equals_false)
+            print("Resulting updated column:")
+            print(res)
+            
+            print("Assigning to rv$content_prepared")
+            rv$content_mutated[input$mutate_update_col] <- res
+            # rv$content_mutated <- res
+            
+            rv$is_content_mutated <- TRUE
+          }
+        
         }
         
-       
-        # Setting content_edited and content_prepared to the new mutated content
+        # Setting content_edited and content_prepared to the 
+        # new mutated content
         req(rv$content_mutated)
         rv$content_edited <- rv$content_mutated
         rv$content_prepared <- rv$content_mutated
@@ -1077,17 +1135,22 @@ textPrepServer <- function(id, rv = rv){
         
         rv$pre_stemmed_content <- rv$content_prepared
         
-        
+        # hunspell_stem gives possible list of stems,
+        # separating these and deselcting Token column
         rv$content_stemmed <- rv$content_prepared %>%
-            mutate(Stems = hunspell_stem(Token)) #%>%
-            # select(ID, Stems) %>%
-            # mutate(Token = Stems) %>%
-            # select(ID, Token)
+            mutate(Stem = hunspell_stem(Token)) %>%
+            separate(Stem, c('Stem_1', 'Stem_2'), 
+                     sep = ",") %>%
+            mutate(Stem_1 = unlist(Stem_1)) %>%
+            filter(Stem_1 != 'character(0)') %>%
+            mutate(Stem_1 = gsub('c\\(\\"|\\"', "", Stem_1)) %>%
+            mutate(Token = Stem_1) %>%
+            select(-Stem_1, -Stem_2)
         
         rv$content_prepared <- rv$content_stemmed
         
         rv$is_stemmed <- TRUE
-        print("stemming content performed") 
+        print("stemming content performed")
         
         
       }) # end observe event submit stemming
@@ -1096,15 +1159,12 @@ textPrepServer <- function(id, rv = rv){
         
         req(rv$is_stemmed)
         
+        # Pre_stemmed content is reassigned to content_prepared
+        # to convert back
         rv$content_stemmed <- NULL
         rv$content_prepared <- rv$pre_stemmed_content
         
       })
-      
-      
-      
-      
-      
 
     }
   )

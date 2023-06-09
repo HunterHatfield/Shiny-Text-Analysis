@@ -393,10 +393,6 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     observe({
 
       rv$choices_ID <- choices_ID()
-      print("content_prepared from reporting server")
-      print(rv$content_prepared)
-      print("unique choices of ID from reporting server")
-      print(rv$choices_ID)
 
       updateSelectInput(session, "content_single_ID",
                         choices = rv$choices_ID,

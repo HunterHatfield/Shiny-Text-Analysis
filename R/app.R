@@ -20,6 +20,8 @@
 # usethis::use_package("devtools")
 # usethis::use_package("openxlsx")
 
+# install.packages("sjmisc")
+library(sjmisc)
 
 library(shiny)
 library(DT)

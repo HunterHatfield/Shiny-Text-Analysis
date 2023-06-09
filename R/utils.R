@@ -88,6 +88,93 @@ clear_reactives <- function(){
 
 
 
+#####################################
+###### Advanced mutate function #####
+#####################################
+
+advanced_mutate <- function(content_prepared, 
+                            in_datatable,
+                            mutate_option = "mutate_new",
+                            mutate_update_col,
+                            mutate_advanced_update_col,
+                            mutate_advanced_condition = "is equal to",
+                            mutate_advanced_condition_input,
+                            mutate_advanced_equals_true = TRUE,
+                            mutate_advanced_equals_false = FALSE
+) {
+  
+  content_prepared <- content_prepared[which(in_datatable$ID %in% 
+                           content_prepared$ID),]
+  
+  if(mutate_option == "mutate_update"){
+    
+    
+    # Less than & greater than tests
+    if(mutate_advanced_condition == "is less than" ||
+       mutate_advanced_condition == "is greater than"){
+      
+      print("Mutate updated advanced: attempting numeric conv")
+      # Attempting to convert col to numeric
+      convert_attempt_col <- try(
+        content_prepared[mutate_advanced_update_col] <- 
+          as.numeric(content_prepared[[mutate_advanced_update_col]])
+      )
+      convert_attempt_condition <- try(
+        mutate_advanced_condition_input <- 
+          as.numeric(mutate_advanced_condition_input)
+      )
+      
+      # If the try-catch produced error (class try-error) in trying to convert
+      # the column or condition input to numeric, show alert
+      if("try-error" %in% class(convert_attempt_col) ||
+         "try-error" %in% class(convert_attempt_condition)){
+        
+        # produce alert
+        print("something wasn't numeric")
+        
+      } else { # else perform the check & update col accordingly
+        
+        print("Mutate update advanced: numeric conversion success")
+        print("Mutate update advanced: going to for loop to update...")
+        
+        for(i in 1:nrow(content_prepared[mutate_update_col])){
+          
+          # If checking if less than...
+          if(mutate_advanced_condition == "is less than"){
+            
+            print("Mutate update advanced: checking is less than...")
+            
+            content_prepared[i, mutate_update_col] <- 
+              if_else(content_prepared[i, mutate_advanced_update_col] < 
+                        mutate_advanced_condition_input, 
+                      mutate_advanced_equals_true, 
+                      mutate_advanced_equals_false)
+            
+            # Else if checking if greater than...
+          } else if(mutate_advanced_condition == "is greater than"){
+            content_prepared[i, mutate_update_col] <- 
+              if_else(content_prepared[i, mutate_advanced_update_col] > 
+                        mutate_advanced_condition_input, 
+                      mutate_advanced_equals_true, 
+                      mutate_advanced_equals_false)
+          }
+          
+        } # end for loop
+        
+        print("Result of advanced_update function:")
+        print(content_prepared)
+        return(content_prepared[mutate_update_col])
+        #return(content_prepared)
+        
+      } # end else statement
+      
+    } # end less or greater than mutations
+    
+  } # end if mutate update
+  
+} # end advanced function
+
+
 
 #### apply_transformation function ####
 # This function takes in a variable from a dataset and transformation type to 
@@ -187,3 +274,7 @@ perform_regression <- function(formula, regression_type, data){
 
   return(res)
 }
+
+
+
+
