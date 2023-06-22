@@ -591,6 +591,7 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
       req(nrow(filter(rv$content_prepared, ID == rv$content_single_ID)) > 0)
 
       validate(need(rv$is_tokenised, NULL))
+      req(!is.null(rv$content_prepared$Token)) # require Token column
       
       dat <- rv$content_prepared %>%
         filter(ID == rv$content_single_ID) %>%
@@ -665,7 +666,9 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     # Observe to assign reactives made for corr plot to rv list
     # If content is not tokenised, assign NULL to reactive
     observe({
-
+      
+      req(rv$is_tokenised) 
+      
       if(!rv$is_tokenised){
         rv$content_comp_freq <- NULL
       }
