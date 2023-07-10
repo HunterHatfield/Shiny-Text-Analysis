@@ -21,39 +21,77 @@
 # usethis::use_package("openxlsx")
 
 # install.packages("sjmisc")
-library(sjmisc)
 
-library(shiny)
-library(shinyalert)
-library(DT)
-library(shinyFiles)
-library(dplyr)
-library(shinydashboard)
-library(devtools)
-library(tidytext)
-library(purrr)
-library(readr)
-library(openxlsx)
-library(forcats)
-library(scales)
-library(xgxr)
-library(tidyr)
-library(MASS)
-library(janitor)
-library(shinyjs)
-library(kableExtra)
-library(modelsummary)
-library(sjPlot)
-library(lme4)
-library(plotly)
-library(reshape2)
-library(ggfortify)
-library(nortest)
-library(rstatix)
-library(schoRsch)
-library(hunspell)
+if(!require('pacman'))install.packages('pacman')
+library(pacman)
+pacman::p_load(
+  devtools,
+  dplyr,
+  DT,
+  finalfit,
+  forcats,
+  ggfortify,
+  ggplot2,
+  hunspell,
+  janitor,
+  kableExtra,
+  MASS,
+  modelsummary,
+  nortest,
+  openxlsx,
+  plotly,
+  purrr,
+  quarto,
+  readr,
+  reshape2,
+  # rhandsontable,
+  rmarkdown,
+  rstatix,
+  scales, # For the corr plot
+  schoRsch,
+  shiny,
+  shinyalert,
+  shinydashboard,
+  shinyFiles,
+  shinyjs,
+  sjmisc,
+  sjPlot,
+  tidytext,
+  wordcloud2,
+  xgxr # For the corr plot
+  )
 
-library(rhandsontable)
+# library(sjmisc)
+# library(shiny)
+# library(shinyalert)
+# library(DT)
+# library(shinyFiles)
+# library(dplyr)
+# library(shinydashboard)
+# library(devtools)
+# library(tidytext)
+# library(purrr)
+# library(readr)
+# library(openxlsx)
+# library(forcats)
+# library(scales)
+# library(xgxr)
+# library(tidyr)
+# library(MASS)
+# library(janitor)
+# library(shinyjs)
+# library(kableExtra)
+# library(modelsummary)
+# library(sjPlot)
+# library(lme4)
+# library(plotly)
+# library(reshape2)
+# library(ggfortify)
+# library(nortest)
+# library(rstatix)
+# library(schoRsch)
+# library(hunspell)
+# library(rhandsontable)
 
 # Setting shiny options
 # file upload limit to 10MB (override 5MB limit)

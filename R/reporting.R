@@ -1,16 +1,6 @@
 
 ######### Reporting module for text analysis app ###################
 
-library(openxlsx)
-library(ggplot2)
-library(quarto)
-library(rmarkdown)
-library(wordcloud2)
-
-# For the corr plot
-library(scales)
-library(xgxr)
-
 # devtools::install_github("lchiffon/wordcloud2")
 
 outputDir <- "R"
@@ -600,6 +590,9 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
         mutate(Source = rv$content_single_ID)
       
       dat
+      
+      print("single content selected:")
+      print(dat)
 
     })
 
@@ -610,16 +603,24 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
       req(rv$content_prepared$Token)
 
       validate(need(rv$is_tokenised, NULL))
+      
+      print("filtering content_prepared to be rest of the corpus")
+      print(length(unique(rv$content_prepared$ID)))
 
-      if(rv$is_tokenised && unique(rv$content_prepared$ID) > 1){
+      
+      if(rv$is_tokenised && length(unique(rv$content_prepared$ID)) > 1){
+        
         rv$content_prepared %>%
           filter(ID != rv$content_single_ID) %>%
           count(Token, sort = T) %>%
           mutate(Proportion = n/sum(n)) %>% # proportion calc
           mutate(Source = "Corpus")
+        
       } else if(!rv$is_tokenised &&
-                unique(rv$content_prepared$ID) == 1) {
+                length(unique(rv$content_prepared$ID)) == 1) {
+        
         content_param_single()
+        
       }
 
     })
