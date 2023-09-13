@@ -1,4 +1,8 @@
-######## File upload method UI & server ###########
+
+
+######## CSV upload method UI & server ###########
+
+
 csvUI <- function(id, label = "Choose text file(s):"){
   ns <- NS(id)
   tagList(
@@ -9,11 +13,15 @@ csvUI <- function(id, label = "Choose text file(s):"){
     hr(),
     
     # File uploading
-    shinyFilesButton(ns("csvtsvUpload"),
-                     label = "Select a .csv/.tsv file",
-                     title = "Choose a .csv or .tsv file...",
-                     multiple = FALSE, 
-                     class = "btn-primary"),
+    # shinyFilesButton(ns("csvtsvUpload"),
+    #                  label = "Select a .csv/.tsv file",
+    #                  title = "Choose a .csv or .tsv file...",
+    #                  multiple = FALSE, 
+    #                  class = "btn-primary"),
+    
+    fileInput(ns("csvtsvUpload2"), label = NULL, 
+              multiple = TRUE, accept = c(".csv", ".tsv"), 
+              placeholder = "No file(s) selected."),
     
     hr(),
     
@@ -45,14 +53,16 @@ csvServer <- function(id, rv = rv){
     id, 
     function(input, output, session){
       
-      volumes <- c(Home = fs::path_home(),
-                   "R Installation" = R.home(),
-                   getVolumes()())
+      # volumes <- c(Home = fs::path_home(),
+      #              "R Installation" = R.home(),
+      #              getVolumes()())
       
-      shinyFileChoose(input, "csvtsvUpload",
-                      roots = volumes,
-                      filetypes = c('csv', 'tsv'),
-                      session = session)
+      # shinyFileChoose(input, "csvtsvUpload",
+      #                 roots = volumes,
+      #                 filetypes = c('csv', 'tsv'),
+      #                 session = session)
+      
+
       
       # extracting uploaded files from shiny files input
       csvtsv_file <- reactive({
@@ -65,8 +75,10 @@ csvServer <- function(id, rv = rv){
         parseFilePaths(roots = volumes, input$csvtsvUpload)
       })
       
+      # saving files() to a reactive value
       observe({
-        rv$csvtsv_file <- csvtsv_file()
+        req(input$csvtsvUpload2)
+        rv$csvtsv_file <- input$csvtsvUpload2
       })
       
       # if no files found, print none found.
@@ -124,10 +136,11 @@ csvServer <- function(id, rv = rv){
           if(type() == 'csv'){
             
             # create tibble from file
-            temp <- read_csv(rv$csvtsv_file$datapath) %>% 
-              dplyr::select(1:2)
+            # Was just selecting first two columns, now allowing all 
+            temp <- read_csv(rv$csvtsv_file$datapath) # %>% 
+              # dplyr::select(1:2)
             
-            colnames(temp) <- c("ID", "Contents")
+            colnames(temp)[c(1,2)] <- c("ID", "Contents")
             
             temp <- temp %>%
               mutate(ID = as.character(ID), 
@@ -138,10 +151,11 @@ csvServer <- function(id, rv = rv){
           } else { # else the file is tsv
             
             # create tibble from file
-            temp <- read_tsv(rv$csvtsv_file$datapath) %>% 
-              dplyr::select(1:2)
+            temp <- read_tsv(rv$csvtsv_file$datapath) #  %>% 
+              # dplyr::select(1:2)
             
-            colnames(temp) <- c("ID", "Contents")
+            # Renaming just first two rows to required names
+            colnames(temp)[c(1,2)] <- c("ID", "Contents")
             
             temp <- temp %>%
               mutate(ID = as.character(ID), 
@@ -150,18 +164,31 @@ csvServer <- function(id, rv = rv){
             return(temp)
             
           }
-          
         })
         
-        # Could just have one 
-        rv$csvtsv_contents <- csvtsv_contents() 
+        rv$csvtsv_contents <- csvtsv_contents()
           
         rv$content <- rv$csvtsv_contents
-        rv$numFiles <- nrow(rv$content)
+        
+        # Creating list for dataset created and its characteristics
+        content_primary <- shiny::reactiveValues(data = csvtsv_contents(),
+                                                 is_stop_rm = FALSE, 
+                                                 is_tokenised = FALSE, 
+                                                 is_filtered = FALSE,
+                                                 is_mutated = FALSE,
+                                                 content_primary_tf_idf = NULL)
+        
+        # Saving content_primary list containing data & characteristics in main rv list
+        rv$content_primary <- content_primary
+        print("Assigned content_primary list to rv$content_primary:")
+        print(rv$content_primary)
+
+        
+        rv$numFiles <- nrow(rv$content_primary$data)
         
         # Notification for when files successfully uploaded
         # When submit button clicked
-        if(rv$numFiles > 0){
+        if(nrow(rv$content_primary$data) > 0){
           showNotification(paste("Table submitted successfully."), 
                            duration = 5, 
                            type = "message")
@@ -180,7 +207,7 @@ csvServer <- function(id, rv = rv){
       
       # Num files always updating to number of rows in content
       observe({
-        rv$numFiles <- nrow(rv$content)
+        rv$numFiles <- nrow(rv$content_primary$data)
       })
       
     }

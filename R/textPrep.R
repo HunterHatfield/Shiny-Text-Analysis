@@ -13,18 +13,24 @@ stopWordsUI <- function(id, label = "Choose your stop-word(s):") {
   ns <- NS(id)
   tagList(
     h3("Stop-word selection"),
+    
+    # Select a dataset to alter
+    selectInput(ns("data_stop_rm"), 
+                label = "Select a dataset to alter:", 
+                choices = list("N/A" = "na")),
 
     # checkbox input for including stop words
     checkboxInput(ns("default_check"),
-      label = " Use default stop-words list "
+      label = "Include default stop-word list"
     ),
 
     # textbox input for stop words
     textInput(ns("added_words"),
-      label = "Add extra stop-word(s) separated by commas and/or spaces",
+      label = "Add extra stop-word(s) separated by commas and/or spaces:",
       value = NULL,
       placeholder = "e.g. apple, banana carrot"
     ),
+    
     fluidRow(
       column(6, {
         actionButton(ns("submit_stop_words"),
@@ -47,11 +53,6 @@ stopWordsUI <- function(id, label = "Choose your stop-word(s):") {
     h3("Submitted stop-words"),
     p(textOutput(ns("stop_word_display"))),
 
-    # conditionalPanel(
-    #   condition = "input.submit_",
-    #   p(textOutput(ns("default_caption")))
-    # ),
-
     em(textOutput(ns("no_stop_words_caption"))),
     conditionalPanel(
       condition = paste0(
@@ -60,6 +61,7 @@ stopWordsUI <- function(id, label = "Choose your stop-word(s):") {
       ),
       em(textOutput("No stop-words submitted."))
     ),
+    
     DT::dataTableOutput(ns("stop_words_table")),
     uiOutput(ns("download_stop_words"))
   )
@@ -81,12 +83,32 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
     #   } else {
     #     "No stop-words submitted."
     #   }
-    #
-    #
     # })
 
     output$num_stops <- renderText(length(rv$stop_words_final$word))
-
+    
+    # Always update possible dataset list with current available subsets
+    observe({
+      # Create list of possible datasets to select from
+      req(rv$content_primary)
+      potential_sets_stop_rm <- list("Primary data")
+      print("Made potential sets list:")
+      print(potential_sets_stop_rm)
+      
+      if(!is.null(rv$subset_one)){
+        potential_sets_stop_rm[length(potential_sets_stop_rm) + 1] <- "Subset one"
+      }
+      if(!is.null(rv$subset_two)){
+        potential_sets_stop_rm[length(potential_sets_stop_rm) + 1] <- "Subset two"
+      }
+      
+      # updating select input list to contain datasets available
+      updateSelectInput(session, "data_stop_rm",
+                        choices = potential_sets_stop_rm,
+                        selected= potential_sets_stop_rm[1])
+    })
+    
+    
     # When submit button clicked...
     # Creating final stop words tibble depending on various input cases
     # If user wants to include defaults & added words, combine defaults and
@@ -107,7 +129,7 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
 
           return(added_words)
         } else {
-          return(NULL)
+           return(NULL)
         }
       })
 
@@ -139,13 +161,11 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
           } else { # if just default words to be included
             return(rv$default_stop_words)
           }
-        } else {
-          if (!is.null(rv$added_stop_words)) { # added words included but not defaults
+        } else if(!is.null(rv$added_stop_words)) { # added words included but not defaults
             return(rv$added_stop_words)
           } else { # if no defaults or added words to be included
             return(NULL)
           }
-        }
       })
 
       rv$stop_words_final <- stop_words_final()
@@ -155,16 +175,13 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
       output$stop_word_display <-
         renderText({
           if (nchar(input$added_words) != 0) { # if user added stop-words
-            paste(c(
-              "You have added a total of ", nrow(rv$stop_words_final),
+            paste(c("You have added a total of ", nrow(rv$stop_words_final),
               " stop-word(s)."
             ), sep = ",")
           } else if (input$default_check) { # if user chooses default stop-words
             paste(c(
               "You have added a default list of ",
-              nrow(rv$default_stop_words),
-              " stop-words."
-            ), sep = ",")
+              nrow(rv$default_stop_words), " stop-words."), sep = ",")
           } else if (is.null(rv$stop_words_final) || length(rv$stop_words_final$word) == 0) {
             return(NULL)
           }
@@ -218,23 +235,48 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
       # Then grouped by ID to stitch words back together.
       # Doing separately to other columns in content so they are not lost in grouping
       print("Starting stop word removal process...")
-      req(rv$content)
-
+      req(rv$content_primary)
+      
+      # For selected dataset, create pre-stop-removed dataset in case of undo, 
+      # and create a copy of content_prepared to edit
+      if(input$data_stop_rm == "Primary data"){
+        print("Assigning data to rv$content_primary copy to modify")
+        rv$content_primary$content_pre_stop_rm <- rv$content_primary$content_prepared
+        rv$content_primary$content_stop_rm <- rv$content_primary$content_prepared
+        data <- rv$content_primary
+        print(data$content_stop_rm)
+        
+      } else if(input$data_stop_rm == "Subset one"){
+        print("Assigning data to rv$subset_one copy to modify")
+        rv$subset_one$content_pre_stop_rm <- rv$subset_one$data
+        rv$subset_one$content_stop_rm <- rv$subset_one$data
+        data <- rv$subset_one
+        
+      } else if(input$data_stop_rm == "Subset two"){
+        print("Assigning data to rv$subset_two copy to modify")
+        rv$subset_two$content_pre_stop_rm <- rv$subset_two$data
+        rv$subset_two$content_stop_rm <- rv$subset_two$data
+        data <- rv$subset_two
+      }
+      
+      # Now data is a list of the selected dataset and characteristics, 
+      # can use data and remove stop-words from its dataset
+      
+      
       rv$content_stop_rm <- rv$content_prepared # create a copy to modify
-      # used to be rv$content - but mutating done first so need to
-      # pass through
-      print("Assigning content_stop_rm to content_prepared copy to modify")
+      # used to be rv$content - but mutating done first
 
       # Removing stop-words with an anti-join on Contents or Token column
       # Then grouping by ID and collapsing back into paragraphs ready
       # for user to choose their own tokenisation method
-      if (!rv$is_tokenised) {
+      # if (!rv$is_tokenised) {
+      if(!data$is_tokenised){
         print("Not tokenised, removing stop words from Contents")
-        print(str(rv$content_stop_rm))
-        req(is.character(rv$content_stop_rm[["Contents"]]))
+        # req(is.character(rv$content_stop_rm[["Contents"]]))
+        req(is.character(data$content_stop_rm[["Contents"]]))
         print("Contents is character & present in data...")
 
-        content_cols_stop_rm <- rv$content_stop_rm %>%
+        content_cols_stop_rm <- data$content_stop_rm %>% # rv$content_stop_rm %>%
           dplyr::select(ID, Contents) %>%
           unnest_tokens(word, Contents, token = "words") %>%
           anti_join(rv$stop_words_final, by = "word") %>%
@@ -244,12 +286,14 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
 
         # Creating subset of rest of cols in submitted content
         # Deselecting Contents to instead append stop-removed Contents next
-        content_other_cols <- rv$content_stop_rm %>%
+        content_other_cols <- data$content_stop_rm %>% # rv$content_stop_rm %>%
           dplyr::select(-Contents)
-      } else if (rv$is_tokenised) {
-        req(is.character(rv$content_stop_rm[["Token"]]))
+        
+      } else if (data$is_tokenised){ # (rv$is_tokenised) {
+        # req(is.character(rv$content_stop_rm[["Token"]]))
+        req(is.character(data$content_stop_rm[["Token"]]))
 
-        content_cols_stop_rm <- rv$content_stop_rm %>%
+        content_cols_stop_rm <- data$content_stop_rm %>% # rv$content_stop_rm %>%
           dplyr::select(ID, Token) %>%
           anti_join(rv$stop_words_final, by = "Token") %>%
           group_by(ID) %>%
@@ -258,32 +302,50 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
 
         # Creating subset of rest of cols in submitted content
         # Deselecting Contents to instead append stop-removed Contents next
-        content_other_cols <- rv$content_stop_rm %>%
+        content_other_cols <- data$content_stop_rm %>% # rv$content_stop_rm %>%
           dplyr::select(-Token)
       }
 
 
       # Then joining stop-removed col and rest of cols
       content_stop_rm <- full_join(content_cols_stop_rm,
-        content_other_cols,
-        by = "ID"
-      )
+        content_other_cols, by = "ID")
+      
+      # Final stop-removed dataset now saved in content_stop_rm, 
+      # saving this to dataset
+      print("Final stop removed dataset:")
+      print(content_stop_rm)
+      
+      data$content_stop_rm <- content_stop_rm
+      
+      rv$content_prepared_display_2 <- data$content_stop_rm
+      
+      # Setting content_stop_rm back to content_prepared in selected dataset
+      if(input$data_stop_rm == "Primary data"){
+        print("Assigning stop-rm data back to rv$content_primary$content_prepared")
+        rv$content_primary$content_prepared <- data$content_stop_rm
+        rv$content_primary$is_stop_rm <- TRUE
 
+      } else if(input$data_stop_rm == "Subset one"){
+        print("Assigning stop-rm data back to rv$subset_one$content_prepared")
+        rv$subset_one$content_prepared <- data$content_stop_rm
+        rv$subset_one$is_stop_rm <- TRUE
+        
+      } else if(input$data_stop_rm == "Subset two"){
+        print("Assigning stop-rm data back to rv$subset_two$content_prepared")
+        rv$subset_two$content_prepared <- data$content_stop_rm
+        rv$subset_two$is_stop_rm <- TRUE
+      }
+      
       rv$content_stop_rm <- content_stop_rm # saving in rv list
 
       # Setting content_parameterised & prepared to new data w stop removed
       rv$content_parameterised <- rv$content_stop_rm
       rv$content_prepared <- rv$content_stop_rm
-
-      print("stop-words removed, rv$content_prepared:")
-      print(rv$content_prepared)
-
-      # To indicate data has not been tokenised yet, for when new data is uploaded
       rv$is_tokenised <- FALSE
-      # To indicate stop words have been removed
       rv$is_stop_removed <- TRUE
-
-
+      
+      
       # Rendering download buttons with downloadHandler()
       output$download_stop_words_csv <- downloadHandler(
         filename = function() {
@@ -322,6 +384,27 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
 
       rv$is_tokenised <- FALSE
       rv$is_stop_removed <- FALSE
+      
+      # Setting content_stop_rm back to pre-stop-removed data in selected dataset
+      # Also setting display table to display undone data
+      if(input$data_stop_rm == "Primary data"){
+        rv$content_primary$content_prepared <- rv$content_primary$content_pre_stop_rm
+        rv$content_primary$is_stop_rm <- FALSE
+        
+        rv$content_prepared_display_2 <- rv$content_primary$content_prepared
+        
+      } else if(input$data_stop_rm == "Subset one"){
+        rv$subset_one$content_prepared <- rv$subset_one$content_pre_stop_rm
+        rv$subset_one$is_stop_rm <- FALSE
+        
+        rv$content_prepared_display_2 <- rv$subset_one$content_prepared
+        
+      } else if(input$data_stop_rm == "Subset two"){
+        rv$subset_one$content_prepared <- rv$subset_two$content_pre_stop_rm
+        rv$subset_two$is_stop_rm <- FALSE
+        
+        rv$content_prepared_display_2 <- rv$subset_one$content_prepared
+      }
 
       # using a list of rv's to delete each w for loop if exists
       to_reset <- c(
@@ -342,8 +425,15 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
 tokenizeUI <- function(id) {
   ns <- NS(id)
   tagList(
+    
+    h3("Tokenisation"),
+    
+    selectInput(ns("data_to_tokenise"), 
+                label = "Select a dataset to tokenise:", 
+                choices = list("N/A" = "na")),
+    
     selectInput(ns("tokens"),
-      label = "Choose a method of tokenization:",
+      label = "Choose a token to split text data on:",
       choices = c(
         "Words" = "words",
         "Bi-grams" = "bigrams",
@@ -356,7 +446,6 @@ tokenizeUI <- function(id) {
     conditionalPanel(
       condition = "input.tokens == 'ngrams'",
       ns = ns,
-      # condition = "1 == 1",
       # uiOutput(ns("ngramsUI")) # was using renderUI in server to make UI for this
       numericInput(ns("n_grams"), label = "Enter n-grams:", value = 2)
     ),
@@ -413,14 +502,125 @@ tokenizeServer <- function(id, rv = rv) {
         return(2)
       }
     })
+    
+    
+    # Always update possible dataset list with current available subsets
+    observe({
+      # Create list of possible datasets to select from
+      req(rv$content_primary)
+      potential_sets_tokenise <- list("Primary data")
+      print("Made potential sets list:")
+      print(potential_sets_tokenise)
+      
+      if(!is.null(rv$subset_one)){
+        potential_sets_tokenise[length(potential_sets_tokenise) + 1] <- "Subset one"
+      }
+      if(!is.null(rv$subset_two)){
+        potential_sets_tokenise[length(potential_sets_tokenise) + 1] <- "Subset two"
+      }
+      
+      # updating select input list to contain datasets available
+      updateSelectInput(session, "data_to_tokenise",
+                        choices = potential_sets_tokenise,
+                        selected= potential_sets_tokenise[1])
+    })
 
 
     # Tokenised tibble should only be rendered after "tokenise" button observed
     observeEvent(input$submit_tokenise, {
       req(rv$content)
+      
+      
+      # First select dataset to tokenise
+      print("Starting tokenise process...")
+      req(rv$content_primary)
+      
+      # For selected dataset, create pre-stop-removed dataset in case of undo, 
+      # and create a copy of content_prepared to edit
+      if(input$data_to_tokenise == "Primary data"){
+        
+        # if primary data has stop-words removed
+        if(rv$content_primary$is_stop_rm){
+          
+          # tokenise on rv$content_primary$content_stop_rm
+          rv$content_primary$content_pre_tokenise <- rv$content_primary$content_stop_rm
+          data <- rv$content_primary
+          print("tokenising stop word rm primary data:")
+          print(data$content_stop_rm)
+          
+        # else if primary data not stop removed
+        } else {
+          
+          # tokenise on rv$content_primary$content_prepared
+          rv$content_primary$content_pre_tokenise <- rv$content_primary$content_prepared
+          data <- rv$content_primary
+          print("tokenising non-stop word rm primary data:")
+          print(data$content_prepared)
+        }
+      
+        
+      } else if(input$data_to_tokenise == "Subset one"){
+        
+        # if subset data has stop-words removed
+        if(rv$subset_one$is_stop_rm){
+          
+          # tokenise on rv$subset_one$content_stop_rm
+          rv$subset_one$content_pre_tokenise <- rv$subset_one$content_stop_rm
+          data <- rv$subset_one
+          print("tokenising stop word rm subset one data:")
+          print(data$content_stop_rm)
+          
+        # else if subset data not stop removed
+        } else {
+          
+          # saving content_prepared as copy of OG data
+          rv$subset_one$content_prepared <- rv$subset_one$data
+          
+          # tokenise on rv$subset_one$content_prepared
+          rv$subset_one$content_pre_tokenise <- rv$subset_one$content_prepared
+          
+          data <- rv$subset_one
+          print("tokenising non-stop word rm content_prepared from subset data:")
+          print(data$content_prepared)
+          
+        }
+        
+        
+      } else if(input$data_to_tokenise == "Subset two"){
+        # if subset data has stop-words removed
+        if(rv$subset_two$is_stop_rm){
+          
+          # tokenise on rv$subset_one$content_stop_rm
+          rv$subset_two$content_pre_tokenise <- rv$subset_two$content_stop_rm
+          data <- rv$subset_two
+          print("tokenising stop word rm subset two data:")
+          print(data$content_stop_rm)
+          
+          # else if subset data not stop removed
+        } else {
+          
+          # saving content_prepared as copy of OG data
+          rv$subset_two$content_prepared <- rv$subset_two$data
+          
+          # tokenise on rv$subset_two$content_prepared
+          rv$subset_two$content_pre_tokenise <- rv$subset_two$content_prepared
+          
+          data <- rv$subset_two
+          print("tokenising non-stop word rm content_prepared from subset data:")
+          print(data$content_prepared)
+          
+        }
+      }
+      
+      # Now data is a list of the selected dataset and characteristics, 
+      # can use data and tokenise from its dataset
+      
+      
+      
       # Tokenising content tibble. Output column is selected token, input is
       # Contents columns, tokenising by user-selected token
       content_tokenised <- reactive({
+        
         validate(need(rv$is_stop_removed, NULL))
 
         if (!rv$is_stop_removed) {
@@ -587,24 +787,31 @@ textPrepUI <- function(id) {
               ), # end mutating options well panel
 
               hr(),
+              
+              # Filtering options 
               h3("Filter data"),
               p("Use the interactive datatable to filter attributes of your text data. Save your filtered data to use in further analyses."),
-              fluidRow(
-                column(
-                  width = 6,
-                  actionButton(ns("submit_filters"),
-                    label = "Filter",
-                    class = "btn-primary"
-                  )
-                ),
-                column(
-                  width = 6,
-                  actionButton(ns("undo_filters"),
-                    label = "Undo filters",
-                    class = "btn-danger"
-                  )
-                )
-              ),
+              
+                wellPanel(
+                  fluidRow(
+                  column(
+                    width = 6,
+                    actionButton(ns("submit_filters"),
+                                 label = "Filter",
+                                 class = "btn-primary"
+                    )
+                  ),
+                  column(
+                    width = 6,
+                    actionButton(ns("undo_filters"),
+                                 label = "Undo filters",
+                                 class = "btn-danger"
+                    )
+                  ),
+                ) # end fluidRow
+                
+              ),# end well panel
+              
             ), # end col 1
 
             column(
@@ -619,15 +826,8 @@ textPrepUI <- function(id) {
               ),
               fluidRow(
                 column(
-                  width = 3,
+                  width = 6,
                   hr()
-                ),
-                column(
-                  width = 3,
-                  actionButton(ns("save_content_edits"),
-                    label = "Save edits",
-                    class = "btn-success"
-                  )
                 ),
                 column(
                   width = 3,
@@ -647,22 +847,37 @@ textPrepUI <- function(id) {
             ), # end col 2
           ), # end fluid row
 
-          # Subsetting options
-          # h4("Subset data"),
-          # p("Save the filtered subset of data for comparison."),
-          #
-          # fluidRow(
-          #   column(width = 6,
-          #          actionButton(ns("save_subset_one"),
-          #                       label = "Save as subset I",
-          #                       class = "btn-success"),
-          #   ),
-          #   column(width = 6,
-          #          actionButton(ns("save_subset_two"),
-          #                       label = "Save as subset II",
-          #                       class = "btn-success"),
-          #   ),
-          # ), # end fluid row
+          hr(),
+          fluidRow(
+            
+            column(5,
+                     br(),
+            ), # end column 
+            
+            column(7,
+                   wellPanel(
+                     # Subsetting options
+                     h3("Subset data"),
+                     p("Save your filtered and/or mutated subset of data for comparison."),
+                     
+                     fluidRow(
+                       column(width = 6,
+                              actionButton(ns("save_subset_one"),
+                                           label = "Save in Slot I",
+                                           class = "btn-success"),
+                       ),
+                       column(width = 6,
+                              actionButton(ns("save_subset_two"),
+                                           label = "Save in Slot II",
+                                           class = "btn-success"),
+                       ),
+                     ), # end subsetting fluid row
+                   ), # end well panel
+              
+            ) # end column
+            
+          ), # end fluid row
+          
         ), # end box
       ), # end outer fluid row
 
@@ -760,7 +975,7 @@ textPrepUI <- function(id) {
             tabPanel(
               title = " ",
               wellPanel(
-                h2("Prepared data (content_prepared)"),
+                h2("Updated data"),
                 DT::dataTableOutput(ns("content_prepared_DT_2"))
               ) # end well panel
             ), # end tab panel
@@ -783,10 +998,15 @@ textPrepServer <- function(id, rv = rv) {
       # if no files submitted, print none found. Else print nothing.
       output$parameterised_subtitle1 <- renderText({
         validate(
-          need(rv$content, "Submit files in the Text Selector Tab to continue")
+          need(rv$content_primary$data, "Submit files in the Text Selector Tab to continue")
         )
         return(NULL)
       })
+      
+      observe({
+        rv$content_prepared_display_2 <- rv$content_primary$content_prepared
+      })
+      
 
       # Don't need to enforce tokenising
       # output$parameterised_subtitle2 <- renderText({
@@ -799,32 +1019,31 @@ textPrepServer <- function(id, rv = rv) {
       #   return(NULL)
       # })
 
-      rv$is_content_filtered <- FALSE
-      rv$is_content_mutated <- FALSE
-
       # Rendering table of data to display
       # if no stop-words/tokenising performed, show content
       # in observe event submit stop-words: if stop-words submitted, render content_stop_rm
       # in observe event submit tokenise: if tokenised, render content_tokenised
       observe({
-        req(rv$content)
+        req(rv$content_primary$data)
+ 
         # if neither stop-words or tokenisation performed yet, render rv$content
         # if(!(rv$is_stop_removed) && !(rv$is_tokenised)){
         #   print("content_prepared set to content in text prep server")
         #   rv$content_prepared <- rv$content
         # }
 
-        # if content not filtered or mutated, set content_prepared <- content
-        if (!(rv$is_content_filtered) && !(rv$is_content_mutated)) {
+        # if content not filtered or mutated, set content_prepared to OG data
+        # is_filtered and is_mutated set on initialisation of content_primary data list
+        if (!(rv$content_primary$is_filtered) && !(rv$content_primary$is_mutated)) {
           print("content_edited & content_prepared set to content in text prep server")
-          rv$content_edited <- rv$content
-          rv$content_prepared <- rv$content
+          rv$content_primary$content_edited <- rv$content_primary$data
+          rv$content_primary$content_prepared <- rv$content_primary$data
         }
       })
 
       # Creating datatable of content parameterised at top of page
       output$content_prepared_DT <- DT::renderDataTable(
-        rv$content_prepared,
+        rv$content_primary$content_prepared,
         filter = "top",
         server = TRUE,
         options = list(
@@ -864,16 +1083,16 @@ textPrepServer <- function(id, rv = rv) {
       observeEvent(input$content_prepared_DT_cell_edit, {
         print("event observed: content_prepared_DT_cell_edit")
 
-        rv$content_prepared[input$content_prepared_DT_cell_edit$row, input$content_prepared_DT_cell_edit$col + 1] <<- input$content_prepared_DT_cell_edit$value
+        rv$content_primary$content_prepared[input$content_prepared_DT_cell_edit$row, input$content_prepared_DT_cell_edit$col + 1] <<- input$content_prepared_DT_cell_edit$value
 
         print("content_prepared after edits made:")
-        print(rv$content_prepared)
+        print(rv$content_primary$content_prepared)
       })
 
       # Observe event for save button - when save clicked, save current content_prepared
       # state
       observeEvent(input$save_content_edits, {
-        req(rv$content_prepared)
+        req(rv$content_primary$content_prepared)
 
         print("saving content clicked, not sure what to do yet tho")
 
@@ -903,7 +1122,7 @@ textPrepServer <- function(id, rv = rv) {
         tagList(
           varSelectInput(ns("mutate_col_to_update"),
                          label = "Choose a column to update:",
-                         rv$content_prepared,
+                         rv$content_primary$content_prepared,
                          selected = 2,
                          multiple = FALSE
           ),
@@ -920,7 +1139,7 @@ textPrepServer <- function(id, rv = rv) {
           # fill with
           varSelectInput(ns("mutate_advanced_condition_col"),
                          label = "If:",
-                         rv$content_prepared,
+                         rv$content_primary$content_prepared,
                          selected = 2,
                          multiple = FALSE
           ),
@@ -942,11 +1161,15 @@ textPrepServer <- function(id, rv = rv) {
               width = 6,
               # Render text input if 'contains' condition selected
               conditionalPanel(
+                
+                # Need to change to if condition is contains OR is matches
                 condition = paste0("input['", ns("mutate_advanced_condition"),
-                                   "'] == 'contains' "),
+                                   "'] == 'contains' || 
+                                   input['", ns("mutate_advanced_condition"), 
+                                   "'] == 'matches string'"),
                 textInput(ns("mutate_advanced_condition_text_input"),
                           label = NULL,
-                          value = NULL, 
+                          value = NULL,
                           placeholder = "e.g. shiny"
                 ),
               ),
@@ -954,7 +1177,11 @@ textPrepServer <- function(id, rv = rv) {
               # is selected
               conditionalPanel(
                 condition = paste0("input['", ns("mutate_advanced_condition"),
-                                   "'] !== 'contains' "),
+                                   "'] == 'is equal to (numeric)' || 
+                                   input['", ns("mutate_advanced_condition"), 
+                                   "'] == 'is less than' || input['", 
+                                   ns("mutate_advanced_condition"), "'] ==
+                                   'is greater than'"),
                 numericInput(ns("mutate_advanced_condition_numeric_input"),
                              label = NULL,
                              value = 1
@@ -987,21 +1214,21 @@ textPrepServer <- function(id, rv = rv) {
       ###########################
 
       observeEvent(input$submit_mutate, {
-        req(rv$content_edited) # is content if no editing yet, or mutating result
-        req(rv$content_prepared) # is either content/result of filtering/mutating
-        rv$pre_mutated_temp <- rv$content_prepared # saving temp in case of undo
+        req(rv$content_primary$content_edited) # is content if no editing yet, or mutating result
+        req(rv$content_primary$content_prepared) # is either content/result of filtering/mutating
+        rv$content_primary$pre_mutated_temp <- rv$content_primary$content_prepared # saving temp in case of undo
 
         
         # Saving what is in data table, so user can mutate and add column values
         # to just filtered data rows if they wish as opposed to every row
         in_datatable <- 
-          rv$content_prepared[input[["content_prepared_DT_rows_all"]], ]
+          rv$content_primary$content_prepared[input[["content_prepared_DT_rows_all"]], ]
 
         # Add new column selected
         if (input$mutate_option == "mutate_new") {
           
           # First ensuring column name isn't replicated
-          if(input$mutate_new_col_name %in% colnames(rv$content_prepared)){
+          if(input$mutate_new_col_name %in% colnames(rv$content_primary$content_prepared)){
             shinyalert(
               title = "Mutate failed: column name error",
               text = "Column names must be unique. \n \n Ensure your new column name is unique to all other column names. \n \n To mutate an existing column, select the 'Update existing column' button.",
@@ -1015,13 +1242,14 @@ textPrepServer <- function(id, rv = rv) {
             )
             
             return()
+            
           }
           
           # Basic add column selected
           if (input$is_advanced_mutate == FALSE) {
             # If the content_prepared ID column is in the
             # data table selected, add the value to insert, otherwise NA
-            rv$content_mutated <- rv$content_prepared %>%
+            rv$content_primary$content_mutated <- rv$content_primary$content_prepared %>%
               mutate(
                 "{input$mutate_new_col_name}" :=
                   if_else(.$ID %in% in_datatable$ID,
@@ -1029,15 +1257,15 @@ textPrepServer <- function(id, rv = rv) {
                   )
               )
             
-            rv$is_content_mutated <- TRUE
+            rv$content_primary$is_mutated <- TRUE
             
-          } else # Where advanced mutate is selected:
+          } else { # Where advanced mutate is selected:
 
-          {
             print("Advanced mutate new selected")
             
+            # Running advanced_mutate from utils.R, parsing in user inputs
             res <- advanced_mutate(
-              rv$content_prepared,
+              rv$content_primary$content_prepared,
               in_datatable,
               input$mutate_option,
               input$mutate_new_col_name,
@@ -1053,9 +1281,9 @@ textPrepServer <- function(id, rv = rv) {
             print("Resulting added column:")
             print(res)
             
-            rv$content_mutated <- res
+            rv$content_primary$content_mutated <- res
             
-            rv$is_content_mutated <- TRUE
+            rv$content_primary$is_mutated <- TRUE
             
           }
           
@@ -1073,22 +1301,22 @@ textPrepServer <- function(id, rv = rv) {
             # is performed on the displayed rows and other rows are left alone. 
             # If filters have been selected and submitted, update is performed 
             # on all rows
-            for (i in 1:nrow(rv$content_prepared[input$mutate_col_to_update])) {
-              if (rv$content_prepared$ID[i] %in% in_datatable$ID[i]) {
-                rv$content_prepared[[input$mutate_col_to_update]][[i]] <-
+            for (i in 1:nrow(rv$content_primary$content_prepared[input$mutate_col_to_update])) {
+              if (rv$content_primary$content_prepared$ID[i] %in% in_datatable$ID[i]) {
+                rv$content_primary$content_prepared[[input$mutate_col_to_update]][[i]] <-
                   input$mutate_to_insert_simple
               }
             }
-            rv$content_mutated <- rv$content_prepared
+            rv$content_primary$content_mutated <- rv$content_primary$content_prepared
 
-            rv$is_content_mutated <- TRUE
+            rv$content_primary$is_mutated <- TRUE
             
             # Where advanced update column is selected:
           } else {
             print("Advanced mutate update selected")
 
             res <- advanced_mutate(
-                      rv$content_prepared,
+                      rv$content_primary$content_prepared,
                       in_datatable,
                       input$mutate_option,
                       mutate_new_col_name = NULL,
@@ -1104,33 +1332,33 @@ textPrepServer <- function(id, rv = rv) {
             print("Resulting updated column:")
             print(res)
 
-            rv$content_mutated <- res
+            rv$content_primary$content_mutated <- res
 
-            rv$is_content_mutated <- TRUE
+            rv$content_primary$is_mutated <- TRUE
           }
         }
 
         # Setting content_edited and content_prepared to the
         # new mutated content
-        req(rv$content_mutated)
-        rv$content_edited <- rv$content_mutated
-        rv$content_prepared <- rv$content_mutated
+        req(rv$content_primary$content_mutated)
+        rv$content_primary$content_edited <- rv$content_primary$content_mutated
+        rv$content_primary$content_prepared <- rv$content_primary$content_mutated
 
         print("Content prepared after mutating in text prep tab:")
-        print(rv$content_prepared)
+        print(rv$content_primary$content_prepared)
       })
 
 
       ## Undo mutations:
       ## If content has been mutated, revert to pre_mutated_temp
       observeEvent(input$undo_mutate, {
-        req(rv$is_content_mutated)
+        req(rv$content_primary$is_mutated)
 
         # rv$content_parameterised <- rv$pre_mutated_temp # revert to original
-        rv$content_prepared <- rv$pre_mutated_temp
-        rv$content_edited <- rv$pre_mutated_temp
+        rv$content_primary$content_prepared <- rv$content_primary$pre_mutated_temp
+        rv$content_primary$content_edited <- rv$content_primary$pre_mutated_temp
 
-        rv$is_content_mutated <- FALSE
+        rv$content_primary$is_mutated <- FALSE
       })
 
 
@@ -1140,29 +1368,72 @@ textPrepServer <- function(id, rv = rv) {
 
       # When submit filters clicked, subset content_stats by filtered rows
       observeEvent(input$submit_filters, {
-        req(rv$content_prepared)
+        req(rv$content_primary$content_prepared)
 
         # Creating temporary storage hold
-        rv$pre_filtered_temp <- rv$content_prepared
+        rv$content_primary$pre_filtered_temp <- rv$content_primary$content_prepared
 
         # Subsetting content_stats by filters
-        rv$content_prepared <-
-          rv$pre_filtered_temp[input[["content_prepared_DT_rows_all"]], ]
+        rv$content_primary$content_prepared <-
+          rv$content_primary$pre_filtered_temp[input[["content_prepared_DT_rows_all"]], ]
 
-        rv$is_content_filtered <- TRUE
+        rv$content_primary$is_filtered <- TRUE
       })
 
       # When undo filters button clicked, revert content_stats to original
       observeEvent(input$undo_filters, {
-        req(rv$is_content_filtered)
-        req(rv$pre_filtered_temp) # require original reactive value
+        req(rv$content_primary$is_filtered)
+        req(rv$content_primary$pre_filtered_temp) # require original reactive value
 
-        rv$content_parameterised <- rv$pre_filtered_temp # revert to original
-        rv$content_prepared <- rv$content_parameterised
+        rv$content_primary$content_parameterised <- rv$content_primary$pre_filtered_temp # revert to original
+        rv$content_primary$content_prepared <- rv$content_primary$content_parameterised
 
-        rv$is_content_filtered <- FALSE
+        rv$content_primary$is_filtered <- FALSE
       })
 
+      ###########################
+      #### Subsetting data ######
+      ###########################
+      
+      observeEvent(input$save_subset_one, {
+        
+        # require content_prepared to be present (i.e. required submitted data)
+        req(rv$content_primary$content_prepared)
+        
+        # Saving whatever is currently in the mutated/filtered/edited datatable
+        in_datatable <- rv$content_primary$content_prepared[input[["content_prepared_DT_rows_all"]], ]
+        
+        # initializing reactive value list of data and characteristics
+        subset_one <- shiny::reactiveValues(data = in_datatable, 
+                                           is_stop_rm = F, 
+                                           is_tokenised = F)
+        
+        # saving data and characteristics list to main rv list
+        rv$subset_one <- subset_one
+        
+      })
+      
+      observeEvent(input$save_subset_two, {
+        
+        # require content_prepared to be present (i.e. required submitted data)
+        req(rv$content_primary$content_prepared)
+        
+        # Saving whatever is currently in the mutated/filtered/edited datatable
+        in_datatable <- rv$content_primary$content_prepared[input[["content_prepared_DT_rows_all"]], ]
+        
+        # initializing reactive value list of data and characteristics
+        subset_two <- shiny::reactiveValues(data = in_datatable, 
+                                            is_stop_rm = F, 
+                                            is_tokenised = F)
+        
+        # saving data and characteristics list to main rv list
+        rv$subset_two <- subset_two
+        
+        print("Printing subset two:")
+        print(rv$subset_two$data)
+        
+      })
+      
 
 
       ###########################
@@ -1174,7 +1445,7 @@ textPrepServer <- function(id, rv = rv) {
           paste("Parameterised_Content.csv")
         },
         content = function(file) {
-          write_delim(as.data.frame(rv$content_parameterised), file,
+          write_delim(as.data.frame(rv$content_primary$content_parameterised), file,
             delim = ","
           )
         }
@@ -1185,14 +1456,15 @@ textPrepServer <- function(id, rv = rv) {
           paste("Parameterised_Content.tsv")
         },
         content = function(file) {
-          write_tsv(as.data.frame(rv$content_parameterised), file)
+          write_tsv(as.data.frame(rv$content_primary$content_parameterised), file)
         }
       )
 
 
       # Creating datatable 2 of content parameterised after stop word removal
       output$content_prepared_DT_2 <- DT::renderDataTable(
-        rv$content_prepared,
+        # rv$content_primary$content_prepared,
+        rv$content_prepared_display_2,
         options = list(
           paging = TRUE,
           pageLength = 7,
@@ -1222,8 +1494,8 @@ textPrepServer <- function(id, rv = rv) {
       #######################
 
       observeEvent(input$submit_stemming, {
-        req(rv$is_tokenised)
-        req(rv$content_prepared)
+        req(rv$content_primary$is_tokenised)
+        req(rv$content_primary$content_prepared)
 
         rv$pre_stemmed_content <- rv$content_prepared
 

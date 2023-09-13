@@ -441,17 +441,19 @@ statsServer <- function(id, rv = rv){
       eda_summary_stats <- reactive({
         req(rv$content_stats)
         finalfit::ff_glimpse(rv$content_stats)
+        
       })
       
-      # Saving only the summary stats for continuous variables
+      # Saving only the summary stats for continuous variables - could just move this up to finalfit call above?
       observe({
         req(eda_summary_stats())
         rv$content_stats_summary <- eda_summary_stats()$Continuous
+        print(rv$content_stats_summary)
       })
       
       # Table output for summary stats for content stats selected
-      output$content_stats_summary <- renderDataTable({
-        DT::datatable(rv$content_stats_summary,
+      output$content_stats_summary <- 
+        DT::renderDataTable(rv$content_stats_summary,
                       rownames=FALSE, 
                       colnames = c("", "N", "Missing N", "Missing %", "Mean", "SD", "Min", "25% quartile", "Median", "75% quartile", "Max"),
                       options = list(dom = 't', 
@@ -461,8 +463,7 @@ statsServer <- function(id, rv = rv){
                                                          rightColumns = 0),
                                      searching = FALSE
                       )
-        )
-      })
+      )
       
       # Generating ui for content stats display. If user selects checkbox to 
       # show summary stats, this will be rendered instead of raw data

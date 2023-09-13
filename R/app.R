@@ -24,6 +24,7 @@
 
 if(!require('pacman'))install.packages('pacman')
 library(pacman)
+
 pacman::p_load(
   devtools,
   dplyr,
@@ -56,6 +57,7 @@ pacman::p_load(
   shinyjs,
   sjmisc,
   sjPlot,
+  tidyr,
   tidytext,
   wordcloud2,
   xgxr # For the corr plot
@@ -112,19 +114,19 @@ textApp <- function(...){
     dashboardSidebar(
       sidebarMenu(id = "sidebar",
                   
-        menuItem("Home", 
+        menuItem("  Home", 
                  tabName = "home", 
                  icon = icon("house")
         ),
-        menuItem("Text Selector", 
+        menuItem("  Text Selector", 
                  tabName = "textSelectorTab",
                  icon = icon("file-import")
         ),
-        menuItem("Text Preparation", 
+        menuItem("  Text Preparation", 
                  tabName = "textPrepTab", 
                  icon = icon("filter")
         ),
-        menuItem("Text Frequency", 
+        menuItem("  Text Frequency", 
                  tabName = "textFreqTab",
                  icon = icon("chart-column")
         ),
@@ -132,11 +134,11 @@ textApp <- function(...){
         #          tabName = "concordanceTab",
         #          icon = icon("dashboard")
         # ),
-        menuItem("Statistical Analysis", 
+        menuItem("  Statistical Analysis", 
                  tabName = "statsTab",
                  icon = icon("calculator")
         ),
-       menuItem("Reporting", 
+       menuItem("  Reporting", 
                 tabName = "reportingTab",
                 icon = icon("scroll")
         )

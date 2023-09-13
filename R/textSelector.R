@@ -18,20 +18,19 @@ textSelectorUI <- function(id, label = "Choose file(s):"){
                      label = "Choose a method:",
                      choiceNames = list(
                        'Text file upload', '.csv/.tsv file upload',
-                       'Web scraping', 'Twitter scraping', 
                        'Project Gutenberg'
                      ),
                      choiceValues = list(
-                       "upload", "csv", "rvest", 
-                       "twitteR", "gutenbergR")
+                       "upload", "csv", "gutenbergR")
         ),
         hr(),
         
         # Secondary uploads UI. renderUI() function is used to renderUI based on whether
         # or not a user has completed primary uploads. This means secondary upload functionality
         # is only available once primary upload is complete.
-        # Render UI for secondary upload once !is.null(rv$content) && nrow(rv$content) > 0
-        # secondaryUI(ns("secondary")) # Using module functionality breaks shinyFiles. 
+        # Render UI for secondary upload once !is.null(rv$content_primary$data) && 
+        # nrow(rv$content_primary$data) > 0
+        # secondaryUI(ns("secondary")) 
         uiOutput(ns("secondaryUploadUI")),
         uiOutput(ns("secondaryJoinUI")),
         hr(),
@@ -57,14 +56,14 @@ textSelectorUI <- function(id, label = "Choose file(s):"){
               condition = "input.method == 'csv'", 
               csvUI(ns("csv"))
             ),
-            conditionalPanel(
-              condition = "input.method == 'rvest'", 
-              rvestUI(ns("rvest"))
-            ),
-            conditionalPanel(
-              condition="input.method == 'twitteR'", 
-              twitteRUI(ns("twitteR"))
-            ),
+            # conditionalPanel(
+            #   condition = "input.method == 'rvest'", 
+            #   rvestUI(ns("rvest"))
+            # ),
+            # conditionalPanel(
+            #   condition="input.method == 'twitteR'", 
+            #   twitteRUI(ns("twitteR"))
+            # ),
             conditionalPanel(
               condition="input.method=='gutenbergR'", 
               gutenbergRUI(ns("gutenbergR"))
@@ -107,13 +106,11 @@ textSelectorServer <- function(id, rv = rv, session = session){
 
       uploadServer("upload", rv = rv, parent = session)
 
-      twitteRServer("twitteR", rv = rv)
+      # twitteRServer("twitteR", rv = rv)
       gutenbergRServer("gutenbergR", rv = rv)
       csvServer("csv", rv = rv)
-      rvestServer("rvest", rv = rv)
+      # rvestServer("rvest", rv = rv)
       
-      # primary_upload <- observe(rv$content)
-      # secondaryServer("secondary", rv = rv, primary = primary_upload, parent = session)
       
       #### Subtitles ####
       output$selected_title <- renderText({
@@ -125,21 +122,20 @@ textSelectorServer <- function(id, rv = rv, session = session){
       
       output$submitted_subtitle <- renderText({
         validate(
-          need(rv$content, "No files found.")
+          # need(rv$content, "No files found.")
+          need(rv$content_primary$data, "No files found.")
         )
         return(NULL)
       })
       
       # Subtitle for how many files were uploaded 
       output$num_submitted_subtitle <- renderText({
-        if(!is.null(rv$numFiles) ){
-          return(paste(c("You have uploaded: ", rv$numFiles,
+        if(!is.null(nrow(rv$content_primary$data)) ){
+          return(paste(c("You have uploaded: ", nrow(rv$content_primary$data),
                          "file(s)."), sep = ","))
         }
         return(NULL)
       })
-      
-      
       
       #### Table output for the resulting content tibble ####
       
@@ -156,7 +152,8 @@ textSelectorServer <- function(id, rv = rv, session = session){
       )
       
       output$content_display <- DT::renderDataTable(
-        rv$content,
+        # rv$content
+        rv$content_primary$data,
         options = list(
           paging = TRUE,
           pageLength = 5,
@@ -186,7 +183,8 @@ textSelectorServer <- function(id, rv = rv, session = session){
         if(length(input$content_display_rows_selected) == 0){
           return(NULL) 
         }
-        rv$content %>%
+        # rv$content %>%
+        rv$content_primary$data %>%
           filter(row_number() == input$content_display_rows_selected)
       })
       
@@ -227,7 +225,7 @@ textSelectorServer <- function(id, rv = rv, session = session){
 
         # if there is a primary upload present, render secondary UI
         # otherwise UI is rendered to let user know to complete primary upload
-        if(!is.null(rv$content) && nrow(rv$content) > 0){
+        if(!is.null(rv$content_primary$data) && nrow(rv$content_primary$data) > 0){
           return(true_UI)
         }
         return(false_UI)
@@ -240,7 +238,7 @@ textSelectorServer <- function(id, rv = rv, session = session){
       # when secondary content is uploaded.
       output$secondaryJoinUI <- renderUI({
         
-        req(rv$content_secondary)
+        req(rv$join_content_secondary)
         
         ns <- NS(id)
         tagList(
@@ -365,7 +363,7 @@ textSelectorServer <- function(id, rv = rv, session = session){
       
       # Text mining secondary file
       # Using if else to apply correct read function depending on format
-      content_secondary <- reactive({
+      join_content_secondary <- reactive({
         
         req(rv$secondary_file$datapath)
         
@@ -381,17 +379,17 @@ textSelectorServer <- function(id, rv = rv, session = session){
       
       # Saving secondary content as reactive value
       observe({
-        rv$content_secondary <- content_secondary()
+        rv$join_content_secondary <- join_content_secondary()
       })
 
       #### Updating select inputs based on columns in data ####
       primary_cols <- reactive({
-        req(rv$content)
-        colnames(rv$content)
+        req(rv$content_primary$data)
+        colnames(rv$content_primary$data)
       })
       secondary_cols <-reactive({
         req(rv$secondary_file)
-        colnames(rv$content_secondary)
+        colnames(rv$join_content_secondary)
       })
       
       # To generate the list of columns in each data set
@@ -413,12 +411,12 @@ textSelectorServer <- function(id, rv = rv, session = session){
       # then joining based on selected columns
       observeEvent(input$join_datasets, {
         
-        req(rv$content)
-        req(rv$content_secondary) # require secondary content first
+        req(rv$content_primary$data)
+        req(rv$join_content_secondary) # require secondary content first
         
         # Duplicating content so now have rv$primary_content
-        # and rv$content_secondary ready to join
-        rv$content_primary <- rv$content
+        # and rv$join_content_secondary ready to join
+        rv$join_content_primary <- rv$content_primary$data
         
         rv$join_col_primary <- input$col_primary # Saving the selected columns to join on 
         rv$join_col_secondary <- input$col_secondary
@@ -429,8 +427,8 @@ textSelectorServer <- function(id, rv = rv, session = session){
         # utils.R - basically joins tibbles based on col names and join
         # type.
         content_joined <- reactive({
-          join_secondary(rv$content_primary, # isolate(rv$content_primary),
-                         rv$content_secondary, #isolate(rv$content_secondary),
+          join_secondary(rv$join_content_primary, # isolate(rv$join_content_primary),
+                         rv$join_content_secondary, #isolate(rv$join_content_secondary),
                          rv$join_col_primary, rv$join_col_secondary,
                          rv$join_type)
         })
@@ -450,23 +448,32 @@ textSelectorServer <- function(id, rv = rv, session = session){
         
         req(rv$content_joined)
         
-        # Assigning joined content to content
-        rv$content <- rv$content_joined # content_joined()
+        # Creating list for dataset created and its characteristics
+        content_primary <- shiny::reactiveValues(data = rv$content_joined,
+                                                 is_stop_rm = FALSE, 
+                                                 is_tokenised = FALSE, 
+                                                 is_filtered = FALSE,
+                                                 is_mutated = FALSE)
         
-        rv$is_stop_removed <- FALSE
-        rv$is_tokenised <- FALSE
+        # Saving content_primary list containing data & characteristics in main rv list
+        rv$content_primary <- content_primary
+        print("Assigned content_primary list to rv$content_primary:")
+        print(rv$content_primary)
         
       }) # end submit join observe event
       
-      # When revert join button clicked, reset rv$content to 
-      # rv$content_primary if rv$content_joined exists (as a proxy for
+      # When revert join button clicked, reset rv$content_primary$data to 
+      # rv$join_content_primary if rv$content_joined exists (as a proxy for
       # joining has occurred)
-
       observeEvent(input$undo_join, {
         
         req(rv$content_joined)
         
-        rv$content <- rv$content_primary
+        rv$content_primary$data <- rv$join_content_primary
+        rv$content_primary$is_stop_rm <- FALSE
+        rv$content_primary$is_tokenised <- FALSE
+        rv$content_primary$is_filtered <- FALSE
+        rv$content_primary$is_mutated <- FALSE
         
         output$join_results <- renderText(NULL)
         

@@ -21,3 +21,4 @@ Imports:
     shinydashboard,
     shinyFiles,
     tidytext
+Type: Shiny
