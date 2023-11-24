@@ -19,7 +19,7 @@ homeUI <- function(id){
         
         fluidRow(
           column(12, {
-            h1("1| Select", style = "color: royalblue;")
+            h1("1| Import", style = "color: royalblue;")
           }),
         ),
         fluidRow(

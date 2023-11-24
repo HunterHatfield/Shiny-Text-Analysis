@@ -389,17 +389,17 @@ statsServer <- function(id, rv = rv){
         req(rv$content)
         
         if(input$content_stats_choose == "submitted"){
-          rv$content %>%
+          rv$content_primary$data %>%
             clean_names()
         } else if(input$content_stats_choose == "parameterised"){
-          req(rv$content_parameterised)
-          rv$content_parameterised %>%
+          req(rv$content_prepared)
+          rv$content_prepared %>%
             clean_names()
         } else if(input$content_stats_choose == "tfidf"){
-          req(rv$content_parameterised)
+          req(rv$content_prepared)
           req(rv$content_tf_idf)
           req(rv$is_tokenised)
-          rv$content_parameterised %>%
+          rv$content_prepared %>%
             full_join(rv$content_tf_idf, by = c('ID', 'Token')) %>%
             dplyr::select(-`Term freq.`, -`Mean token count`, -`Corpus token count`) %>%
             clean_names()
@@ -640,12 +640,7 @@ statsServer <- function(id, rv = rv){
         var <- rv$content_stats[[input$eda_normality_var]]
         
         # ensuring variable is numeric
-        validate(
-          need(
-            is.numeric(var),
-            "Select a numeric variable."
-          ),
-          errorClass = "validation-red")
+        validate( need(is.numeric(var),"Select a numeric variable."), errorClass = "validation-red")
         
         var
         
@@ -674,7 +669,7 @@ statsServer <- function(id, rv = rv){
       # Saving Anderson-darling test result
       anderson_darling_res <- reactive({
         req(eda_normality_var())
-        req(length(eda_normality_var()) > 7)
+        req(nrow(eda_normality_var()) > 7)
         
         nortest::ad.test(eda_normality_var())
       })
@@ -734,8 +729,10 @@ statsServer <- function(id, rv = rv){
           ) +
           ggtitle("Correlation matrix heatmap")
         
+        req(ggheatmap)
+        
         # Converting ggplot object into plotly object to be interactive
-        ggplotly(ggheatmap)
+        # ggplotly(ggheatmap)
       })
       
       # Rendering corr_plot object with plotly

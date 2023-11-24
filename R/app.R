@@ -45,7 +45,6 @@ pacman::p_load(
   quarto,
   readr,
   reshape2,
-  # rhandsontable,
   rmarkdown,
   rstatix,
   scales, # For the corr plot
@@ -130,15 +129,15 @@ textApp <- function(...){
                  tabName = "textFreqTab",
                  icon = icon("chart-column")
         ),
-        # menuItem("Search/Concordance", 
-        #          tabName = "concordanceTab",
-        #          icon = icon("dashboard")
-        # ),
-        menuItem("  Statistical Analysis", 
+        menuItem("Search/Concordance",
+                 tabName = "concordanceTab",
+                 icon = icon("dashboard")
+        ),
+        menuItem("Statistical Analysis", 
                  tabName = "statsTab",
                  icon = icon("calculator")
         ),
-       menuItem("  Reporting", 
+       menuItem("Reporting", 
                 tabName = "reportingTab",
                 icon = icon("scroll")
         )
@@ -202,7 +201,22 @@ textApp <- function(...){
     textFreqServer("textFreq", rv = rv)
     textPrepServer("textPrep", rv = rv)
     
-    statsServer("stats", rv = rv)
+    statsServerAttempt <- try(statsServer("stats", rv = rv))
+    if("try-error" %in% class(statsServerAttempt)){
+      shinyalert(
+        title = "Stats tab broke",
+        text = "Congrats! You just broke the statistics tab.",
+        size = "xs", 
+        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+        html = FALSE, type = "info",
+        showConfirmButton = TRUE, showCancelButton = FALSE,
+        confirmButtonText = "Dismiss",
+        confirmButtonCol = "#4169E1",
+        timer = 0, imageUrl = "", animation = TRUE
+      )
+    } else {
+      statsServer("stats", rv = rv)
+    }
     
     reportingServer("reporting", rv = rv, report_rv = report_rv)
     reportMakerServer("reportMaker", rv = rv, report_rv = report_rv)

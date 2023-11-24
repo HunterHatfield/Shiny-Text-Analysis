@@ -1,695 +1,684 @@
 # Text preparation tab
 
-library(tidytext)
-library(stringr)
+# Copied from old textPrep.R to edit stop-removal, tokenisation and stemming
+# to be done on content_prepared instead of content_stop_rm, and have written
+# functions to do actions instead of all in little modules
 
-data(stop_words)
-
-rv$is_stop_removed <- FALSE
-
-
-##### STOPWORDS MODULE UI ####
-stopWordsUI <- function(id, label = "Choose your stop-word(s):") {
-  ns <- NS(id)
-  tagList(
-    h3("Stop-word selection"),
-    
-    # Select a dataset to alter
-    selectInput(ns("data_stop_rm"), 
-                label = "Select a dataset to alter:", 
-                choices = list("N/A" = "na")),
-
-    # checkbox input for including stop words
-    checkboxInput(ns("default_check"),
-      label = "Include default stop-word list"
-    ),
-
-    # textbox input for stop words
-    textInput(ns("added_words"),
-      label = "Add extra stop-word(s) separated by commas and/or spaces:",
-      value = NULL,
-      placeholder = "e.g. apple, banana carrot"
-    ),
-    
-    fluidRow(
-      column(6, {
-        actionButton(ns("submit_stop_words"),
-          label = "Submit",
-          class = "btn-success"
-        )
-      }),
-      column(6, {
-        actionButton(ns("clear_stop_words"),
-          label = "Clear",
-          class = "btn-danger"
-        )
-      })
-    ),
-    conditionalPanel(
-      condition = "input.default_check == 'true'",
-      p(textOutput(ns("default_caption")))
-    ),
-    hr(),
-    h3("Submitted stop-words"),
-    p(textOutput(ns("stop_word_display"))),
-
-    em(textOutput(ns("no_stop_words_caption"))),
-    conditionalPanel(
-      condition = paste0(
-        "output['", ns("num_stops"),
-        "'] == '0' "
-      ),
-      em(textOutput("No stop-words submitted."))
-    ),
-    
-    DT::dataTableOutput(ns("stop_words_table")),
-    uiOutput(ns("download_stop_words"))
-  )
-}
-
-#### STOPWORDS SERVER ####
-stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
-  moduleServer(id, function(input, output, session) {
-    # Rendering that no stop words are submitted if nothing submitted in table
-    # output$no_stop_words_caption <- renderText({
-    #
-    #   req(rv$content)
-    #
-    #   print("stop words:")
-    #   print(length(rv$stop_words_final$word))
-    #
-    #   if(rv$is_stop_removed){
-    #     NULL
-    #   } else {
-    #     "No stop-words submitted."
-    #   }
-    # })
-
-    output$num_stops <- renderText(length(rv$stop_words_final$word))
-    
-    # Always update possible dataset list with current available subsets
-    observe({
-      # Create list of possible datasets to select from
-      req(rv$content_primary)
-      potential_sets_stop_rm <- list("Primary data")
-      print("Made potential sets list:")
-      print(potential_sets_stop_rm)
-      
-      if(!is.null(rv$subset_one)){
-        potential_sets_stop_rm[length(potential_sets_stop_rm) + 1] <- "Subset one"
-      }
-      if(!is.null(rv$subset_two)){
-        potential_sets_stop_rm[length(potential_sets_stop_rm) + 1] <- "Subset two"
-      }
-      
-      # updating select input list to contain datasets available
-      updateSelectInput(session, "data_stop_rm",
-                        choices = potential_sets_stop_rm,
-                        selected= potential_sets_stop_rm[1])
-    })
-    
-    
-    # When submit button clicked...
-    # Creating final stop words tibble depending on various input cases
-    # If user wants to include defaults & added words, combine defaults and
-    # added words
-    # If user wants to include only added words, return only added words tibble
-    # Otherwise if user only wants defaults, return only these
-    observeEvent(input$submit_stop_words, {
-      # Creating added stop words tibble. If user has entered something (input
-      # isn't null), create tibble and unnest words, then return them.
-      # Otherwise return NULL
-      added_stop_words <- reactive({
-        if (nchar(input$added_words) != 0) { # if there are added words
-          added_words <- tibble(input = input$added_words)
-          added_words <- added_words %>%
-            unnest_tokens(word, input, token = "words") %>%
-            filter(!grepl(" ", word, fixed = TRUE))
-          # filtering out "words" which are just a blank space
-
-          return(added_words)
-        } else {
-           return(NULL)
-        }
-      })
-
-      rv$added_stop_words <- added_stop_words()
-
-      # Creating default stop words tibble.
-      # When user chooses to include default stop-words, default list obtained
-      # from tidytext library and saved if not NULL is returned
-      default_stop_words <- reactive({
-        default_words <- stop_words %>%
-          dplyr::select(word)
-        return(default_words)
-      })
-
-      rv$default_stop_words <- default_stop_words()
-
-      # Creating final stop words tibble - collecting together added & defaults
-      stop_words_final <- reactive({
-        if (input$default_check) {
-          if (!is.null(rv$added_stop_words)) { # both added and default words included
-
-            # combining default and added word tibbles
-            default_and_added <- rbind(
-              rv$added_stop_words,
-              rv$default_stop_words
-            )
-
-            return(default_and_added)
-          } else { # if just default words to be included
-            return(rv$default_stop_words)
-          }
-        } else if(!is.null(rv$added_stop_words)) { # added words included but not defaults
-            return(rv$added_stop_words)
-          } else { # if no defaults or added words to be included
-            return(NULL)
-          }
-      })
-
-      rv$stop_words_final <- stop_words_final()
-
-
-      # Printing added stop-words(s)
-      output$stop_word_display <-
-        renderText({
-          if (nchar(input$added_words) != 0) { # if user added stop-words
-            paste(c("You have added a total of ", nrow(rv$stop_words_final),
-              " stop-word(s)."
-            ), sep = ",")
-          } else if (input$default_check) { # if user chooses default stop-words
-            paste(c(
-              "You have added a default list of ",
-              nrow(rv$default_stop_words), " stop-words."), sep = ",")
-          } else if (is.null(rv$stop_words_final) || length(rv$stop_words_final$word) == 0) {
-            return(NULL)
-          }
-        })
-
-      req(rv$stop_words_final)
-
-      # Displaying stop-words added
-      output$stop_words_table <- DT::renderDataTable(
-        rv$stop_words_final,
-        # callback = JS("$('div.dwnld').append($('download_stop_words_tsv'));"),
-        options = list(
-          paging = TRUE,
-          pageLength = 5,
-          scrollX = TRUE,
-          scrollY = TRUE,
-          dom = "frtipB", # buttons render below DT
-          buttons = list(
-            "csv",
-            "excel"
-          )
-        ),
-        escape = FALSE,
-        extensions = "Buttons",
-        selection = "none",
-        rownames = FALSE # don't show row numbers
-      )
-
-      # Render UI to download stop words table as csv or tsv
-      output$download_stop_words <-
-        renderUI({
-          ns <- NS(id)
-          tagList(
-            fluidRow(
-              column(4, {
-                downloadButton(ns("download_stop_words_csv"),
-                  label = "Download .csv"
-                )
-              }),
-              column(4, {
-                downloadButton(ns("download_stop_words_csv"),
-                  label = "Download .tsv"
-                )
-              }),
-            ) # end fluid row
-          )
-        })
-
-      # Removing stop words from content by first unnesting
-      # into words, then anti-joining with the stop words final tibble.
-      # Then grouped by ID to stitch words back together.
-      # Doing separately to other columns in content so they are not lost in grouping
-      print("Starting stop word removal process...")
-      req(rv$content_primary)
-      
-      # For selected dataset, create pre-stop-removed dataset in case of undo, 
-      # and create a copy of content_prepared to edit
-      if(input$data_stop_rm == "Primary data"){
-        print("Assigning data to rv$content_primary copy to modify")
-        rv$content_primary$content_pre_stop_rm <- rv$content_primary$content_prepared
-        rv$content_primary$content_stop_rm <- rv$content_primary$content_prepared
-        data <- rv$content_primary
-        print(data$content_stop_rm)
-        
-      } else if(input$data_stop_rm == "Subset one"){
-        print("Assigning data to rv$subset_one copy to modify")
-        rv$subset_one$content_pre_stop_rm <- rv$subset_one$data
-        rv$subset_one$content_stop_rm <- rv$subset_one$data
-        data <- rv$subset_one
-        
-      } else if(input$data_stop_rm == "Subset two"){
-        print("Assigning data to rv$subset_two copy to modify")
-        rv$subset_two$content_pre_stop_rm <- rv$subset_two$data
-        rv$subset_two$content_stop_rm <- rv$subset_two$data
-        data <- rv$subset_two
-      }
-      
-      # Now data is a list of the selected dataset and characteristics, 
-      # can use data and remove stop-words from its dataset
-      
-      
-      rv$content_stop_rm <- rv$content_prepared # create a copy to modify
-      # used to be rv$content - but mutating done first
-
-      # Removing stop-words with an anti-join on Contents or Token column
-      # Then grouping by ID and collapsing back into paragraphs ready
-      # for user to choose their own tokenisation method
-      # if (!rv$is_tokenised) {
-      if(!data$is_tokenised){
-        print("Not tokenised, removing stop words from Contents")
-        # req(is.character(rv$content_stop_rm[["Contents"]]))
-        req(is.character(data$content_stop_rm[["Contents"]]))
-        print("Contents is character & present in data...")
-
-        content_cols_stop_rm <- data$content_stop_rm %>% # rv$content_stop_rm %>%
-          dplyr::select(ID, Contents) %>%
-          unnest_tokens(word, Contents, token = "words") %>%
-          anti_join(rv$stop_words_final, by = "word") %>%
-          group_by(ID) %>%
-          summarize(Contents = str_c(word, collapse = " ")) %>%
-          ungroup()
-
-        # Creating subset of rest of cols in submitted content
-        # Deselecting Contents to instead append stop-removed Contents next
-        content_other_cols <- data$content_stop_rm %>% # rv$content_stop_rm %>%
-          dplyr::select(-Contents)
-        
-      } else if (data$is_tokenised){ # (rv$is_tokenised) {
-        # req(is.character(rv$content_stop_rm[["Token"]]))
-        req(is.character(data$content_stop_rm[["Token"]]))
-
-        content_cols_stop_rm <- data$content_stop_rm %>% # rv$content_stop_rm %>%
-          dplyr::select(ID, Token) %>%
-          anti_join(rv$stop_words_final, by = "Token") %>%
-          group_by(ID) %>%
-          summarize(Token = str_c(word, collapse = " ")) %>%
-          ungroup()
-
-        # Creating subset of rest of cols in submitted content
-        # Deselecting Contents to instead append stop-removed Contents next
-        content_other_cols <- data$content_stop_rm %>% # rv$content_stop_rm %>%
-          dplyr::select(-Token)
-      }
-
-
-      # Then joining stop-removed col and rest of cols
-      content_stop_rm <- full_join(content_cols_stop_rm,
-        content_other_cols, by = "ID")
-      
-      # Final stop-removed dataset now saved in content_stop_rm, 
-      # saving this to dataset
-      print("Final stop removed dataset:")
-      print(content_stop_rm)
-      
-      data$content_stop_rm <- content_stop_rm
-      
-      rv$content_prepared_display_2 <- data$content_stop_rm
-      
-      # Setting content_stop_rm back to content_prepared in selected dataset
-      if(input$data_stop_rm == "Primary data"){
-        print("Assigning stop-rm data back to rv$content_primary$content_prepared")
-        rv$content_primary$content_prepared <- data$content_stop_rm
-        rv$content_primary$is_stop_rm <- TRUE
-
-      } else if(input$data_stop_rm == "Subset one"){
-        print("Assigning stop-rm data back to rv$subset_one$content_prepared")
-        rv$subset_one$content_prepared <- data$content_stop_rm
-        rv$subset_one$is_stop_rm <- TRUE
-        
-      } else if(input$data_stop_rm == "Subset two"){
-        print("Assigning stop-rm data back to rv$subset_two$content_prepared")
-        rv$subset_two$content_prepared <- data$content_stop_rm
-        rv$subset_two$is_stop_rm <- TRUE
-      }
-      
-      rv$content_stop_rm <- content_stop_rm # saving in rv list
-
-      # Setting content_parameterised & prepared to new data w stop removed
-      rv$content_parameterised <- rv$content_stop_rm
-      rv$content_prepared <- rv$content_stop_rm
-      rv$is_tokenised <- FALSE
-      rv$is_stop_removed <- TRUE
-      
-      
-      # Rendering download buttons with downloadHandler()
-      output$download_stop_words_csv <- downloadHandler(
-        filename = function() {
-          paste("Stop_word_list.csv")
-        },
-        content = function(file) {
-          write_delim(as.data.frame(rv$stop_words_final), file,
-            delim = ","
-          )
-        }
-      )
-
-      # Download handler to download tsv
-      output$download_stop_words_tsv <- downloadHandler(
-        filename = function() {
-          paste("Stop_word_list.tsv")
-        },
-        content = function(file) {
-          write_tsv(as.data.frame(rv$stop_words_final), file)
-        }
-      )
-    }) # end submit stop-words
-
-
-
-    # When clear button clicked, reset reactive values
-    # Also indicate that tokenisation is undone since we
-    # revert to original content
-    observeEvent(input$clear_stop_words, {
-      rv$content_stop_rm <- rv$content
-      rv$content_parameterised <- rv$content
-      rv$content_prepared_diplay <- rv$content
-      rv$added_stop_words <- NULL
-      rv$default_stop_words <- NULL
-      rv$stop_words_final <- NULL
-
-      rv$is_tokenised <- FALSE
-      rv$is_stop_removed <- FALSE
-      
-      # Setting content_stop_rm back to pre-stop-removed data in selected dataset
-      # Also setting display table to display undone data
-      if(input$data_stop_rm == "Primary data"){
-        rv$content_primary$content_prepared <- rv$content_primary$content_pre_stop_rm
-        rv$content_primary$is_stop_rm <- FALSE
-        
-        rv$content_prepared_display_2 <- rv$content_primary$content_prepared
-        
-      } else if(input$data_stop_rm == "Subset one"){
-        rv$subset_one$content_prepared <- rv$subset_one$content_pre_stop_rm
-        rv$subset_one$is_stop_rm <- FALSE
-        
-        rv$content_prepared_display_2 <- rv$subset_one$content_prepared
-        
-      } else if(input$data_stop_rm == "Subset two"){
-        rv$subset_one$content_prepared <- rv$subset_two$content_pre_stop_rm
-        rv$subset_two$is_stop_rm <- FALSE
-        
-        rv$content_prepared_display_2 <- rv$subset_one$content_prepared
-      }
-
-      # using a list of rv's to delete each w for loop if exists
-      to_reset <- c(
-        "default_check", "stop_word_check",
-        "added_words", "submit_stop_words"
-      )
-      for (i in 1:length(to_reset)) {
-        if (!is.null(to_reset[i])) {
-          shinyjs::reset(to_reset[i])
-        }
-      }
-    })
-  })
-}
-
-
-#### TOKENISATION MODULE UI ####
-tokenizeUI <- function(id) {
-  ns <- NS(id)
-  tagList(
-    
-    h3("Tokenisation"),
-    
-    selectInput(ns("data_to_tokenise"), 
-                label = "Select a dataset to tokenise:", 
-                choices = list("N/A" = "na")),
-    
-    selectInput(ns("tokens"),
-      label = "Choose a token to split text data on:",
-      choices = c(
-        "Words" = "words",
-        "Bi-grams" = "bigrams",
-        "n-grams" = "ngrams",
-        # "Sentences" = "sentences",
-        "Other" = "other"
-      ),
-      selected = "Words"
-    ),
-    conditionalPanel(
-      condition = "input.tokens == 'ngrams'",
-      ns = ns,
-      # uiOutput(ns("ngramsUI")) # was using renderUI in server to make UI for this
-      numericInput(ns("n_grams"), label = "Enter n-grams:", value = 2)
-    ),
-    conditionalPanel(
-      condition = "input.tokens == 'other'",
-      ns = ns,
-      # make mini UI for regex token
-      textInput(ns("other_token"), "Specify a custom token:")
-    ),
-    fluidRow(
-      column(6, {
-        actionButton(ns("submit_tokenise"),
-          label = "Tokenise",
-          class = "btn-success"
-        )
-      }),
-      column(6, {
-        actionButton(ns("revert_tokenise"),
-          label = "Revert",
-          class = "btn-danger"
-        )
-      })
-    ),
-  )
-}
-
-#### TOKENISATION SERVER ####
-tokenizeServer <- function(id, rv = rv) {
-  moduleServer(id, function(input, output, session) {
-    rv$is_tokenised <- FALSE
-
-    # Generating string representing selected tokenisation method
-    token <- reactive({
-      rv$token <- input$tokens # saving rv$token so can use in other modules too
-
-      return(input$tokens)
-    })
-
-    observe({
-      rv$other_token <- input$other_token
-    })
-
-    n_grams <- reactive({
-      rv$n_grams <- input$n_grams # saving rv$n_grams so can use in other modules too
-      return(input$n_grams)
-    })
-
-    # Specifying n for ngrams as 2 if user chooses bigrams as token,
-    # or otherwise a value specified by the user.
-    n_for_grams <- reactive({
-      if (token() == "ngrams") {
-        return(n_grams())
-      } else {
-        return(2)
-      }
-    })
-    
-    
-    # Always update possible dataset list with current available subsets
-    observe({
-      # Create list of possible datasets to select from
-      req(rv$content_primary)
-      potential_sets_tokenise <- list("Primary data")
-      print("Made potential sets list:")
-      print(potential_sets_tokenise)
-      
-      if(!is.null(rv$subset_one)){
-        potential_sets_tokenise[length(potential_sets_tokenise) + 1] <- "Subset one"
-      }
-      if(!is.null(rv$subset_two)){
-        potential_sets_tokenise[length(potential_sets_tokenise) + 1] <- "Subset two"
-      }
-      
-      # updating select input list to contain datasets available
-      updateSelectInput(session, "data_to_tokenise",
-                        choices = potential_sets_tokenise,
-                        selected= potential_sets_tokenise[1])
-    })
+# library(tidytext)
+# library(stringr)
+# 
+# data(stop_words)
+# rv$is_stop_removed <- FALSE
+# 
+# ##### STOPWORDS MODULE UI ####
+# stopWordsUI <- function(id) {
+#   ns <- NS(id)
+#   tagList(
+#     h3("Stop-word selection"),
+#     
+#     # Select a dataset to alter
+#     selectInput(ns("data_stop_rm"), 
+#                 label = "Select a dataset to alter:", 
+#                 choices = list("N/A" = "na")),
+#     
+#     # Select a column to remove stop-words from
+#     selectInput(ns("col_name_stop_rm"), 
+#                 label = "Select a column to remove stop-words from:", 
+#                 choices = list("N/A" = "na")),
+# 
+#     # checkbox input for including default stop words 
+#     checkboxInput(ns("default_check"),
+#       label = "Include default stop-word list"
+#     ),
+# 
+#     # textbox input for extra stop words
+#     textInput(ns("added_words"),
+#       label = "Add extra stop-word(s) separated by commas and/or spaces:",
+#       value = NULL,
+#       placeholder = "e.g. apple, banana carrot"
+#     ),
+#     
+#     fluidRow(
+#       column(6, {
+#         actionButton(ns("submit_stop_words"),
+#           label = "Submit",
+#           class = "btn-success"
+#         )
+#       }),
+#       column(6, {
+#         actionButton(ns("undo_stop_words"),
+#           label = "Undo",
+#           class = "btn-danger"
+#         )
+#       })
+#     ),
+#     conditionalPanel(
+#       condition = "input.default_check == 'true'",
+#       p(textOutput(ns("default_caption")))
+#     ),
+#     hr(),
+#     h3("Submitted stop-words"),
+#     p(textOutput(ns("stop_word_display"))),
+# 
+#     em(textOutput(ns("no_stop_words_caption"))),
+#     
+#     ##### num_stops is what?
+#     conditionalPanel(
+#       condition = paste0(
+#         "output['", ns("num_stops"),
+#         "'] == '0' "
+#       ),
+#       em(textOutput("No stop-words submitted."))
+#     ),
+#     
+#     DT::dataTableOutput(ns("stop_words_table")),
+#     
+#     uiOutput(ns("download_stop_words"))
+#   )
+# }
+# 
+# #### STOPWORDS SERVER ####
+# stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
+#   moduleServer(id, function(input, output, session) {
+#     # Rendering that no stop words are submitted if nothing submitted in table
+#     # output$no_stop_words_caption <- renderText({
+#     #
+#     #   req(rv$content)
+#     #
+#     #   print("stop words:")
+#     #   print(length(rv$stop_words_final$word))
+#     #
+#     #   if(rv$is_stop_removed){
+#     #     NULL
+#     #   } else {
+#     #     "No stop-words submitted."
+#     #   }
+#     # })
+# 
+#     output$num_stops <- renderText(length(rv$stop_words_final$word))
+#     
+#     ############################
+#     ## Creating dataset chooser
+#     ############################
+#     # Always update possible dataset list with current available subsets
+#     # so using observe()
+#     observe({
+#       # Create list of possible datasets to select from
+#       req(rv$content_primary)
+#       potential_sets_stop_rm <- list("Primary data")
+#       
+#       if(!is.null(rv$subset_one)){
+#         potential_sets_stop_rm[length(potential_sets_stop_rm) + 1] <- "Subset one"
+#       }
+#       if(!is.null(rv$subset_two)){
+#         potential_sets_stop_rm[length(potential_sets_stop_rm) + 1] <- "Subset two"
+#       }
+#       
+#       # updating select input list to contain datasets available
+#       updateSelectInput(session, "data_stop_rm",
+#                         choices = potential_sets_stop_rm,
+#                         selected= potential_sets_stop_rm[1])
+#     }) # end observe
+# 
+#     
+#     ############################
+#     ## Creating column chooser #
+#     ############################
+#     # When a datasets chosen to perform removal on, need to load which 
+#     # columns available in that dataset
+#     observe({
+#       req(rv$content_primary$content_prepared)
+#       
+#       # creating list of available columns
+#       # subsets' content_prepared is initialized on save of subsets
+#       colnames <- switch(input$data_stop_rm, 
+#                          "Primary data" = 
+#                            colnames(rv$content_primary$content_prepared), 
+#                          "Subset one" = colnames(rv$subset_one$content_prepared), 
+#                          "Subset two" = colnames(rv$subset_two$content_prepared)
+#                          )
+#       # updating select input list for choosing column to remove stops from
+#       updateSelectInput(session, "col_name_stop_rm",
+#                         choices = colnames[-1],
+#                         selected= colnames[2])
+#     })
+#     
+#     # Rendering whatever dataset selected in datatable display
+#     observeEvent(input$data_stop_rm, {
+#       req(rv$content_primary$content_prepared)
+#       rv$content_prepared_display_2 <- 
+#         switch(input$data_stop_rm, 
+#                "Primary data" =  rv$content_primary$content_prepared, 
+#                "Subset one" = rv$subset_one$content_prepared, 
+#                "Subset two" = rv$subset_two$content_prepared
+#       )
+#     })
+#     
+#     
+#     # When submit button clicked...
+#     # Creating final stop words tibble depending on various input cases
+#     # If user wants to include defaults & added words, combine defaults and
+#     # added words
+#     # If user wants to include only added words, return only added words tibble
+#     # Otherwise if user only wants defaults, return only these
+#     observeEvent(input$submit_stop_words, {
+#       # Creating added stop words tibble. If user has entered something (input
+#       # isn't null), create tibble and unnest words, then return them.
+#       # Otherwise return NULL
+#       added_stop_words <- reactive({
+#         if (nchar(input$added_words) != 0) { # if there are added words
+#           added_words <- tibble(input = input$added_words)
+#           added_words <- added_words %>%
+#             unnest_tokens(word, input, token = "words") %>%
+#             filter(!grepl(" ", word, fixed = TRUE))
+#             # filtering out "words" which are just a blank space
+#           return(added_words)
+#         } else {
+#            return(NULL)
+#         }
+#       })
+# 
+#       rv$added_stop_words <- added_stop_words()
+# 
+#       # Creating default stop words tibble.
+#       # When user chooses to include default stop-words, default list obtained
+#       # from tidytext library and saved if not NULL is returned
+#       # data(stop_words) loaded at top of file on start of app
+#       # could export stop_words to a csv which is imported if default chosen
+#       default_stop_words <- reactive({
+#         stop_words %>% dplyr::select(word)
+#       })
+#       rv$default_stop_words <- default_stop_words()
+# 
+#       # Creating final stop words tibble collecting together added & defaults
+#       stop_words_final <- reactive({
+#         if (input$default_check) {
+#           if (!is.null(rv$added_stop_words)) { # both added & default words 
+# 
+#             # combining default and added word tibbles
+#             default_and_added <- rbind(
+#               rv$added_stop_words,
+#               rv$default_stop_words
+#             )
+#             return(default_and_added)
+#             
+#           } else { # if just default words to be included
+#             return(rv$default_stop_words)
+#           }
+#           
+#         } else if(!is.null(rv$added_stop_words)) { # added words but not defaults
+#             
+#           return(rv$added_stop_words)
+#           
+#           } else { # if no defaults or added words to be included
+#             return(NULL)
+#           }
+#       }) # end reactive stop_words_final creation
+# 
+#       rv$stop_words_final <- stop_words_final()
+# 
+#       # Printing added stop-words(s)
+#       output$stop_word_display <-
+#         renderText({
+#           if (nchar(input$added_words) != 0) { # if user added stop-words
+#             paste(c("You have added a total of ", nrow(rv$stop_words_final),
+#               " stop-word(s)."
+#             ), sep = ",")
+#           } else if (input$default_check) { # if user chooses default stop-words
+#             paste(c("You have added a default list of ",
+#               nrow(rv$default_stop_words), " stop-words."), sep = ",")
+#           } else if (is.null(rv$stop_words_final) || length(rv$stop_words_final$word) == 0) {
+#             return(NULL)
+#           }
+#         })
+# 
+#       req(rv$stop_words_final)
+# 
+#       # Displaying stop-words added
+#       output$stop_words_table <- DT::renderDataTable(
+#         rv$stop_words_final,
+#         # callback = JS("$('div.dwnld').append($('download_stop_words_tsv'));"),
+#         options = list(
+#           paging = TRUE,
+#           pageLength = 5,
+#           scrollX = TRUE,
+#           scrollY = TRUE,
+#           dom = "frtipB", # buttons render below DT
+#           buttons = list("csv", "excel")
+#         ),
+#         escape = FALSE,
+#         extensions = "Buttons",
+#         selection = "none",
+#         rownames = FALSE # don't show row numbers
+#       )
+# 
+#       # Render UI to download stop words table as csv or tsv
+#       output$download_stop_words <-
+#         renderUI({
+#           ns <- NS(id)
+#           tagList(
+#             fluidRow(
+#               column(4, {
+#                 downloadButton(ns("download_stop_words_csv"),
+#                   label = "Download .csv"
+#                 )
+#               }),
+#               column(4, {
+#                 downloadButton(ns("download_stop_words_csv"),
+#                   label = "Download .tsv"
+#                 )
+#               }),
+#             ) # end fluid row
+#           )
+#         })
+# 
+#       
+#       ######################
+#       ## Stop word removal #
+#       ######################
+#       req(rv$content_primary)
+#       
+#       # For selected dataset, create pre-stop-removed dataset in case of undo, 
+#       # and call on utils.R function remove_stop_words() to return dataset with
+#       # stop-words removed. 
+#       if(input$data_stop_rm == "Primary data"){
+#         
+#         # Saving pre-stop-removal 
+#         rv$content_primary$content_pre_stop_rm <- rv$content_primary$content_prepared
+#         
+#         print("Starting stop-word removal...")
+#         # Use try-catch to run function and throw error if doesn't work
+#         # Hardcoding column for now
+#         content_stop_rm <- remove_stop_words(
+#                                 data = rv$content_primary$content_prepared,
+#                                 col_name = input$col_name_stop_rm,
+#                                 stop_words = rv$stop_words_final, 
+#                                 is_tokenised = rv$content_primary$is_tokenised)
+#         
+#         print("Used remove_stop_words function to remove stop words:")
+#         print(content_stop_rm)
+#         
+#         rv$content_primary$content_stop_rm <- content_stop_rm
+#         rv$content_primary$content_prepared <- content_stop_rm
+#         rv$content_primary$is_stop_rm <- TRUE
+#         rv$content_prepared_display_2 <- rv$content_primary$content_stop_rm
+#         
+#       } else if(input$data_stop_rm == "Subset one"){
+#         
+#         # Saving pre-stop-removal data
+#         rv$subset_one$content_pre_stop_rm <- rv$subset_one$content_prepared
+#         
+#         content_stop_rm <- remove_stop_words(
+#                             data = rv$subset_one$data,
+#                             col_name = input$col_name_stop_rm,
+#                             stop_words = rv$stop_words_final, 
+#                             is_tokenised = rv$subset_one$is_tokenised)
+#         
+#         print("Used remove_stop_words function to remove stop words:")
+#         print(content_stop_rm)
+#         
+#         rv$subset_one$content_stop_rm <- content_stop_rm
+#         rv$subset_one$content_prepared <- content_stop_rm
+#         rv$subset_one$is_stop_rm <- TRUE
+#         rv$content_prepared_display_2 <- rv$subset_one$content_stop_rm
+#         
+#       } else if(input$data_stop_rm == "Subset two"){
+#         
+#         # Saving pre-stop-removal data
+#         rv$subset_one$content_pre_stop_rm <- rv$subset_one$content_prepared
+#         
+#         content_stop_rm <- remove_stop_words(
+#           data = rv$subset_two$data,
+#           col_name = input$col_name_stop_rm,
+#           stop_words = rv$stop_words_final, 
+#           is_tokenised = rv$subset_two$is_tokenised)
+#         
+#         rv$subset_two$content_stop_rm <- content_stop_rm
+#         rv$subset_two$content_prepared <- content_stop_rm
+#         rv$subset_two$is_stop_rm <- TRUE
+#         rv$content_prepared_display_2 <- rv$subset_two$content_stop_rm
+#       }
+# 
+#       # # Setting content_parameterised & prepared to new data w stop removed
+#       # rv$content_parameterised <- rv$content_stop_rm
+#       # rv$content_prepared <- rv$content_stop_rm
+#       # rv$is_tokenised <- FALSE
+#       # rv$is_stop_removed <- TRUE ##### Check
+#       
+#       
+#       #########################
+#       # Downloading stop-words
+#       #########################
+#       # Rendering download buttons with downloadHandler()
+#       output$download_stop_words_csv <- downloadHandler(
+#         filename = function() {
+#           paste("Stop_word_list.csv")
+#         },
+#         content = function(file) {
+#           write_delim(as.data.frame(rv$stop_words_final), file,
+#             delim = ",")
+#         }
+#       )
+# 
+#       # Download handler to download tsv
+#       output$download_stop_words_tsv <- downloadHandler(
+#         filename = function() {
+#           paste("Stop_word_list.tsv")
+#         },
+#         content = function(file) {
+#           write_tsv(as.data.frame(rv$stop_words_final), file)
+#         }
+#       )
+#     }) # end submit stop-words
+# 
+# 
+#     ########################
+#     ### Undo stop-words ####
+#     ########################
+#     # When undo button clicked, reset reactive values
+#     # Also indicate that tokenisation is undone since we
+#     # revert to original content
+#     observeEvent(input$undo_stop_words, {
+#       
+#       rv$content_stop_rm <- rv$content
+#       rv$content_parameterised <- rv$content
+#       rv$content_prepared_diplay <- rv$content
+#       rv$added_stop_words <- NULL
+#       rv$default_stop_words <- NULL
+#       rv$stop_words_final <- NULL
+# 
+#       rv$is_tokenised <- FALSE
+#       rv$is_stop_removed <- FALSE
+#       
+#       # Setting content_stop_rm back to pre-stop-removed data in selected dataset
+#       # Also setting display table to display undone data
+#       if(input$data_stop_rm == "Primary data"){
+#         rv$content_primary$content_prepared <- 
+#               rv$content_primary$content_pre_stop_rm
+#         rv$content_primary$content_stop_rm <- NULL
+#         rv$content_primary$is_stop_rm <- FALSE
+#         rv$content_prepared_display_2 <- rv$content_primary$content_prepared
+#         
+#         
+#       } else if(input$data_stop_rm == "Subset one"){
+#         rv$subset_one$content_prepared <- rv$subset_one$content_pre_stop_rm
+#         rv$subset_one$content_stop_rm <- NULL
+#         rv$subset_one$is_stop_rm <- FALSE
+#         rv$content_prepared_display_2 <- rv$subset_one$content_prepared
+#         
+#       } else if(input$data_stop_rm == "Subset two"){
+#         rv$subset_two$content_prepared <- rv$subset_two$content_pre_stop_rm
+#         rv$subset_two$content_stop_rm <- NULL
+#         rv$subset_two$is_stop_rm <- FALSE
+#         rv$content_prepared_display_2 <- rv$subset_one$content_prepared
+#       }
+# 
+#       # using a list of rv's to delete each w for loop if exists
+#       to_reset <- c(
+#         "default_check", "stop_word_check",
+#         "added_words", "submit_stop_words"
+#       )
+#       for (i in 1:length(to_reset)) {
+#         if (!is.null(to_reset[i])) {
+#           shinyjs::reset(to_reset[i])
+#         }
+#       }
+#     })
+#   })
+# }
 
 
-    # Tokenised tibble should only be rendered after "tokenise" button observed
-    observeEvent(input$submit_tokenise, {
-      req(rv$content)
-      
-      
-      # First select dataset to tokenise
-      print("Starting tokenise process...")
-      req(rv$content_primary)
-      
-      # For selected dataset, create pre-stop-removed dataset in case of undo, 
-      # and create a copy of content_prepared to edit
-      if(input$data_to_tokenise == "Primary data"){
-        
-        # if primary data has stop-words removed
-        if(rv$content_primary$is_stop_rm){
-          
-          # tokenise on rv$content_primary$content_stop_rm
-          rv$content_primary$content_pre_tokenise <- rv$content_primary$content_stop_rm
-          data <- rv$content_primary
-          print("tokenising stop word rm primary data:")
-          print(data$content_stop_rm)
-          
-        # else if primary data not stop removed
-        } else {
-          
-          # tokenise on rv$content_primary$content_prepared
-          rv$content_primary$content_pre_tokenise <- rv$content_primary$content_prepared
-          data <- rv$content_primary
-          print("tokenising non-stop word rm primary data:")
-          print(data$content_prepared)
-        }
-      
-        
-      } else if(input$data_to_tokenise == "Subset one"){
-        
-        # if subset data has stop-words removed
-        if(rv$subset_one$is_stop_rm){
-          
-          # tokenise on rv$subset_one$content_stop_rm
-          rv$subset_one$content_pre_tokenise <- rv$subset_one$content_stop_rm
-          data <- rv$subset_one
-          print("tokenising stop word rm subset one data:")
-          print(data$content_stop_rm)
-          
-        # else if subset data not stop removed
-        } else {
-          
-          # saving content_prepared as copy of OG data
-          rv$subset_one$content_prepared <- rv$subset_one$data
-          
-          # tokenise on rv$subset_one$content_prepared
-          rv$subset_one$content_pre_tokenise <- rv$subset_one$content_prepared
-          
-          data <- rv$subset_one
-          print("tokenising non-stop word rm content_prepared from subset data:")
-          print(data$content_prepared)
-          
-        }
-        
-        
-      } else if(input$data_to_tokenise == "Subset two"){
-        # if subset data has stop-words removed
-        if(rv$subset_two$is_stop_rm){
-          
-          # tokenise on rv$subset_one$content_stop_rm
-          rv$subset_two$content_pre_tokenise <- rv$subset_two$content_stop_rm
-          data <- rv$subset_two
-          print("tokenising stop word rm subset two data:")
-          print(data$content_stop_rm)
-          
-          # else if subset data not stop removed
-        } else {
-          
-          # saving content_prepared as copy of OG data
-          rv$subset_two$content_prepared <- rv$subset_two$data
-          
-          # tokenise on rv$subset_two$content_prepared
-          rv$subset_two$content_pre_tokenise <- rv$subset_two$content_prepared
-          
-          data <- rv$subset_two
-          print("tokenising non-stop word rm content_prepared from subset data:")
-          print(data$content_prepared)
-          
-        }
-      }
-      
-      # Now data is a list of the selected dataset and characteristics, 
-      # can use data and tokenise from its dataset
-      
-      
-      
-      # Tokenising content tibble. Output column is selected token, input is
-      # Contents columns, tokenising by user-selected token
-      content_tokenised <- reactive({
-        
-        validate(need(rv$is_stop_removed, NULL))
+# #### TOKENISATION MODULE UI ####
+# tokenizeUI <- function(id) {
+#   ns <- NS(id)
+#   tagList(
+#     
+#     h3("Tokenisation"),
+#     
+#     selectInput(ns("data_to_tokenise"), 
+#                 label = "Select a dataset:", 
+#                 choices = list("N/A" = "na")),
+#     
+#     selectInput(ns("col_name_to_tokenise"), 
+#                 label = "Select a column to tokenise:", 
+#                 choices = list("N/A" = "na")),
+#     
+#     selectInput(ns("token"),
+#       label = "Choose a token to split text data on:",
+#       choices = c(
+#         "Words" = "words",
+#         "Bi-grams" = "bigrams",
+#         "n-grams" = "ngrams",
+#         # "Sentences" = "sentences",
+#         "Other" = "other"
+#       ),
+#       selected = "Words"
+#     ),
+#     conditionalPanel(
+#       condition = "input.tokens == 'ngrams'",
+#       ns = ns,
+#       # uiOutput(ns("ngramsUI")) # was using renderUI in server to make UI for this
+#       numericInput(ns("n_grams"), label = "Enter n-grams:", value = 2)
+#     ),
+#     conditionalPanel(
+#       condition = "input.tokens == 'other'",
+#       ns = ns,
+#       # make mini UI for regex token
+#       textInput(ns("other_token"), "Specify a custom token:")
+#     ),
+#     fluidRow(
+#       column(6, {
+#         actionButton(ns("submit_tokenise"),
+#           label = "Tokenise",
+#           class = "btn-success"
+#         )
+#       }),
+#       column(6, {
+#         actionButton(ns("revert_tokenise"),
+#           label = "Revert",
+#           class = "btn-danger"
+#         )
+#       })
+#     ),
+#   )
+# }
+# 
+# #### TOKENISATION SERVER ####
+# tokenizeServer <- function(id, rv = rv) {
+#   moduleServer(id, function(input, output, session) {
+#     
+#     # rv$is_tokenised <- FALSE
+# 
+#     #####################
+#     ## Dataset chooser ##
+#     #####################
+#     # Always update possible dataset list with current available subsets
+#     observe({
+#       # Create list of possible datasets to select from
+#       req(rv$content_primary)
+#       potential_sets_tokenise <- list("Primary data")
+#       print("Made potential sets list:")
+#       print(potential_sets_tokenise)
+#       
+#       if(!is.null(rv$subset_one)){
+#         potential_sets_tokenise[length(potential_sets_tokenise) + 1] <- "Subset one"
+#       }
+#       if(!is.null(rv$subset_two)){
+#         potential_sets_tokenise[length(potential_sets_tokenise) + 1] <- "Subset two"
+#       }
+#       
+#       # updating select input list to contain datasets available
+#       updateSelectInput(session, "data_to_tokenise",
+#                         choices = potential_sets_tokenise,
+#                         selected= potential_sets_tokenise[1])
+#     })
+#     
+#     ###################
+#     ## Column chooser #
+#     ###################
+#     # When a dataset is chosen to perform tokenisation on, need to load which 
+#     # columns available in that dataset
+#     observe({
+#       req(rv$content_primary$content_prepared)
+#       
+#       # creating list of available columns
+#       # subsets' content_prepared is initialized on save of subsets
+#       colnames <- switch(input$data_to_tokenise, 
+#                          "Primary data" = 
+#                            colnames(rv$content_primary$content_prepared), 
+#                          "Subset one" = colnames(rv$subset_one$content_prepared), 
+#                          "Subset two" = colnames(rv$subset_two$content_prepared)
+#       )
+#       # updating select input list for choosing column to remove stops from
+#       updateSelectInput(session, "col_name_to_tokenise",
+#                         choices = colnames[-1],
+#                         selected= colnames[2])
+#     })
+#     
+#     # Rendering whatever dataset selected in datatable display
+#     observeEvent(input$data_to_tokenise, {
+#       req(rv$content_primary$content_prepared)
+#       rv$content_prepared_display_2 <- 
+#         switch(input$data_to_tokenise, 
+#                "Primary data" =  rv$content_primary$content_prepared, 
+#                "Subset one" = rv$subset_one$content_prepared, 
+#                "Subset two" = rv$subset_two$content_prepared
+#         )
+#     })
+# 
+# 
+#     #####################
+#     ### Tokenisation ####
+#     #####################
+#     # When "tokenise" button clicked...
+#     observeEvent(input$submit_tokenise, {
+#       req(rv$content_primary) # always require something submitted
+#       
+#       # For selected dataset, create pre-stop-removed dataset in case of undo, 
+#       # and then tokenise with tokenise_data() function in utils.R
+#       if(input$data_to_tokenise == "Primary data"){
+#         
+#         # Save copy of content_prepared in case of undo
+#         rv$content_primary$content_pre_tokenise <- 
+#             rv$content_primary$content_prepared
+#         
+#         # Use tokenise_data function, passing in data_to_tokenise, 
+#         # col_name_to_tokenise, input$token and if input$token = "other"
+#         # pass in custom_token = input$other_token
+#         content_tokenised <- tokenise_data(rv$content_primary$content_prepared, 
+#                                            col_name = input$col_name_to_tokenise, 
+#                                            token = input$token, 
+#                                            custom_token = input$other_token, 
+#                                            n_grams = input$n_grams)
+#         
+#         # Set tokenised data to rv$content_primary$content_prepared and 
+#         # set is_tokenised = TRUE
+#         rv$content_primary$content_prepared <- content_tokenised
+#         rv$content_primary$is_tokenised <- TRUE
+#         
+#         print("Tokenised, rv$content_primary$content_prepared display:")
+#         print(rv$content_primary$content_prepared)
+#         
+#       } else if(input$data_to_tokenise == "Subset one"){
+#         
+#         # Save copy of content_prepared in case of undo
+#         rv$subset_one$content_pre_tokenise <- rv$subset_one$content_prepared
+#         
+#         # Tokenising
+#         content_tokenised <- tokenise_data(rv$subset_one$content_prepared, 
+#                                            col_name = input$col_name_to_tokenise, 
+#                                            token = input$token, 
+#                                            custom_token = input$other_token, 
+#                                            n_grams = input$n_grams)
+#         
+#         rv$subset_one$content_prepared <- content_tokenised
+#         rv$subset_one$is_tokenised <- TRUE
+#         
+#         
+#       } else if(input$data_to_tokenise == "Subset two"){
+#         
+#         # Save copy of content_prepared in case of undo
+#         rv$subset_two$content_pre_tokenise <- rv$subset_two$content_prepared
+#         
+#         # Tokenising
+#         content_tokenised <- tokenise_data(rv$subset_two$content_prepared, 
+#                                            col_name = input$col_name_to_tokenise, 
+#                                            token = input$token, 
+#                                            custom_token = input$other_token, 
+#                                            n_grams = input$n_grams)
+#         
+#         rv$subset_two$content_prepared <- content_tokenised
+#         rv$subset_two$is_tokenised <- TRUE
+# 
+#       }
+#       
+#       # Tokenising content tibble. Output column is selected token, input is
+#       # Contents columns, tokenising by user-selected token
+#       # content_tokenised <- reactive({
+#         # # if token is easily handled, just unnest w input$token
+#         # if (input$token == "words" || input$token == "sentences") {
+#         #   rv$content_stop_rm %>%
+#         #     unnest_tokens(Token, Contents, token = input$token)
+#         # } else if (input$token == "bigrams") {
+#         #   rv$content_stop_rm %>%
+#         #     unnest_ngrams(Token, Contents, n = 2)
+#         # } else if (input$token == "ngrams") {
+#         #   rv$content_stop_rm %>%
+#         #     unnest_ngrams(Token, Contents, n = input$n_grams)
+#         # } else if (input$token == "other") {
+#         #   # unnest on the user inputted regex
+#         #   rv$content_stop_rm %>%
+#         #     unnest_regex(Token, Contents,
+#         #       pattern = tolower(input$other_token))
+#         # }
+#       # }) # end assigning reactive content_tokenised
+# 
+#       # rv$content_parameterised <- content_tokenised() %>%
+#       #   relocate(Token, .after = ID)
+# 
+#       rv$content_prepared <- rv$content_parameterised
+#       rv$is_tokenised <- TRUE
+#       
+#     }) # end observeEvent tokenise button
+# 
+# 
+#     
+#     #####################
+#     ## Revert tokenise ##
+#     #####################
+#     # When revert tokens button is clicked set content_prepared back 
+#     # to pre_tokenised data saved
+#     observeEvent(input$revert_tokenise, {
+# 
+#       if (rv$is_tokenised) {
+#         rv$content_prepared <- rv$content_stop_rm
+#       }
+#       rv$is_tokenised <- FALSE
+#       
+#       # For selected dataset, create pre-stop-removed dataset in case of undo, 
+#       # and then tokenise with tokenise_data() function in utils.R
+#       if(input$data_to_tokenise == "Primary data"){
+#         rv$content_primary$content_prepared <- 
+#           rv$content_primary$content_pre_tokenise
+#         rv$content_primary$is_tokenised <- FALSE
+#         
+#       } else if(input$data_to_tokenise == "Subset one"){
+#         # Save copy of content_prepared in case of undo
+#         rv$subset_one$content_prepared <- rv$subset_one$content_pre_tokenise 
+#         rv$subset_one$is_tokenised <- FALSE
+# 
+#       } else if(input$data_to_tokenise == "Subset two"){
+#         # Save copy of content_prepared in case of undo
+#         rv$subset_two$content_prepared <- rv$subset_two$content_pre_tokenise
+#         rv$subset_two$is_tokenised <- FALSE
+#       }
+#     
+#       shinyjs::reset(input$token)
+#     }) # end revert tokenise button
+#   })
+# }
 
-        if (!rv$is_stop_removed) {
-          req(rv$content)
-          req(rv$content_prepared)
-          # if content_stop_rm is null then no stop-words have been submitted,
-          # so first set content_stop_rm <- content
-          # used to be content_stop_rm <- content but updated
-          # to content_stop_rm <- content_prepared since mutating
-          # done first
-          rv$content_stop_rm <- rv$content_prepared
-          print("set content_stop_rm to content in tokenise server")
-        }
 
-        req(!is.null(rv$content_stop_rm$Contents))
-
-        # If contents uploaded are not character, attempt to convert
-        if (!is.character(rv$content_stop_rm$Contents)) {
-          print("Contents not character, attempting conversion")
-          rv$content_stop_rm$Contents <-
-            as.character(rv$content_stop_rm$Contents)
-          print("Conversion success")
-        }
-
-        print("unnesting tokens")
-        # if token is easily handled, just unnest w token()
-        if (token() == "words" || token() == "sentences") {
-          rv$content_stop_rm %>%
-            unnest_tokens(Token, Contents, token = token())
-        } else if (token() == "bigrams" || token() == "ngrams") {
-          rv$content_stop_rm %>%
-            unnest_ngrams(Token, Contents, n = n_for_grams())
-        } else if (token() == "other") {
-          rv$content_stop_rm %>%
-            unnest_regex(Token, Contents,
-              pattern = tolower(rv$other_token)
-            )
-          # unnest on the user inputted regex
-        }
-      }) # end assigning reactive content_tokenised
-
-      print("unnest/tokenise complete, result content_stop_rm:")
-      print(str(content_tokenised()))
-
-      rv$content_parameterised <- content_tokenised() %>%
-        relocate(Token, .after = ID)
-
-      rv$content_prepared <- rv$content_parameterised
-      print("Tokenised, content_prepared display:")
-      print(rv$content_prepared)
-      rv$is_tokenised <- TRUE
-    }) # end observeEvent tokenise button
-
-
-    # When revert tokens button is clicked...
-    observeEvent(input$revert_tokenise, {
-      # undo tokenisation by setting content_parameterised back to content_stop_rm
-
-      if (rv$is_tokenised) {
-        print("reverting tokenise")
-        rv$content_prepared <- rv$content_stop_rm
-      }
-
-      rv$is_tokenised <- FALSE
-
-      shinyjs::reset(input$tokens)
-    }) # end revert tokenise button
-  })
-}
 
 
 
@@ -917,9 +906,18 @@ textPrepUI <- function(id) {
             tabPanel(
               title = "Stemming",
               wellPanel(
-                h4("Stemming"),
+                h3("Stemming"),
                 p("Performing stemming of the current tokenised data."),
                 em("Note: data must be tokenised to perform stemming."),
+                
+                selectInput(ns("data_to_stem"), 
+                            label = "Select a dataset:", 
+                            choices = list("N/A" = "na")),
+                
+                selectInput(ns("col_name_to_stem"), 
+                            label = "Select a column to perform stemming on:", 
+                            choices = list("N/A" = "na")),
+                
                 fluidRow(
                   column(
                     width = 6,
@@ -1003,6 +1001,8 @@ textPrepServer <- function(id, rv = rv) {
         return(NULL)
       })
       
+      ##### Probably not necessary - on initial run of server the content_prepared is rendered
+      ##### i guess
       observe({
         rv$content_prepared_display_2 <- rv$content_primary$content_prepared
       })
@@ -1025,15 +1025,11 @@ textPrepServer <- function(id, rv = rv) {
       # in observe event submit tokenise: if tokenised, render content_tokenised
       observe({
         req(rv$content_primary$data)
- 
-        # if neither stop-words or tokenisation performed yet, render rv$content
-        # if(!(rv$is_stop_removed) && !(rv$is_tokenised)){
-        #   print("content_prepared set to content in text prep server")
-        #   rv$content_prepared <- rv$content
-        # }
 
         # if content not filtered or mutated, set content_prepared to OG data
         # is_filtered and is_mutated set on initialisation of content_primary data list
+        
+        ##### Instead of this, have initialised $content_prepared as $data when subsets created
         if (!(rv$content_primary$is_filtered) && !(rv$content_primary$is_mutated)) {
           print("content_edited & content_prepared set to content in text prep server")
           rv$content_primary$content_edited <- rv$content_primary$data
@@ -1071,9 +1067,9 @@ textPrepServer <- function(id, rv = rv) {
       )
 
 
-      #######################
-      #### Editing table ####
-      #######################
+      ###########################
+      #### Editing table ########
+      ###########################
 
       # Observe event for each time a cell is edited, so it is saved
       # When edit occurs, subset content_prepared with user-entered value
@@ -1103,8 +1099,7 @@ textPrepServer <- function(id, rv = rv) {
       ###########################
       ###### Mutating UI ########
       ###########################
-      #### Creating ui for new column mutation ####
-      
+      # Creating ui for new column mutation 
       # UI for simple add new column
       output$mutate_new_UI <- renderUI({
         ns <- NS(id)
@@ -1135,8 +1130,7 @@ textPrepServer <- function(id, rv = rv) {
         tagList(
           p("Specify condition and values to insert"),
           # if <mutate_advanced_condition_col> <mutate_advanced condition>
-          # <mutate_advanced_condition_input> then
-          # fill with
+          # <mutate_advanced_condition_input> then fill with
           varSelectInput(ns("mutate_advanced_condition_col"),
                          label = "If:",
                          rv$content_primary$content_prepared,
@@ -1162,7 +1156,7 @@ textPrepServer <- function(id, rv = rv) {
               # Render text input if 'contains' condition selected
               conditionalPanel(
                 
-                # Need to change to if condition is contains OR is matches
+                # if condition is contains OR is matches
                 condition = paste0("input['", ns("mutate_advanced_condition"),
                                    "'] == 'contains' || 
                                    input['", ns("mutate_advanced_condition"), 
@@ -1406,7 +1400,8 @@ textPrepServer <- function(id, rv = rv) {
         # initializing reactive value list of data and characteristics
         subset_one <- shiny::reactiveValues(data = in_datatable, 
                                            is_stop_rm = F, 
-                                           is_tokenised = F)
+                                           is_tokenised = F, 
+                                           content_prepared = in_datatable)
         
         # saving data and characteristics list to main rv list
         rv$subset_one <- subset_one
@@ -1424,7 +1419,8 @@ textPrepServer <- function(id, rv = rv) {
         # initializing reactive value list of data and characteristics
         subset_two <- shiny::reactiveValues(data = in_datatable, 
                                             is_stop_rm = F, 
-                                            is_tokenised = F)
+                                            is_tokenised = F, 
+                                            content_prepared = in_datatable)
         
         # saving data and characteristics list to main rv list
         rv$subset_two <- subset_two
@@ -1489,43 +1485,145 @@ textPrepServer <- function(id, rv = rv) {
       )
 
 
-      #######################
-      ####### Stemming ######
-      #######################
-
-      observeEvent(input$submit_stemming, {
-        req(rv$content_primary$is_tokenised)
+      ###########################
+      ####### Stemming ##########
+      ###########################
+      # Again need to select dataset, choose column to stem
+      # Need to enforce that column selected is tokenised before stemming
+      
+      ## Dataset chooser 
+      # Always update possible dataset list with current available subsets
+      observe({
+        # Create list of possible datasets to select from
+        req(rv$content_primary)
+        potential_sets_tokenise <- list("Primary data")
+        
+        if(!is.null(rv$subset_one)){
+          potential_sets_tokenise[length(potential_sets_tokenise) + 1] <- "Subset one"
+        }
+        if(!is.null(rv$subset_two)){
+          potential_sets_tokenise[length(potential_sets_tokenise) + 1] <- "Subset two"
+        }
+        
+        # updating select input list to contain datasets available
+        updateSelectInput(session, "data_to_stem",
+                          choices = potential_sets_tokenise,
+                          selected= potential_sets_tokenise[1])
+      })
+      
+      ## Column chooser 
+      # When a dataset is chosen to perform stemming on, need to load which 
+      # columns available in that dataset
+      observe({
         req(rv$content_primary$content_prepared)
+        
+        # creating list of available columns
+        # subsets' content_prepared is initialized on save of subsets
+        colnames <- switch(input$data_to_stem, 
+                           "Primary data" = 
+                             colnames(rv$content_primary$content_prepared), 
+                           "Subset one" = colnames(rv$subset_one$content_prepared), 
+                           "Subset two" = colnames(rv$subset_two$content_prepared)
+        )
 
-        rv$pre_stemmed_content <- rv$content_prepared
+        updateSelectInput(session, "col_name_to_stem",
+                          choices = colnames[-1],
+                          selected= colnames[2])
+      })
+      
+      # Rendering whatever dataset selected in datatable display
+      observeEvent(input$data_to_stem, {
+        req(rv$content_primary$content_prepared)
+        rv$content_prepared_display_2 <- 
+          switch(input$data_to_stem, 
+                 "Primary data" =  rv$content_primary$content_prepared, 
+                 "Subset one" = rv$subset_one$content_prepared, 
+                 "Subset two" = rv$subset_two$content_prepared
+          )
+      })
 
-        # hunspell_stem gives possible list of stems,
-        # separating these and deselcting Token column
-        rv$content_stemmed <- rv$content_prepared %>%
-          mutate(Stem = hunspell_stem(Token)) %>%
-          separate(Stem, c("Stem_1", "Stem_2"),
-            sep = ","
-          ) %>%
-          mutate(Stem_1 = unlist(Stem_1)) %>%
-          filter(Stem_1 != "character(0)") %>%
-          mutate(Stem_1 = gsub('c\\(\\"|\\"', "", Stem_1)) %>%
-          mutate(Token = Stem_1) %>%
-          select(-Stem_1, -Stem_2)
+      ## Actually stemming data
+      observeEvent(input$submit_stemming, {
+        
+        # First check if selected column is tokenised
+        # or does it still work if not tokenised...?
+        
+        req(rv$content_primary) # always require something submitted
+        
+        # For selected dataset, create pre-stemmed dataset in case of undo, 
+        # and then stem with stem_data() function in utils.R
+        if(input$data_to_stem == "Primary data"){
+          
+          # Save copy of content_prepared in case of undo
+          rv$content_primary$content_pre_stemmed <- rv$content_primary$content_prepared
+          
+          # Use stem_data function to stem
+          content_stemmed <- stem_data(rv$content_primary$content_prepared, 
+                                             col_name = input$col_name_to_stem)
+          
+          # Set stemmed data to rv$content_primary$content_prepared and 
+          # set is_stemmed = TRUE
+          rv$content_primary$content_prepared <- content_stemmed
+          rv$content_primary$is_stemmed <- TRUE
+          
+          print("Stemmed, rv$content_primary$content_prepared display:")
+          print(rv$content_primary$content_prepared)
+          
+        } else if(input$data_to_stem == "Subset one"){
+          
+          req(rv$subset_one$content_prepared)
+          
+          # Save copy of content_prepared in case of undo
+          rv$subset_one$content_pre_stemmed <- rv$subset_one$content_prepared
+          
+          # Stemming
+          content_stemmed <- stem_data(rv$subset_one$content_prepared, 
+                                             col_name = input$col_name_to_stem)
+          
+          rv$subset_one$content_prepared <- content_stemmed
+          rv$subset_one$is_stemmed <- TRUE
+          
+        } else if(input$data_to_stem == "Subset two"){
+          
+          req(rv$subset_two$content_prepared)
+          
+          # Save copy of content_prepared in case of undo
+          rv$subset_two$content_pre_stemmed <- rv$subset_one$content_prepared
+          
+          # Stemming
+          content_stemmed <- stem_data(rv$subset_two$content_prepared, 
+                                           col_name = input$col_name_to_stem)
+          
+          rv$subset_two$content_prepared <- content_stemmed
+          rv$subset_two$is_stemmed <- TRUE
+        }
 
-        rv$content_prepared <- rv$content_stemmed
-
-        rv$is_stemmed <- TRUE
-        print("stemming content performed")
       }) # end observe event submit stemming
 
+      # Undo stemming - set chosen dataset back to pre-stemmed save
       observeEvent(input$undo_stemming, {
-        req(rv$is_stemmed)
-
-        # Pre_stemmed content is reassigned to content_prepared
-        # to convert back
-        rv$content_stemmed <- NULL
-        rv$content_prepared <- rv$pre_stemmed_content
-      })
+        
+        if(input$data_to_stem == "Primary data"){
+          
+          req(rv$content_primary$content_pre_stemmed)
+          rv$content_primary$content_prepared <- rv$content_primary$content_pre_stemmed
+          rv$content_primary$is_stemmed <- FALSE
+          
+        } else if(input$data_to_stem == "Subset one"){
+          
+          req(rv$subset_one$content_pre_stemmed)
+          rv$subset_one$content_prepared <- rv$subset_one$content_pre_stemmed
+          rv$subset_one$is_stemmed <- FALSE
+          
+        } else if(input$data_to_stem == "Subset two"){
+          
+          req(rv$subset_two$content_pre_stemmed)
+          rv$subset_two$content_prepared <- rv$subset_two$content_pre_stemmed
+          rv$subset_two$is_stemmed <- FALSE
+        }
+      }) # end observe event undo stemming
+      
+      
     }
   )
 } # end text preparation server logic

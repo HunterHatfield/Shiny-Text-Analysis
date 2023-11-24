@@ -1,13 +1,17 @@
-                               
-                               ############
-                      ############################
-          #################################################### 
-           # utils.R - helper functions for Text Analysis App 
-          ####################################################
-                       ###########################
-                               ############
 
+                          ############
+                  ############################
+      #################################################### 
+       # utils.R - helper functions for Text Analysis App 
+      ####################################################
+                  ###########################
+                          ############
+
+                      
+                              
+################################
 ### join_secondary function ####
+################################
 # Perform a join on a primary and secondary tibbles, given specified column names to join on in each and a join type. 
 # Datasets are cleaned so that the common columns are named "Primary Common" and "Secondary Common". Only allows joining on one pair of columns. 
 join_secondary <- function(content_primary, content_secondary, 
@@ -66,37 +70,38 @@ join_secondary <- function(content_primary, content_secondary,
   
 }
 
-
-#### clear_files function ####
+#############################
+### clear_files function ####
+#############################
 # Function to clear reactive value lists when user clears files 
 # Resets rv list values to NULL inorder to reset downstream graphs & widgets
 clear_reactives <- function(){
   
   req(rv$content) 
-
+  
   rv$files <- NULL
   rv$csvtsv_file <- NULL
   rv$content <- NULL
   rv$numFiles <- nrow(rv$content) # obviously going to be 0 
   
   rv$content_primary <- NULL
-
+  
   rv$content_secondary <- NULL
   rv$secondary_file <- NULL
-
+  
   rv$content_stop_rm <- NULL
   rv$content_parameterised <- NULL
   rv$content_prepared <- NULL
   rv$content_edited <- NULL
   rv$is_tokenised <- NULL
   rv$is_stop_rm <- NULL
-
+  
   rv$content_freq <- NULL
   rv$content_tf_idf <- NULL
   rv$content_zipf <- NULL
-
+  
   rv$content_stats <- NULL
-
+  
   mini_rv <- NULL
   report_rv <- NULL
   
@@ -123,12 +128,12 @@ advanced_mutate <- function(content_prepared_in,
   # Saving only rows which are in the datatable to be edited
   # Need to join rows not in DT at end 
   content_prepared <- content_prepared_in[which(in_datatable$ID %in% 
-                           content_prepared_in$ID),]
+                                                  content_prepared_in$ID),]
   
   
   # Doing all numeric or string checking & conversion first, 
   # then actually updating after
-
+  
   # If condition is for numeric checking, attempt conversion of
   # column and condition input to numeric
   # Could just convert all to strings, however later if statistical
@@ -136,7 +141,7 @@ advanced_mutate <- function(content_prepared_in,
   if(mutate_advanced_condition %in% c("is less than", 
                                       "is greater than",
                                       "is equal to (numeric)")){
-
+    
     # Attempting to convert col to numeric
     convert_attempt_col <- try(
       content_prepared[mutate_advanced_condition_col] <- 
@@ -149,7 +154,7 @@ advanced_mutate <- function(content_prepared_in,
     
     print("Converted numeric condition:")
     print(mutate_advanced_condition_numeric_input)
-
+    
     # If the try-catch produced error (class try-error)  or
     # produced NAs by coercion when trying to convert column or 
     # condition input to numeric, show alert
@@ -170,7 +175,7 @@ advanced_mutate <- function(content_prepared_in,
         confirmButtonText = "Dismiss",
         confirmButtonCol = "#4169E1",
         timer = 0, imageUrl = "", animation = TRUE
-        )
+      )
       
       return(content_prepared_in)
       
@@ -181,26 +186,26 @@ advanced_mutate <- function(content_prepared_in,
     # have condition input and condition column convertible to strings
     
     # Attempting to convert col to char
-    print("Printing content_prepared[mutate_advanced_condition_col]")
-    print(content_prepared[mutate_advanced_condition_col])
+    # print("Printing content_prepared[mutate_advanced_condition_col]")
+    # print(content_prepared[mutate_advanced_condition_col])
     
     convert_attempt_col_text <- try(
       content_prepared[mutate_advanced_condition_col] <- 
         as.character(content_prepared[[mutate_advanced_condition_col]])
-        #as.character(content_prepared[mutate_advanced_condition_col])
-      )
-    print("Printing content_prepared[mutate_advanced_condition_col] after conversion")
-    print(content_prepared[mutate_advanced_condition_col])
-    
-    print("Printing mutate_advanced_condition_text_input")
-    print(mutate_advanced_condition_text_input)
+      #as.character(content_prepared[mutate_advanced_condition_col])
+    )
+    # print("Printing content_prepared[mutate_advanced_condition_col] after conversion")
+    # print(content_prepared[mutate_advanced_condition_col])
+    # 
+    # print("Printing mutate_advanced_condition_text_input")
+    # print(mutate_advanced_condition_text_input)
     convert_attempt_condition_text <- try(
       mutate_advanced_condition_text_input <- 
         as.character(mutate_advanced_condition_text_input)
-      )
+    )
     
-    print("converted string condition:")
-    print(mutate_advanced_condition_text_input)
+    # print("converted string condition:")
+    # print(mutate_advanced_condition_text_input)
     
     # If the try-catch produced error (class try-error)  or
     # produced NAs by coercion when trying to convert column or 
@@ -228,8 +233,8 @@ advanced_mutate <- function(content_prepared_in,
     } # end alert check
     
   } # end string conversion checking
-    
-
+  
+  
   #### Actually mutating #####
   
   # Where mutate update option is selected
@@ -237,148 +242,148 @@ advanced_mutate <- function(content_prepared_in,
     
     # for each row in data to update
     # for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
-
-      # If checking if less than...
-      if(mutate_advanced_condition == "is less than"){
-
-        print("Mutate update advanced: checking is less than...")
-
-        # For each row in mutate_advanced_condition_col:
-          # if condition true: input true value provided by user, 
-          # else condition false: input false value *if* it is 
-          # provided by user. 
-        # Thus if condition fails and no false value provided, row not 
-        # changed
-        # Same logic for each numeric case
+    
+    # If checking if less than...
+    if(mutate_advanced_condition == "is less than"){
+      
+      print("Mutate update advanced: checking is less than...")
+      
+      # For each row in mutate_advanced_condition_col:
+      # if condition true: input true value provided by user, 
+      # else condition false: input false value *if* it is 
+      # provided by user. 
+      # Thus if condition fails and no false value provided, row not 
+      # changed
+      # Same logic for each numeric case
+      
+      # for each row in data to update
+      for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
         
-        # for each row in data to update
-        for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
-
-          # If condition true, input true value provided by user
-          if(content_prepared[[i, mutate_advanced_condition_col]] <
-             mutate_advanced_condition_numeric_input){
-            
-            content_prepared[[mutate_col_to_update]][[i]] <-
-              mutate_advanced_equals_true
-            
-          } else if(!is_empty(mutate_advanced_equals_false) && # || 
-                    mutate_advanced_equals_false != ""){ 
-            # if condition fails, input false value if not it is 
-            # not empty - so if false value is empty then do nothing 
-              content_prepared[[mutate_col_to_update]][[i]] <-
-                mutate_advanced_equals_false
-          }
+        # If condition true, input true value provided by user
+        if(content_prepared[[i, mutate_advanced_condition_col]] <
+           mutate_advanced_condition_numeric_input){
           
-        } # end for loop
+          content_prepared[[mutate_col_to_update]][[i]] <-
+            mutate_advanced_equals_true
           
-        # Else if checking if greater than...
-      } else if(mutate_advanced_condition == "is greater than"){
-        # content_prepared[i, mutate_col_to_update] <- 
-        #   if_else(content_prepared[i, mutate_advanced_condition_col] > 
-        #             mutate_advanced_condition_numeric_input, 
-        #           mutate_advanced_equals_true, 
-        #           mutate_advanced_equals_false)
+        } else if(!is_empty(mutate_advanced_equals_false) && # || 
+                  mutate_advanced_equals_false != ""){ 
+          # if condition fails, input false value if not it is 
+          # not empty - so if false value is empty then do nothing 
+          content_prepared[[mutate_col_to_update]][[i]] <-
+            mutate_advanced_equals_false
+        }
         
-        # for each row in data to update
-        for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
+      } # end for loop
+      
+      # Else if checking if greater than...
+    } else if(mutate_advanced_condition == "is greater than"){
+      # content_prepared[i, mutate_col_to_update] <- 
+      #   if_else(content_prepared[i, mutate_advanced_condition_col] > 
+      #             mutate_advanced_condition_numeric_input, 
+      #           mutate_advanced_equals_true, 
+      #           mutate_advanced_equals_false)
+      
+      # for each row in data to update
+      for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
         
-          if(content_prepared[[i, mutate_advanced_condition_col]] >
-             mutate_advanced_condition_numeric_input){
-            
-            content_prepared[[mutate_col_to_update]][[i]] <-
-              mutate_advanced_equals_true
-            
-          } else if(!is_empty(mutate_advanced_equals_false) && 
-                    mutate_advanced_equals_false != ""){ 
-            # if condition fails and false input is not empty
-              content_prepared[[mutate_col_to_update]][[i]] <-
-                mutate_advanced_equals_false
-          }
+        if(content_prepared[[i, mutate_advanced_condition_col]] >
+           mutate_advanced_condition_numeric_input){
           
-        } # end for loop
+          content_prepared[[mutate_col_to_update]][[i]] <-
+            mutate_advanced_equals_true
           
-      } else if(mutate_advanced_condition == "is equal to (numeric)"){
+        } else if(!is_empty(mutate_advanced_equals_false) && 
+                  mutate_advanced_equals_false != ""){ 
+          # if condition fails and false input is not empty
+          content_prepared[[mutate_col_to_update]][[i]] <-
+            mutate_advanced_equals_false
+        }
         
-          print("Mutate update advanced: checking is equal to...")
+      } # end for loop
+      
+    } else if(mutate_advanced_condition == "is equal to (numeric)"){
+      
+      print("Mutate update advanced: checking is equal to...")
+      
+      # for each row in data to update
+      for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
         
-        # for each row in data to update
-        for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
-  
-          # If condition true, input true value provided by user
-          if(content_prepared[[i, mutate_advanced_condition_col]] ==
-             mutate_advanced_condition_numeric_input){
-            
-            content_prepared[[mutate_col_to_update]][[i]] <-
-              mutate_advanced_equals_true
-            
-          } else if(!is_empty(mutate_advanced_equals_false) &&
-                    mutate_advanced_equals_false != "") {
-            content_prepared[[mutate_col_to_update]][[i]] <-
-                mutate_advanced_equals_false
-          }
+        # If condition true, input true value provided by user
+        if(content_prepared[[i, mutate_advanced_condition_col]] ==
+           mutate_advanced_condition_numeric_input){
           
-        } # end for loop
-        
-       # end is equal to numeric checking
-        
-      } else if(mutate_advanced_condition == "matches string"){
-        
-          print("Matches string case")
-        
-        # for each row in data to update
-        for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
+          content_prepared[[mutate_col_to_update]][[i]] <-
+            mutate_advanced_equals_true
           
-          # If condition true, input true value provided by user
-          # Used == for exact and quick string matching
-          if(content_prepared[[i, mutate_advanced_condition_col]] ==
-             mutate_advanced_condition_text_input){
-            
-            content_prepared[[mutate_col_to_update]][[i]] <-
-              mutate_advanced_equals_true
-            
-          } else if(!is_empty(mutate_advanced_equals_false) && 
-                    mutate_advanced_equals_false != "") {
-            
-            # Else input the false value provided by user if 
-            # false condition isn't empty
-            content_prepared[[mutate_col_to_update]][[i]] <-
-              mutate_advanced_equals_false
-          }
+        } else if(!is_empty(mutate_advanced_equals_false) &&
+                  mutate_advanced_equals_false != "") {
+          content_prepared[[mutate_col_to_update]][[i]] <-
+            mutate_advanced_equals_false
+        }
+        
+      } # end for loop
+      
+      # end is equal to numeric checking
+      
+    } else if(mutate_advanced_condition == "matches string"){
+      
+      print("Matches string case")
+      
+      # for each row in data to update
+      for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
+        
+        # If condition true, input true value provided by user
+        # Used == for exact and quick string matching
+        if(content_prepared[[i, mutate_advanced_condition_col]] ==
+           mutate_advanced_condition_text_input){
           
-        } # end for loop
-        
-      } else if(mutate_advanced_condition == "contains"){
-        
-        print("Contains string case")
-        
-        # for each row in data to update
-        for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
+          content_prepared[[mutate_col_to_update]][[i]] <-
+            mutate_advanced_equals_true
           
-         # If condition true, input true value provided by user
-          # Using grepl to check if any instances of the input string is
-          # found in each row of the selected data
-          # grepl returns a logical vector (match or not for 
-          # each element)
-          if(grepl(mutate_advanced_condition_text_input,
-                    content_prepared[[i,mutate_advanced_condition_col]])){
-            
-            content_prepared[[mutate_col_to_update]][[i]] <-
-              mutate_advanced_equals_true
-            
-          } else if(!is_empty(mutate_advanced_equals_false) || 
-                    mutate_advanced_equals_false != "") {
-            
-              content_prepared[[mutate_col_to_update]][[i]] <-
-                mutate_advanced_equals_false
-            
+        } else if(!is_empty(mutate_advanced_equals_false) && 
+                  mutate_advanced_equals_false != "") {
+          
+          # Else input the false value provided by user if 
+          # false condition isn't empty
+          content_prepared[[mutate_col_to_update]][[i]] <-
+            mutate_advanced_equals_false
+        }
+        
+      } # end for loop
+      
+    } else if(mutate_advanced_condition == "contains"){
+      
+      print("Contains string case")
+      
+      # for each row in data to update
+      for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
+        
+        # If condition true, input true value provided by user
+        # Using grepl to check if any instances of the input string is
+        # found in each row of the selected data
+        # grepl returns a logical vector (match or not for 
+        # each element)
+        if(grepl(mutate_advanced_condition_text_input,
+                 content_prepared[[i,mutate_advanced_condition_col]])){
+          
+          content_prepared[[mutate_col_to_update]][[i]] <-
+            mutate_advanced_equals_true
+          
+        } else if(!is_empty(mutate_advanced_equals_false) || 
+                  mutate_advanced_equals_false != "") {
+          
+          content_prepared[[mutate_col_to_update]][[i]] <-
+            mutate_advanced_equals_false
+          
         } # end else case
         
-        } # end for loop
-        
-      } # end mutate update contains logic
-
+      } # end for loop
+      
+    } # end mutate update contains logic
+    
     # } # end for loop
-
+    
     print("Result of advanced_update function:")
     print(content_prepared)
     # return(content_prepared[mutate_col_to_update])
@@ -394,7 +399,7 @@ advanced_mutate <- function(content_prepared_in,
     # For each row in mutate_advanced_condition_col, if condition true
     # input true value provided by user, else is condition fails input
     # false value
-  
+    
     # Using vector-based comparisons to generate vector of boolean 
     # indicating if condition met for each row, which is then used 
     # to mutate
@@ -437,16 +442,197 @@ advanced_mutate <- function(content_prepared_in,
                if_else(is_condition_met,
                        mutate_advanced_equals_true,
                        mutate_advanced_equals_false))
-      
-
+    
+    
     print("Result of advanced_update function:")
     print(content_prepared)
     return(content_prepared)
     
   } # end mutate option add new logic
-  
-  
 } # end advanced function
+
+
+####################################
+#### remove_stop_words function ####
+####################################
+# Function which takes a dataset, column to remove stop-words from and 
+# final stop words and returns stop-removed dataset
+# Removing stop words from content by first unnesting into words
+# then anti-joining with the stop words final tibble.
+# Then grouped by ID to stitch words back together.
+# Doing separately to other columns in content so they are not lost in grouping
+remove_stop_words <- function(data, col_name, stop_words, 
+                              is_tokenised = FALSE){
+  
+  # Check that supplied column exists in data and is chars
+  req(c("ID", col_name) %in% colnames(data))
+  req(is.character(data[[col_name]]))
+  print("Data valid")
+  
+  # If data not tokenised, select just ID and column, unnest to words, 
+  # anti-join with stop_word data, and re-flatten data to be chunk of 
+  # text per row. Finally, add other extra columns with full_join
+  if(!is_tokenised){
+    
+    print("Data not tokenised")
+    # Removing stop-words with anti-join on selected column
+    # Then grouping by ID and collapsing back into paragraphs 
+    # Always unnesting by word first - even if data is tokenised
+    # it could be in bigrams etc.
+    data_cols_stop_rm <- data %>% 
+        dplyr::select(ID, {col_name}) %>%
+        unnest_tokens(!!col_name, {col_name}, token = "words")
+    
+    # changing colnames of stop-words df to col_name supplied
+    # since anti_join wouldn't accept default 'word' name
+    colnames(stop_words) <- c("contents")
+    colnames(data_cols_stop_rm) <- c("ID", "contents")
+    
+    data_cols_stop_rm <- dplyr::anti_join(data_cols_stop_rm, 
+                         stop_words, by = "contents")
+  
+    data_cols_stop_rm <- data_cols_stop_rm %>%
+      group_by(ID) %>%
+      summarize("{col_name}" := 
+                  str_flatten(contents, collapse = " ")) 
+    
+    # Creating subset of rest of cols in submitted content
+    data_other_cols <- data %>% 
+      dplyr::select(-{col_name})
+    
+    print("Other columns of data set (deselect col_name)")
+    print(data_other_cols)
+    
+    print("Data of stop-removal function just before full join")
+    print(data_cols_stop_rm)
+    # Then joining stop-removed column and rest of cols
+    data_stop_rm <- full_join(data_cols_stop_rm,
+                              data_other_cols, by = "ID")
+    
+    print("Data of stop-removal function after full join")
+    print(data_stop_rm)
+  
+  } 
+  # Else if tokenised, tokenise into words and anti-join
+  # entire dataset with stop_words provided
+  # provided by user
+  else {
+    print("Data is tokenised:")
+    
+    data <- data %>% 
+      unnest_tokens(!!col_name, {col_name}, token = "words")
+    print("Unnested data")
+    print(data)
+    
+    print("Now anti-joining with stop-words:")
+    
+    # Renaming column names for ease of use with anti_join()
+    colnames(stop_words) <- c("contents")
+    colnames(data)[which(colnames(data) == {col_name})] = "contents"
+    
+    # Anti-join to remove stop-words
+    data_stop_rm <- dplyr::anti_join(data, stop_words, 
+                                     by = "contents")
+    
+    # Renaming column of interest back to original name
+    colnames(data_stop_rm)[which(colnames(data_stop_rm) == 
+                                   "contents")] = {col_name}
+    
+    print("Data after anti-join:")
+    print(data_stop_rm)
+    
+  }
+  
+  print("Final stop-removed dataset:")
+  print(data_stop_rm)
+  
+  # Final stop-removed dataset
+  return(data_stop_rm)
+}
+
+################################
+#### tokenise data function ####
+################################
+# Function which takes a data, column to tokenise, 
+# and a token and returns the dataset with the 
+# selected column tokenised
+tokenise_data <- function(data, col_name, token, 
+                          custom_token = NULL, n_grams = 2){
+  
+  # Check that supplied column exists in data and is chars
+  req(c("ID", col_name) %in% colnames(data))
+  req(is.character(data[[col_name]]))
+  
+  ##### In try catch loop
+  # If contents uploaded are not character, attempt to convert
+  if (!is.character(rv$content_stop_rm$Contents)) {
+    print("Contents not character, attempting conversion")
+    data[[col_name]] <- as.character(data[[col_name]])
+    print("Conversion success")
+  }
+  
+  # Actually tokenising
+  if (token == "words" || token == "sentences") {
+    
+    data_tokenised <- data %>%
+      unnest_tokens(!!col_name, {col_name}, token = token)
+    
+  } else if (token == "bigrams") {
+    
+    data_tokenised <- data %>%
+      unnest_ngrams(!!col_name, {col_name}, n = 2)
+    
+  } else if (token == "ngrams") {
+    
+    data_tokenised <- data %>%
+      unnest_ngrams(!!col_name, {col_name}, n = n_grams)
+    
+  } else if (token == "other") {
+    
+    # unnest on the user inputted regex
+    data_tokenised <- data %>%
+      unnest_regex(!!col_name, {col_name},
+                   pattern = tolower(custom_token))
+  }
+  
+  data_tokenised <- data_tokenised %>%
+    relocate({col_name}, .after = ID)
+  
+  return(data_tokenised)
+  
+}
+
+
+################################
+#### stemming data function ####
+################################
+# Function which takes a dataset, column to stem, 
+# which is assumed tokenised, and returns dataset with the 
+# selected column stemmed
+stem_data <- function(data, col_name){
+  
+  # Check that supplied column exists in data and is chars
+  req(col_name %in% colnames(data))
+  req(is.character(data[[col_name]]))
+  
+  # Perform stemming on selected column
+  # hunspell_stem gives possible list of stems,
+  # separating these and deselcting Token column
+  data_stemmed <- data %>%
+    mutate(Stem = hunspell_stem(data[[col_name]])) %>%
+    separate(Stem, c("Stem_1", "Stem_2"),
+             sep = ",") %>%
+    mutate(Stem_1 = unlist(Stem_1)) %>%
+    filter(Stem_1 != "character(0)") %>%
+    mutate(Stem_1 = gsub('c\\(\\"|\\"', "", Stem_1)) %>%
+    mutate("{col_name}" := Stem_1) %>%
+    select(-Stem_1, -Stem_2)
+  
+  print("Stemmed data:")
+  print(data_stemmed)
+  
+  return(data_stemmed)
+}
 
 
 
@@ -459,12 +645,12 @@ advanced_mutate <- function(content_prepared_in,
 apply_transformation <- function(var, transformation){
   
   transformed_var <- switch(transformation,
-                        "none" = var,
-                        "log" = log(var + 1), 
-                        "sqrt" = sqrt(var), 
-                        "arcsine" = asin(sqrt(var)),
-                        "recip" = 1/var
-                      )
+                            "none" = var,
+                            "log" = log(var + 1), 
+                            "sqrt" = sqrt(var), 
+                            "arcsine" = asin(sqrt(var)),
+                            "recip" = 1/var
+  )
   
   return(transformed_var)
   
@@ -487,7 +673,7 @@ formula <- function(regression_type, dependent, independent,
                     interactions = NULL, random_slope_1 = NULL, 
                     random_intercept_1 = NULL, 
                     random_slope_2 = NULL, random_intercept_2 = NULL){
-
+  
   # First create formula with dependent in front with "~"
   formula <- paste0(dependent, " ~ ")
   
@@ -496,7 +682,7 @@ formula <- function(regression_type, dependent, independent,
   
   # Adding independents to the formula
   formula <- paste0(formula, independents)
-
+  
   # if interactions are present then add them to formula before returning
   if(!is.null(interactions)){
     # Combining list of interactions into a string 
@@ -508,8 +694,8 @@ formula <- function(regression_type, dependent, independent,
   # if not just 1 | intercept for the random formula
   if(regression_type == "mixed"){
     randoms_formula_1 <- ifelse(length(random_slope_1) == 0, 
-                              paste("1"),
-                              paste(random_slope_1, collapse = " + "))
+                                paste("1"),
+                                paste(random_slope_1, collapse = " + "))
     mixed_formula_1 <- paste("(", randoms_formula_1, "|", random_intercept_1, ")")
     
     # Checking if a secondary term selected
@@ -525,7 +711,7 @@ formula <- function(regression_type, dependent, independent,
       
       return(paste(formula, " + ", mixed_formula_1))
     }
-
+    
   } 
   
   return(formula)
@@ -547,10 +733,9 @@ perform_regression <- function(formula, regression_type, data){
   } else if(regression_type == "mixed"){
     res <- lme4::lmer(formula, data)
   }
-
+  
   return(res)
 }
-
 
 
 

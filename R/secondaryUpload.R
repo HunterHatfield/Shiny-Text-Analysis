@@ -8,101 +8,273 @@ secondaryUI <- function(id){
     
     # Secondary uploads UI. renderUI() function is used to renderUI based on whether
     # or not a user has completed primary uploads. This means secondary upload functionality
-    # is only available once primary upload is complete. 
-    # Render UI for secondary upload once !is.null(rv$content) && nrow(rv$content) > 0
-    uiOutput(ns("secondary_snippet")),
+    # is only available once primary upload is complete.
+    # Render UI for secondary upload once !is.null(rv$content_primary$data) && 
+    # nrow(rv$content_primary$data) > 0
     
-    DT::dataTableOutput(ns("file_tibble_second"))
+    uiOutput(ns("secondaryUploadUI")),
+    
+    uiOutput(ns("secondaryJoinUI")),
     
   )
 } # end secondary UI
 
-
-
 ###### SERVER ######
 # Takes in id and a list of reactive values which is assumed to contain a tibble of the file contents called 'content' and thus accessed by the function as rv$content.
 # Also takes in a list of reactive values (can be empty)
-secondaryServer <- function(id, rv = rv, primary = rv$content, parent = session){
+secondaryServer <- function(id, rv = rv){
   moduleServer(id, 
-    function(input, output, session = parent){
-      # req(primary) # require the primary file to exist
+    function(input, output, session){
       
-      #### Creating ui for secondary uploads ####
-      output$secondary_snippet <- renderUI({
+      #############################
+      #### Secondary upload UI ####
+      #############################
+      output$secondaryUploadUI <- renderUI({
+        print("Rendering secondary upload UI")
+        
         ns <- NS(id)
         true_UI <- tagList(
           
           h3("Secondary upload"),
           p("Upload a secondary .csv/.tsv file to adjoin."),
           
-          shinyFilesButton(ns("csvtsvUpload2"),
-                           label = "Select a .csv/.tsv file",
-                           title = "Choose a .csv or .tsv file...",
-                           multiple = FALSE,
-                           class = "btn-primary")
-        )
+          # Table upload with fileInput
+          fileInput(session$ns("csvtsvUpload2"), label = NULL, 
+                    multiple = FALSE, accept = c(".csv", ".tsv"), 
+                    placeholder = "Select .csv/.tsv file..."),
+          hr(),
+          
+          # Display uploaded files
+          DT::dataTableOutput(session$ns("file_tibble_secondary")),
+          hr(),
+          
+        ) # end tagList
+        
         false_UI <- tagList(
-          em("Note: to adjoin a secondary table, submit your primary upload first.",
-             style = "color: grey")
+          em("Note: to adjoin a secondary table, submit your primary upload 
+             first.", style = "color: grey")
         )
         
         # if there is a primary upload present, render secondary UI
         # otherwise UI is rendered to let user know to complete primary upload
-        if(!is.null(rv$content) && nrow(rv$content) > 0){
+        if(!is.null(rv$content_primary$data) && nrow(rv$content_primary$data) > 0){
           return(true_UI)
-        } 
+        }
         return(false_UI)
         
-      }) # end render secondary UI
+      }) # end render secondary UI ##
       
-      volumes <- c(Home = fs::path_home(),
-                   getVolumes()())
       
-      shinyFileChoose(input, "csvtsvUpload2",
-                      roots = volumes,
-                      filetypes = c('csv', 'tsv'))
-      
-      #### Secondary upload processing ####
-      # extracting and parsing uploaded files from shiny files input
-      secondary_file <- reactive({
-        req(input$csvtsvUpload2)
+      ###########################
+      #### Secondary join UI ####
+      ###########################
+      # This UI goes under the secondary upload section and is rendered only
+      # when secondary content is uploaded.
+      output$secondaryJoinUI <- renderUI({
+        req(rv$content_primary$data)
+        req(rv$content_secondary)
         
-        if(is.null(input$csvtsvUpload2)){
-          return(NULL)
-        }
-        
-        parseFilePaths(roots = volumes, input$csvtsvUpload2)
-      })
-      
-      # ensuring secondary file is saved as reactive value in list
-      observe({
-        rv$secondary_file <- secondary_file()
-      })
-      
+        ns <- NS(id)
 
-      # Cleaning & mutating dataframe object created by shinyFiles
-      file_tibble_second <- reactive({
-        req(rv$secondary_file)
-        rv$secondary_file %>%
+        # saving desired UI output in ui_ouput
+        tagList(
+          h3("Join datasets"),
+          p("Select a column from each dataset to join on:"),
+    
+          column(width = 6,
+                 # Input for which column to join on in primary
+                 selectInput(session$ns("col_primary"),
+                             label = "Primary data",
+                             choices = colnames(rv$content_primary$data)),
+          ),
+          column(width = 6,
+                 # Input for which column to join on in secondary
+                 selectInput(session$ns("col_secondary"),
+                             label = "Secondary data",
+                             choices = colnames(rv$content_secondary)),
+                ), # end column
+    
+                # Join type drop down menu
+                fluidRow(
+                  column(width = 12,
+                         selectInput(session$ns("join_type"),
+                                     label = "Choose a join type:",
+                                     choices =
+                                       list("Inner (natural)" = "inner",
+                                            "Outer (full)" = "full",
+                                            "Left" = "left",
+                                            "Right" = "right"))
+                  ),
+                ), # end fluid row
+    
+                # Join and undo buttons
+                fluidRow(
+                  column(width = 6,
+                         actionButton(session$ns("join_datasets"),
+                                      label = "Join",
+                                      class ="btn-primary")),
+                  column(width = 6,
+                         actionButton(session$ns("undo_join"),
+                                      label = "Undo",
+                                      class ="btn-danger")),
+                ),
+                hr(),
+    
+                # Using row & column layout for consistency in padding aesthetics
+                fluidRow(
+                  column(12,
+                         em(textOutput(session$ns("join_results"))),
+                         tags$br(),
+                         actionButton(session$ns("confirm_join"),
+                                      label = "Confirm",
+                                      class = "btn-success")
+              ) # end column
+            ) # end fluid row
+          ) # end tagList
+        
+      }) # end render secondary join UI
+      
+      #####################################
+      #### Secondary upload processing ####
+      #####################################
+      
+      observe({
+        req(input$csvtsvUpload2)
+        rv$csvtsvUpload2 <- input$csvtsvUpload2
+      })
+
+      # Cleaning & mutating dataframe object created by fileInput
+      file_tibble_secondary <- reactive({
+        req(rv$csvtsvUpload2)
+        rv$csvtsvUpload2 %>%
           rename('File' = name,
                  "Size (KB)" = size,
-                 "Datapath" = datapath) %>%
-          select(-type)
+                 "Datapath" = datapath)
       })
       
       # Creating DT to display file
-      output$file_tibble_second <- DT::renderDataTable(
-        file_tibble_second(), 
+      output$file_tibble_secondary <- DT::renderDataTable(
+        file_tibble_secondary(),
         options = list(
-          paging = FALSE, 
-          scrollX = TRUE, 
-          scrollY = TRUE, 
+          paging = FALSE, scrollX = TRUE, scrollY = TRUE,
           dom = 'rti' # only want processing, table and info around the DT.
         ),
-        escape = FALSE,
-        selection = 'none', 
-        rownames = FALSE 
+        escape = FALSE, selection = 'none', rownames = FALSE
       )
+        
+      ####################################
+      #### Reading in secondary file  ####
+      ####################################
+      # Reading in contents of secondary file
+      # Using if else to apply correct read function depending on format
+      # Saving secondary content as reactive value
+      observe({
+        req(rv$csvtsvUpload2$datapath)
+        
+        if(tools::file_ext(rv$csvtsvUpload2$datapath) == 'csv'){
+          rv$content_secondary <- read_csv(rv$csvtsvUpload2$datapath)
+        } else { # else the file is tsv
+          rv$content_secondary <- read_tsv(rv$csvtsvUpload2$datapath)
+        }
+        
+        # To generate the list of columns in each data set
+        req(rv$content_primary$data)
+        req(rv$content_secondary)
+        updateSelectInput(session, session$ns("col_primary"),
+                          choices = colnames(rv$content_primary$data), 
+                          selected= colnames(rv$content_primary$data)[1])
+        updateSelectInput(session, session$ns("col_secondary"),
+                          choices = colnames(rv$content_secondary), 
+                          selected= colnames(rv$content_secondary)[1])
+      })
+      
+      ######################
+      ### Join datasets ####
+      ######################
+      # When the Join button clicked, first text mining secondary file, 
+      # then joining based on selected columns
+      observeEvent(input$join_datasets, {
+        
+        req(rv$content_primary$data)
+        req(rv$content_secondary) # require secondary content first
+        rv$pre_joined_content <- rv$content_primary$data # saving pre-joined content
+        
+        # Attempt to join datasets with inputs given
+        # Performing join using join_secondary function outlined in 
+        # utils.R - joins tibbles based on col names and join type.
+        join_attempt <- try(
+          rv$content_joined <- join_secondary(rv$content_primary$data, 
+                                              rv$content_secondary,
+                                              input$col_primary, input$col_secondary,
+                                              input$join_type)
+        )
+        
+        # Alert if join failed
+        if("try-error" %in% class(join_attempt)){
+          shinyalert(
+            title = "Join failed",
+            text = "Datasets could not be joined given the specified inputs. \n \n Ensure the chosen secondary file is suitable for joining with the primary uploads. \n \n Alternatively, try the .csv/.tsv primary upload option to upload a table containing text data.",
+            size = "xs", 
+            closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+            html = FALSE, type = "info",
+            showConfirmButton = TRUE, showCancelButton = FALSE,
+            confirmButtonText = "Dismiss",
+            confirmButtonCol = "#4169E1",
+            timer = 0, imageUrl = "", animation = TRUE
+          )
+          
+          rv$content_joined <- NULL # ensure if join failed content_joined empty
+          
+        } else {
+          
+          output$join_results <- renderText({
+            req(rv$content_joined)
+            paste(c("Resulting dataset will contain ", 
+                    ncol(rv$content_joined), " column(s) and ", 
+                    nrow(rv$content_joined), " row(s)."), sep = ",")
+          })
+          
+        } # end try error alert if-else
+        
+      }) # end observe event join datasets
+      
+      
+      ######################
+      #### Confirm join ####
+      ######################
+      # On submitting joined dataset, assign content as content_joined
+      observeEvent(input$confirm_join, {
+        req(rv$content_joined)
+        
+        # Creating list for dataset created and its characteristics
+        content_primary <- shiny::reactiveValues(data = rv$content_joined,
+                                                 is_stop_rm = FALSE, 
+                                                 is_tokenised = FALSE, 
+                                                 is_filtered = FALSE,
+                                                 is_mutated = FALSE)
+        
+        # Saving content_primary list containing data & characteristics in main rv list
+        rv$content_primary <- content_primary
+        print("Assigned content_primary list to rv$content_primary:")
+        print(rv$content_primary)
+      }) # end submit join observe event
+      
+      ###################
+      #### Undo join ####
+      ###################
+      # When revert join button clicked, reset rv$content_primary$data to 
+      # rv$join_content_primary if rv$content_joined exists (as a proxy for
+      # joining has occurred)
+      observeEvent(input$undo_join, {
+        req(rv$content_joined)
+        rv$content_primary$data <- rv$pre_joined_content
+        rv$content_primary$is_stop_rm <- FALSE
+        rv$content_primary$is_tokenised <- FALSE
+        rv$content_primary$is_filtered <- FALSE
+        rv$content_primary$is_mutated <- FALSE
+        shinyjs::reset("join_results") # used to reset any input object
+      }) # end undo join
+      
       
     }
   )

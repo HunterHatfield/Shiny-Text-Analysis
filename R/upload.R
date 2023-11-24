@@ -1,16 +1,17 @@
-######## File upload method UI & server ###########
-# v2
+
+##########################################################
+########    File upload method UI & server - v2     ######
+##########################################################
 
 # Create a unique file name
 # fileName <- sprintf("%s_%s.csv", as.integer(Sys.time()), digest::digest(data))
-
-# assign to global env
-# assign('data',data2,envir=.GlobalEnv)
+# assign('data',data2,envir=.GlobalEnv) # assign to global env
 
 outputDir <- "R"
 
-
-####### UI for text file upload section ########################
+#############################
+### UI for upload section ###
+#############################
 
 uploadUI <- function(id, label = "Choose file(s):"){
   ns <- NS(id)
@@ -24,19 +25,13 @@ uploadUI <- function(id, label = "Choose file(s):"){
     
     fluidRow(
       column(12, {
-        # shinyFilesButton(ns("fileUpload"),
-        #              label = "Select file(s)",
-        #              title = "Choose files to upload for analysis...",
-        #              multiple = TRUE, 
-        #              class = "btn-primary")
         
         # Implementation with fileInput - as shinyFiles only allows user 
         # to browse the file system of the shiny host
-        fileInput(ns("fileUpload2"), label = NULL, 
+        fileInput(ns("fileUpload"), label = NULL, 
                   multiple = TRUE, accept = c(".txt"), 
                   placeholder = "No file(s) selected.")
-        }
-      )
+      })
     ),
     
     wellPanel(
@@ -46,72 +41,38 @@ uploadUI <- function(id, label = "Choose file(s):"){
     
     fluidRow(
       
-        column(3,{
-          actionButton(ns("submitFiles"), 
-                       label = "Submit file(s)", 
-                       class ="btn-success")
-        }),
-        column(3, {
-          actionButton(ns("appendFiles"), 
-                       label = "Append file(s)", 
-                       class ="btn-warning")
-        }),
-        column(3, {
-          actionButton(ns("clearFiles"), 
-                       label = "Clear file(s)", 
-                       class ="btn-danger")
-        }), 
-        column(3, {
-          p()
-        })
+      column(4,{
+        actionButton(ns("submitFiles"), 
+                     label = "Submit file(s)", 
+                     class ="btn-success")
+      }),
+      column(4, {
+        actionButton(ns("appendFiles"), 
+                     label = "Append file(s)", 
+                     class ="btn-warning")
+      }),
+      column(4, {
+        actionButton(ns("clearFiles"), 
+                     label = "Clear file(s)", 
+                     class ="btn-danger")
+      }), 
     ),
   )
 }
 
 ###### SERVER ######
 uploadServer <- function(id, rv, parent){
-  moduleServer(
-    id, 
-    function(input, output, session){
-      
-      # shinyFiles implementation
-      # volumes <- c(Home = fs::path_home(),
-      #              "R Installation" = R.home(),
-      #              getVolumes()())
-      
-      # shinyFileChoose(input, "fileUpload",
-      #                 roots = volumes,
-      #                 filetypes = c('txt'),
-      #                 session = session)
-      
-      
-      # extracting uploaded files from shiny files input
-      # files <- reactive({
-      #   # req(input$fileUpload) # require files to be uploaded before running further
-      #   req(input$fileUpload2) # require files to be uploaded before running further
-      #   # 
-      #   # if(is.null(input$fileUpload)){
-      #   #   return(NULL)
-      #   # } 
-      #   
-      #   print("Printing input$fileUpload from fileInput")
-      #   print(input$fileUpload2)
-      #   
-      #   # parseFilePaths(roots = volumes, input$fileUpload)
-      #   parseFilePaths(roots = volumes, input$fileUpload2)
-      # })
+  moduleServer(id, function(input, output, session){
       
       # saving files() to a reactive value
       observe({
-        req(input$fileUpload2)
-        rv$files <- input$fileUpload2
+        req(input$fileUpload)
+        rv$files <- input$fileUpload
       })
       
       # if no files found, print none found.
       output$selected_subtitle <- renderText({
-        validate(
-          need(rv$files, "No files found.")
-        )
+        validate(need(rv$files, "No files found."))
         return(NULL)
       })
       
@@ -132,25 +93,24 @@ uploadServer <- function(id, rv, parent){
       # Using datatable from DT package for file output table
       output$file_display <- DT::renderDataTable(
         file_tibble(), 
-        # rv$file_tibble,
         options = list(
-           paging = TRUE, 
-           title = "test",
-           pageLength = 5, 
-           scrollX = TRUE, 
-           scrollY = TRUE, 
-           dom = 'frtipB',
-           buttons = 'none', # no butons
-           columnDefs = list(
-             list(targets = '_all', className = 'dt-left'),
-               list(targets = 1,
-                    render = JS(
-                      "function(data, type, row, meta) {",
-                      "return type === 'display' && data.length > 100 ?",
-                      "'<span title=\"' + data + '\">' + 
+          paging = TRUE, 
+          title = "test",
+          pageLength = 5, 
+          scrollX = TRUE, 
+          scrollY = TRUE, 
+          dom = 'frtipB',
+          buttons = 'none', # no butons
+          columnDefs = list(
+            list(targets = '_all', className = 'dt-left'),
+            list(targets = 1,
+                 render = JS(
+                   "function(data, type, row, meta) {",
+                   "return type === 'display' && data.length > 100 ?",
+                   "'<span title=\"' + data + '\">' + 
                       data.substr(0, 100) + '...</span>' : data;","}"))
-                     )
-             ),
+          )
+        ),
         escape = FALSE,
         # select a single column, accessed through 
         # input$tableID_rows_selected in the server
@@ -158,8 +118,9 @@ uploadServer <- function(id, rv, parent){
         rownames = FALSE  # don't show row numbers
       )
       
-#############################################################################
-      
+      #########################
+      ###    Submit files   ###
+      #########################
       # When submit button is clicked:
       observeEvent(input$submitFiles, {
         
@@ -190,7 +151,7 @@ uploadServer <- function(id, rv, parent){
         
         # calculating number of rows in content()
         rv$numFiles <- nrow(rv$content_primary$data)
-
+        
         output$title2 <- renderText({
           if(is.null(rv$files)){
             return(NULL)
@@ -201,9 +162,9 @@ uploadServer <- function(id, rv, parent){
         # Notification for when files successfully uploaded
         # When submit button clicked
         if(nrow(rv$content_primary$data) > 0){
-        showNotification(paste("File(s) submitted successfully."), 
-                         duration = 5, 
-                         type = "message")
+          showNotification(paste("File(s) submitted successfully."), 
+                           duration = 5, 
+                           type = "message")
         }
         
         # To indicate data has not been tokenised yet, for when 
@@ -211,14 +172,17 @@ uploadServer <- function(id, rv, parent){
         rv$is_tokenised <- FALSE
         
       }) # end observe event submit files
-#############################################################################
       
-#############################################################################
+      
+      
+      #########################
+      ###    Append files   ###
+      #########################
       # When append button clicked:
       # - read all files to create tibble of added content
       # - create updated content tibble with  
       observeEvent(input$appendFiles, {
-
+        
         # Taking the datapaths of files, applying read file to read in and
         # create tibble called content.
         added_content <- reactive({
@@ -227,18 +191,11 @@ uploadServer <- function(id, rv, parent){
             tibble(ID = rv$files$name,
                    `Contents` = .)
         })
-      
+        
         # Take added content and append to initial content
         updated_content <- reactive({
-          # rbind(rv$content, added_content())
-          print("Attempting to rbind rows")
-          
-          try(
-            rbind(rv$content_primary$data, added_content())
-          )
-          
+          try(rbind(rv$content_primary$data, added_content()))
         })
-        
         # If appending could not be performed produce error
         if('try-error' %in% class(updated_content())){
           shinyalert(
@@ -252,8 +209,6 @@ uploadServer <- function(id, rv, parent){
             confirmButtonCol = "#4169E1",
             timer = 0, imageUrl = "", animation = TRUE
           )
-          
-          
         } else {
           
           rv$content_primary$data <- updated_content()
@@ -261,8 +216,7 @@ uploadServer <- function(id, rv, parent){
           rv$content_primary$is_tokenised <- FALSE
           rv$content_primary$is_filtered <- FALSE
           rv$content_primary$is_mutated <- FALSE
-          print(c("Updated rv$content_primary$is_tokenised:", rv$content_primary$data))
-          
+
           # calculating number of rows in content
           rv$numFiles <- nrow(rv$content_primary$data)
           
@@ -270,10 +224,9 @@ uploadServer <- function(id, rv, parent){
           # When append button clicked
           if(nrow(rv$content_primary$data) > 0){
             showNotification(paste("File(s) appended successfully."), 
-                             duration = 5, 
+                             duration = 8, 
                              type = "message")
           }
-          
         }
         
         output$title2 <- renderText({
@@ -283,25 +236,19 @@ uploadServer <- function(id, rv, parent){
           "Selected file(s)"
         })
         
-
       }) # end observe event append files
-
+      
       
       # Clear files
       observeEvent(input$clearFiles, {
-        
         clear_reactives()
-        
-        # shinyjs::reset("ns(fileUpload)") # used to reset any input object
+        shinyjs::reset("fileUpload") # used to reset any input object
         # shinyjs::refresh() # refreshes the page
-        
       }) # end observe event clear files
-      
       
       # Using onStop
       onStop(function() {
         cat("Session has stopped")
-        
       }) # end onStop function
       
     }

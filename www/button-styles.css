@@ -9,12 +9,12 @@
 }
 
 /* Primary buttons */
-.btn-primary{
+.btn-primary, .btn-default{
     width: 100%;
     border: 1px solid royalblue;
 }
 
-.btn-primary:hover{
+.btn-primary:hover, .btn-default:hover{
     background-color: royalblue;
     border: 1px solid royalblue;
     color: white;

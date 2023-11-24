@@ -5,6 +5,10 @@
     /* font-family: 'Fira Sans', sans-serif;  
 } */
 
+html {
+    scroll-behavior: smooth;
+}
+
 h1,
 h2,
 h3,
@@ -187,4 +191,15 @@ main-sidebar .user-panel,
 
 .content-wrapper {
     background-color: white;
+}
+
+/* File input box form placeholder thing */
+.form-control {
+    height: 38px;
+    background-color: white;
+}
+
+/* File input progress bar */
+.progress-bar{
+    background-color: royalblue;
 }

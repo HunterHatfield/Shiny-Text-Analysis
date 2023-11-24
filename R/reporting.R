@@ -34,8 +34,8 @@ reportingUI <- function(id){
           collapsible = T, 
           width = 6, 
           
-          h4(textOutput(ns("tokenise_please4")), 
-             style = "background-color: crimson; color: white;"),
+          # h4(textOutput(ns("tokenise_please4")), 
+          #    style = "background-color: crimson; color: white;"),
           
           wordcloud2Output(ns("wordcloud"), width = "100%"),
           
@@ -75,7 +75,7 @@ reportingUI <- function(id){
           hr(),
           numericInput(ns("min_freq"), 
                     label = "Customise the minimum frequency of a token to be displayed in the figure", 
-                    value = 30,
+                    value = 10,
                     min = 1),
           
           textInput(ns("token_freq_plot_title"), 
@@ -120,8 +120,9 @@ reportingUI <- function(id){
           collapsible = T,
           width = 8,
           
-          h4(textOutput(ns("tokenise_please")), 
-             style = "background-color: crimson; color: white;"),
+          # h4(textOutput(ns("tokenise_please")), 
+          #    style = "background-color: crimson; color: white;"),
+          
           plotOutput(ns("word_freq")),
 
       ), 
@@ -142,9 +143,7 @@ reportingUI <- function(id){
           selectInput(ns("content_single_ID"), 
                        label = "Choose a single text to 
                       compare to the corpus", 
-                       choices = 
-                        list("Choices" = 
-                               "N/A")
+                       choices = list("N/A" =  "na")
                       ),
           
           textInput(ns("comp_freq_plot_title"), 
@@ -191,8 +190,9 @@ reportingUI <- function(id){
           collapsible = T,
           width = 8,
           
-          h4(textOutput(ns("tokenise_please2")), 
-             style = "background-color: crimson; color: white;"),
+          # h4(textOutput(ns("tokenise_please2")), 
+          #    style = "background-color: crimson; color: white;"),
+          
           plotOutput(ns("comp_freq"))
           
       ), 
@@ -252,8 +252,8 @@ reportingUI <- function(id){
           collapsible = T,
           width = 7,
           
-          h4(textOutput(ns("tokenise_please5")), 
-             style = "background-color: crimson; color: white;"),
+          # h4(textOutput(ns("tokenise_please5")), 
+          #    style = "background-color: crimson; color: white;"),
           
           plotOutput(ns("zipfs_plot"))
           
@@ -368,12 +368,9 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
    # Getting names of each file uploaded for the dropdown menu
    # choices
     choices_ID <- reactive({
+      req(rv$content_prepared)
+      return(unique(rv$content_prepared$ID))
 
-      if(!is.null(rv$content_prepared)){
-        return(unique(rv$content_prepared$ID))
-      }
-
-      return("N/A")
     })
 
     # To generate the list of IDs from
@@ -381,12 +378,13 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     # drop down for single vs. corpus figure,
     # need to use observe & updateSelectInput
     observe({
-
+      req(rv$content_prepared)
       rv$choices_ID <- choices_ID()
 
       updateSelectInput(session, "content_single_ID",
-                        choices = rv$choices_ID,
-                        selected= rv$choices_ID[1])
+                        choices = unique(rv$content_prepared$ID),
+                        selected= unique(rv$content_prepared$ID)[1])
+      print("content_single_ID updated")
     })
 
 
@@ -464,11 +462,10 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     content_freq <- reactive({
 
       req(rv$content_prepared)
-      req(rv$content_stop_rm)
 
       # If the column 'Token' exists (a proxy for data being tokenised)
       if(colnames(rv$content_prepared)[2] == "Token"){
-
+      # if(rv$is_tokenised){
         rv$content_prepared %>%
           # filter(!grepl("pppp", Token, fixed = TRUE)) %>%
           # mutate(Token = str_extract(Token, "[0-9A-Za-z'\"\"]+")) %>%
@@ -479,6 +476,8 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
           count(Token, sort = T) %>%
           mutate(Token = reorder(Token, n))
       }
+      
+      
     })
 
 
@@ -495,19 +494,17 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     })
 
     word_cloud <- reactive({
-      if(!is.null(rv$content_freq)){
-        wordcloud2(rv$content_freq,
-                   size = 1.2,
-                   color= rep_len( c("black","royalblue"),
-                                   nrow(rv$content_freq ) ),
-                   # minRotation = -pi/2, maxRotation = -pi/2,
-                   minRotation = 0, maxRotation = 0,
-                   fontFamily = "sans-serif",
-                   fontWeight = "200"
-        )
-      } else {
-        return(NULL)
-      }
+      req(rv$content_freq)
+      wordcloud2(rv$content_freq,
+                 size = 1.2,
+                 color= rep_len( c("black","royalblue"),
+                                 nrow(rv$content_freq ) ),
+                 # minRotation = -pi/2, maxRotation = -pi/2,
+                 minRotation = 0, maxRotation = 0,
+                 fontFamily = "sans-serif",
+                 fontWeight = "200"
+      )
+
     })
     #### Word cloud ####
     output$wordcloud <- renderWordcloud2({
@@ -524,6 +521,7 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     # frequency of a token to be displayed on the plot
     token_freq_plot <- reactive({
       req(rv$content_freq)
+      print("content_freq valid")
 
       title <- ifelse(is.null(rv$title1), rv$title1, "Most common tokens by frequency")
       caption <- ifelse(is.null(rv$cap1), rv$cap1,
@@ -531,7 +529,7 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
 
       rv$content_freq %>%
         filter(n >= rv$min_freq) %>%
-        ggplot(aes(n,Token)) +
+        ggplot(aes(n, Token)) +
         geom_col(fill = "royalblue") +
         labs(x = "Frequency", y = NULL,
              caption = caption) +
@@ -589,11 +587,10 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
         mutate(Proportion = n/sum(n)) %>% # proportion calc
         mutate(Source = rv$content_single_ID)
       
-      dat
-      
       print("single content selected:")
       print(dat)
-
+      
+      dat
     })
 
     # Filtering content_prepared to be the rest of the corpus
@@ -904,6 +901,19 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     })
 
 
+    
+    # Updating the checkbox inputs to the unique IDs of data uploaded
+    observe({
+      
+      updateSelectInput(session, "checkbox_content_ID",
+                        choices = unique(rv$content_prepared$ID),
+                        selected= unique(rv$content_prepared$ID)[1])
+      
+      updateSelectInput(session, "checkbox_content_ID2",
+                        choices = unique(rv$content_prepared$ID),
+                        selected= unique(rv$content_prepared$ID)[2])
+    })
+    
     observe({
       rv$content_tf_idf <- content_tf_idf()
 
@@ -913,17 +923,7 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
 
     })
 
-    # Updating the checkbox inputs to the unique IDs of data uploaded
-    observe({
-
-      updateSelectInput(session, "checkbox_content_ID",
-                        choices = rv$choices_ID,
-                        selected= rv$choices_ID[1])
-
-      updateSelectInput(session, "checkbox_content_ID2",
-                        choices = rv$choices_ID,
-                        selected= rv$choices_ID[1])
-    })
+    
 
     observe({
       rv$title4 <- str_wrap(input$tf_idf_plot_title, 50)
