@@ -21,11 +21,11 @@ join_secondary <- function(content_primary, content_secondary,
   # If either of the common columns specified don't exist, return NULL
   # This is kind of impossible given that only colnames can be present, 
   # but good to cover a potential vulnerability
-  if(is.null(which(names(content_primary) == col_primary)) ||
-     is.null(which(names(content_secondary) == col_secondary))){
-    print("Cols not present")
-    return(NULL)
-  }
+  # if(is.null(which(names(content_primary) == col_primary)) ||
+  #    is.null(which(names(content_secondary) == col_secondary))){
+  #   print("Cols not present")
+  #   return(NULL)
+  # }
   
   # First clean column names
   # Set the name of the common cols selected to Primary Common 
@@ -33,9 +33,9 @@ join_secondary <- function(content_primary, content_secondary,
   # This is done due to the by argument not receiving 
   # objects/variables in lieu of a column name.
   
-  # Note when checking: could use {} to eval dynamic col names
-  colnames(content_primary)[which(names(content_primary) == col_primary)] <- "Primary Common"
-  colnames(content_secondary)[which(names(content_secondary) == col_secondary)] <- "Secondary Common"
+  # # Note when checking: could use {} to eval dynamic col names
+  # colnames(content_primary)[which(names(content_primary) == col_primary)] <- "Primary Common"
+  # colnames(content_secondary)[which(names(content_secondary) == col_secondary)] <- "Secondary Common"
   
   # Perform join on Primary Common and Secondary Common columns
   # based on the join type passed to function arguments
@@ -43,28 +43,28 @@ join_secondary <- function(content_primary, content_secondary,
     if(join_type == "inner"){
       
       inner_join(content_primary, content_secondary, 
-                 by = c("Primary Common" = "Secondary Common"))
+                 by = setNames(col_secondary, col_primary))
       
     } else if(join_type == "full"){
       
       full_join(content_primary, content_secondary, 
-                by = c('Primary Common' = 'Secondary Common'))
+                by = setNames(col_secondary, col_primary))
       
     } else if(join_type == "left"){
       
       left_join(content_primary, content_secondary, 
-                by = c('Primary Common' = 'Secondary Common'))
+                by = setNames(col_secondary, col_primary))
       
     } else if(join_type == "right"){
       
       right_join(content_primary, content_secondary, 
-                 by = c('Primary Common' = 'Secondary Common'))
+                 by = setNames(col_secondary, col_primary))
       
     }
   }
   
   # Finally resetting the column name "Primary Common" back to original
-  colnames(content_joined)[which(names(content_joined) == "Primary Common")] <- col_primary
+  # colnames(content_joined)[which(names(content_joined) == "Primary Common")] <- col_primary
   
   return(content_joined)
   

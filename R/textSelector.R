@@ -161,7 +161,7 @@ textSelectorServer <- function(id, rv = rv, session = session){
       # If no row selected, nothing returned.Else the content of the row is displayed
       selectedRows <- reactive({
         if(length(input$content_display_rows_selected) == 0){
-          return(NULL) 
+          return(NULL)
         }
         rv$content_primary$data %>%
           filter(row_number() == input$content_display_rows_selected)

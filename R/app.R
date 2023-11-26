@@ -56,6 +56,7 @@ pacman::p_load(
   shinyjs,
   sjmisc,
   sjPlot,
+  stringr,
   tidyr,
   tidytext,
   wordcloud2,

@@ -9,7 +9,6 @@
 # Depends on 1 function, remove_stop_words(), in utils.R
 
 library(tidytext)
-library(stringr)
 
 data(stop_words)
 rv$is_stop_removed <- FALSE

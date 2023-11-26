@@ -255,8 +255,6 @@ secondaryServer <- function(id, rv = rv){
         
         # Saving content_primary list containing data & characteristics in main rv list
         rv$content_primary <- content_primary
-        print("Assigned content_primary list to rv$content_primary:")
-        print(rv$content_primary)
       }) # end submit join observe event
       
       ###################
