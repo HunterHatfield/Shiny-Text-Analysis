@@ -30,7 +30,6 @@ secondaryServer <- function(id, rv = rv){
       #### Secondary upload UI ####
       #############################
       output$secondaryUploadUI <- renderUI({
-        print("Rendering secondary upload UI")
         
         ns <- NS(id)
         true_UI <- tagList(
@@ -42,7 +41,7 @@ secondaryServer <- function(id, rv = rv){
           fileInput(session$ns("csvtsvUpload2"), label = NULL, 
                     multiple = FALSE, accept = c(".csv", ".tsv"), 
                     placeholder = "Select .csv/.tsv file..."),
-          hr(),
+          hr(class = "hr-blank"),
           
           # Display uploaded files
           DT::dataTableOutput(session$ns("file_tibble_secondary")),
@@ -202,8 +201,7 @@ secondaryServer <- function(id, rv = rv){
         # Attempt to join datasets with inputs given
         # Performing join using join_secondary function outlined in 
         # utils.R - joins tibbles based on col names and join type.
-        join_attempt <- try(
-          rv$content_joined <- join_secondary(rv$content_primary$data, 
+        join_attempt <- try(join_secondary(rv$content_primary$data, 
                                               rv$content_secondary,
                                               input$col_primary, input$col_secondary,
                                               input$join_type)
@@ -222,20 +220,19 @@ secondaryServer <- function(id, rv = rv){
             confirmButtonCol = "#4169E1",
             timer = 0, imageUrl = "", animation = TRUE
           )
-          
-          rv$content_joined <- NULL # ensure if join failed content_joined empty
-          
-        } else {
-          
-          output$join_results <- renderText({
-            req(rv$content_joined)
-            paste(c("Resulting dataset will contain ", 
-                    ncol(rv$content_joined), " column(s) and ", 
-                    nrow(rv$content_joined), " row(s)."), sep = ",")
-          })
-          
-        } # end try error alert if-else
+          return()
+        }
         
+        rv$content_joined <- join_attempt
+          
+        output$join_results <- renderText({
+          req(rv$content_joined)
+          
+          paste(c("Resulting dataset will contain ", 
+                  ncol(rv$content_joined), " column(s) and ", 
+                  nrow(rv$content_joined), " row(s)."), sep = ",")
+        })
+          
       }) # end observe event join datasets
       
       
@@ -251,10 +248,14 @@ secondaryServer <- function(id, rv = rv){
                                                  is_stop_rm = FALSE, 
                                                  is_tokenised = FALSE, 
                                                  is_filtered = FALSE,
-                                                 is_mutated = FALSE)
+                                                 is_mutated = FALSE, 
+                                                 content_prepared = rv$content_joined, 
+                                                 content_edited = rv$content_joined, 
+                                                 content_tf_idf = NULL)
         
         # Saving content_primary list containing data & characteristics in main rv list
         rv$content_primary <- content_primary
+        
       }) # end submit join observe event
       
       ###################
@@ -266,6 +267,8 @@ secondaryServer <- function(id, rv = rv){
       observeEvent(input$undo_join, {
         req(rv$content_joined)
         rv$content_primary$data <- rv$pre_joined_content
+        rv$content_primary$content_prepared <- rv$pre_joined_content
+        rv$content_primary$content_edited <- rv$pre_joined_content
         rv$content_primary$is_stop_rm <- FALSE
         rv$content_primary$is_tokenised <- FALSE
         rv$content_primary$is_filtered <- FALSE

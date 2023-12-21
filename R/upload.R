@@ -34,9 +34,12 @@ uploadUI <- function(id, label = "Choose file(s):"){
       })
     ),
     
-    wellPanel(
-      em(textOutput(ns("selected_subtitle"))),
-      DT::dataTableOutput(ns("file_display")),
+    fluidRow(
+      column(12, 
+             em(textOutput(ns("selected_subtitle"))),
+             DT::dataTableOutput(ns("file_display")),
+             hr(class = "hr-blank")
+             )
     ),
     
     fluidRow(
@@ -139,6 +142,8 @@ uploadServer <- function(id, rv, parent){
                                                  is_tokenised = FALSE, 
                                                  is_filtered = FALSE,
                                                  is_mutated = FALSE,
+                                                 content_prepared = content(),
+                                                 content_edited = content(),
                                                  content_primary_tf_idf = NULL)
         
         # Old method of singular data assignment w/ no characteristics
@@ -146,8 +151,6 @@ uploadServer <- function(id, rv, parent){
         
         # Saving content_primary list containing data & characteristics in main rv list
         rv$content_primary <- content_primary
-        print("Assigned content_primary list to rv$content_primary:")
-        print(rv$content_primary)
         
         # calculating number of rows in content()
         rv$numFiles <- nrow(rv$content_primary$data)

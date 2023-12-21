@@ -26,6 +26,7 @@ if(!require('pacman'))install.packages('pacman')
 library(pacman)
 
 pacman::p_load(
+  berryFunctions, # for adding in rows easily
   devtools,
   dplyr,
   DT,
@@ -59,45 +60,20 @@ pacman::p_load(
   stringr,
   tidyr,
   tidytext,
+  tm,
   wordcloud2,
   xgxr # For the corr plot
   )
 
-# library(sjmisc)
-# library(shiny)
-# library(shinyalert)
-# library(DT)
-# library(shinyFiles)
-# library(dplyr)
-# library(shinydashboard)
-# library(devtools)
-# library(tidytext)
-# library(purrr)
-# library(readr)
-# library(openxlsx)
-# library(forcats)
-# library(scales)
-# library(xgxr)
-# library(tidyr)
-# library(MASS)
-# library(janitor)
-# library(shinyjs)
-# library(kableExtra)
-# library(modelsummary)
-# library(sjPlot)
-# library(lme4)
-# library(plotly)
-# library(reshape2)
-# library(ggfortify)
-# library(nortest)
-# library(rstatix)
-# library(schoRsch)
-# library(hunspell)
-# library(rhandsontable)
-
 # Setting shiny options
 # file upload limit to 10MB (override 5MB limit)
 options(shiny.maxRequestSize = 10*1024^2)
+
+# ensures that missing values are represented consistently as the string 'string' in the JSON representation of the DataTable
+# options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
+options(htmlwidgets.TOJSON_ARGS = NULL)
+options(DT.TOJSON_ARGS = list(na = 'string'))
+
 
 rv <- shiny::reactiveValues() # creating reactive values list
 report_rv <- shiny::reactiveValues() # creating rv list for the report
@@ -130,7 +106,7 @@ textApp <- function(...){
                  tabName = "textFreqTab",
                  icon = icon("chart-column")
         ),
-        menuItem("Search/Concordance",
+        menuItem("Search/Concordance (in progress...)",
                  tabName = "concordanceTab",
                  icon = icon("dashboard")
         ),
@@ -138,7 +114,7 @@ textApp <- function(...){
                  tabName = "statsTab",
                  icon = icon("calculator")
         ),
-       menuItem("Reporting", 
+       menuItem("Reporting (editing...)", 
                 tabName = "reportingTab",
                 icon = icon("scroll")
         )
@@ -182,11 +158,10 @@ textApp <- function(...){
         # Stat UI
         tabItem(tabName = "statsTab",
                 statsUI("stats")
-        ),
-        # Stat UI
-        tabItem(tabName = "reportingTab",
-                reportMakerUI("reportMaker")
         )
+        # tabItem(tabName = "reportingTab",
+        #         reportMakerUI("reportMaker")
+        # )
       )
     ) # end dashboard body
   )
@@ -219,8 +194,18 @@ textApp <- function(...){
       statsServer("stats", rv = rv)
     }
     
-    reportingServer("reporting", rv = rv, report_rv = report_rv)
     reportMakerServer("reportMaker", rv = rv, report_rv = report_rv)
+    
+    onStop(function() {
+      cat("\n This will run on session stop")
+      outputDir <- "R"
+      
+      cat("\n rv list:")
+      print(rv)
+      cat("\n report_rv list:")
+      print(report_rv)
+    })
+    
 
   }
   

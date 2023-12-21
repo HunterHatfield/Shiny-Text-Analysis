@@ -8,8 +8,6 @@
 # provided in a 2D reactive value list, rv. 
 # Depends on 1 function, remove_stop_words(), in utils.R
 
-library(tidytext)
-
 data(stop_words)
 rv$is_stop_removed <- FALSE
 
@@ -18,6 +16,11 @@ stopWordsUI <- function(id) {
   ns <- NS(id)
   tagList(
     h3("Stop-word selection"),
+    p("Stop-words, like 'the' and 'and,' are common but lack meaningful content. Removing them helps us to focus on essential words, making text analysis more efficient and accurate."),
+    tags$a(href="https://smltar.com/stopwords", 
+           "Learn more about stop-words here"),
+    
+    hr(), 
     
     # Select a dataset to alter
     selectInput(ns("data_stop_rm"), 
@@ -43,8 +46,8 @@ stopWordsUI <- function(id) {
     
     fluidRow(
       column(6, {
-        actionButton(ns("submit_stop_words"),
-                     label = "Submit",
+        actionButton(ns("stop_word_trigger"),
+                     label = "Submit...",
                      class = "btn-success"
         )
       }),
@@ -61,42 +64,29 @@ stopWordsUI <- function(id) {
     ),
     hr(),
     h3("Submitted stop-words"),
-    p(textOutput(ns("stop_word_display"))),
-    
-    em(textOutput(ns("no_stop_words_caption"))),
-    
-    ##### num_stops is what?
-    conditionalPanel(
-      condition = paste0(
-        "output['", ns("num_stops"),
-        "'] == '0' "
-      ),
-      em(textOutput("No stop-words submitted."))
+    p("Default English stop-words are sourced from the tidytext package in R."),
+    tags$a(href="https://rdrr.io/cran/tidytext/man/stop_words.html", 
+           "View tidytext docs here"),
+    wellPanel(
+      p(textOutput(ns("stop_word_display"))),
+      DT::dataTableOutput(ns("stop_words_table")),
+      hr(class = "hr-blank")
     ),
     
-    DT::dataTableOutput(ns("stop_words_table")),
     
-    uiOutput(ns("download_stop_words"))
+    
   )
 }
 
 #### STOPWORDS SERVER ####
 stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
   moduleServer(id, function(input, output, session) {
-    # Rendering that no stop words are submitted if nothing submitted in table
-    # output$no_stop_words_caption <- renderText({
-    #
-    #   req(rv$content)
-    #
-    #   print("stop words:")
-    #   print(length(rv$stop_words_final$word))
-    #
-    #   if(rv$is_stop_removed){
-    #     NULL
-    #   } else {
-    #     "No stop-words submitted."
-    #   }
-    # })
+    
+    observe({
+      req(rv$content_primary$data)
+      updateSelectInput(session, "test",
+                        choices = c("updated"))
+    })
     
     output$num_stops <- renderText(length(rv$stop_words_final$word))
     
@@ -157,6 +147,47 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
         )
     })
     
+    ### Stop-word removal triggers modal
+    # set the session namespace and return modelDilog() content 
+    show_stop_word_modal <- function(){
+      
+      ns <- session$ns
+      modalDialog(
+        size = "l",
+        h2("Confirm stop-word removal?"),
+        p("Clicking submit will remove stop-words from the selected text data."),
+        p("Stop-word removal will not preserve any existing tokenisation. Therefore, it is strongly recommended to remove stop-words on non-tokenised text data."),
+        fluidRow(
+          column(12,
+                 imageOutput(ns("stop_word_info"), height = 'auto'),
+                 ),
+        ),
+        hr(class = "hr-blank"),
+        fluidRow(
+          column(12, 
+                 actionButton(ns("submit_stop_words"), label = "Submit stop-words",
+                              class = "btn-success"),
+          )
+        ), # end fluid row
+      )
+    } # end show_subset_modal() function
+    
+    observeEvent(input$stop_word_trigger, {
+      req(rv$content_primary$content_prepared)
+      
+      showModal(show_stop_word_modal())
+    })
+    
+    # Rendering stop-word info image
+    output$stop_word_info <- renderImage({
+      filename <- './www/stop_word_info.png'
+      # Return a list containing the filename and alt text
+      list(src = filename,
+           alt = paste("Stop-word information"),
+           width = 850
+      )
+    }, deleteFile = FALSE)
+    
     
     # When submit button clicked...
     # Creating final stop words tibble depending on various input cases
@@ -165,6 +196,9 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
     # If user wants to include only added words, return only added words tibble
     # Otherwise if user only wants defaults, return only these
     observeEvent(input$submit_stop_words, {
+      
+      removeModal() # remove stop-word info modal
+      
       # Creating added stop words tibble. If user has entered something (input
       # isn't null), create tibble and unnest words, then return them.
       # Otherwise return NULL
@@ -197,22 +231,17 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
       stop_words_final <- reactive({
         if (input$default_check) {
           if (!is.null(rv$added_stop_words)) { # both added & default words 
-            
             # combining default and added word tibbles
             default_and_added <- rbind(
               rv$added_stop_words,
               rv$default_stop_words
             )
             return(default_and_added)
-            
           } else { # if just default words to be included
             return(rv$default_stop_words)
           }
-          
         } else if(!is.null(rv$added_stop_words)) { # added words but not defaults
-          
           return(rv$added_stop_words)
-          
         } else { # if no defaults or added words to be included
           return(NULL)
         }
@@ -230,56 +259,27 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
           } else if (input$default_check) { # if user chooses default stop-words
             paste(c("You have added a default list of ",
                     nrow(rv$default_stop_words), " stop-words."), sep = ",")
-          } else if (is.null(rv$stop_words_final) || length(rv$stop_words_final$word) == 0) {
-            return(NULL)
           }
         })
-      
-      req(rv$stop_words_final)
-      
-      # Displaying stop-words added
-      output$stop_words_table <- DT::renderDataTable(
-        rv$stop_words_final,
-        # callback = JS("$('div.dwnld').append($('download_stop_words_tsv'));"),
-        options = list(
-          paging = TRUE,
-          pageLength = 5,
-          scrollX = TRUE,
-          scrollY = TRUE,
-          dom = "frtipB", # buttons render below DT
-          buttons = list("csv", "excel")
-        ),
-        escape = FALSE,
-        extensions = "Buttons",
-        selection = "none",
-        rownames = FALSE # don't show row numbers
-      )
-      
-      # Render UI to download stop words table as csv or tsv
-      output$download_stop_words <-
-        renderUI({
-          ns <- NS(id)
-          tagList(
-            fluidRow(
-              column(4, {
-                downloadButton(ns("download_stop_words_csv"),
-                               label = "Download .csv"
-                )
-              }),
-              column(4, {
-                downloadButton(ns("download_stop_words_csv"),
-                               label = "Download .tsv"
-                )
-              }),
-            ) # end fluid row
-          )
-        })
-      
       
       ######################
       ## Stop word removal #
       ######################
-      req(rv$content_primary)
+      req(rv$content_primary$content_prepared)
+      
+      stop_word_alert <- function(){
+        shinyalert(
+          title = "Stop-word removal failed: data error",
+          text = "Stop-words could not be removed due to tokenisation. \n \n Ensure the column selected either tokenised by words or not at all.",
+          size = "xs", 
+          closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+          html = FALSE, type = "info",
+          showConfirmButton = TRUE, showCancelButton = FALSE,
+          confirmButtonText = "Dismiss",
+          confirmButtonCol = "#4169E1",
+          timer = 0, imageUrl = "", animation = TRUE
+        )
+      }
       
       # For selected dataset, create pre-stop-removed dataset in case of undo, 
       # and call on utils.R function remove_stop_words() to return dataset with
@@ -288,18 +288,21 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
         
         # Saving pre-stop-removal 
         rv$content_primary$content_pre_stop_rm <- rv$content_primary$content_prepared
-        
-        print("Starting stop-word removal...")
+
         # Use try-catch to run function and throw error if doesn't work
-        # Hardcoding column for now
-        content_stop_rm <- remove_stop_words(
+        content_stop_rm <- try(
+          remove_stop_words(
           data = rv$content_primary$content_prepared,
           col_name = input$col_name_stop_rm,
           stop_words = rv$stop_words_final, 
           is_tokenised = rv$content_primary$is_tokenised)
+        )
         
-        print("Used remove_stop_words function to remove stop words:")
-        print(content_stop_rm)
+        if("try-error" %in% class(content_stop_rm)){
+          stop_word_alert()
+          
+          return()
+        }
         
         rv$content_primary$content_stop_rm <- content_stop_rm
         rv$content_primary$content_prepared <- content_stop_rm
@@ -311,14 +314,17 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
         # Saving pre-stop-removal data
         rv$subset_one$content_pre_stop_rm <- rv$subset_one$content_prepared
         
-        content_stop_rm <- remove_stop_words(
+        content_stop_rm <- try(remove_stop_words(
           data = rv$subset_one$data,
           col_name = input$col_name_stop_rm,
           stop_words = rv$stop_words_final, 
-          is_tokenised = rv$subset_one$is_tokenised)
+          is_tokenised = rv$subset_one$is_tokenised))
         
-        print("Used remove_stop_words function to remove stop words:")
-        print(content_stop_rm)
+        if("try-error" %in% class(content_stop_rm)){
+          stop_word_alert()
+          return()
+        }
+        
         
         rv$subset_one$content_stop_rm <- content_stop_rm
         rv$subset_one$content_prepared <- content_stop_rm
@@ -330,11 +336,16 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
         # Saving pre-stop-removal data
         rv$subset_one$content_pre_stop_rm <- rv$subset_one$content_prepared
         
-        content_stop_rm <- remove_stop_words(
+        content_stop_rm <- try(remove_stop_words(
           data = rv$subset_two$data,
           col_name = input$col_name_stop_rm,
           stop_words = rv$stop_words_final, 
-          is_tokenised = rv$subset_two$is_tokenised)
+          is_tokenised = rv$subset_two$is_tokenised))
+        
+        if("try-error" %in% class(content_stop_rm)){
+          stop_word_alert()
+          return()
+        }
         
         rv$subset_two$content_stop_rm <- content_stop_rm
         rv$subset_two$content_prepared <- content_stop_rm
@@ -342,37 +353,28 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
         rv$content_prepared_display_2 <- rv$subset_two$content_stop_rm
       }
       
-      # # Setting content_parameterised & prepared to new data w stop removed
-      # rv$content_parameterised <- rv$content_stop_rm
-      # rv$content_prepared <- rv$content_stop_rm
-      # rv$is_tokenised <- FALSE
-      # rv$is_stop_removed <- TRUE ##### Check
-      
-      
-      #########################
-      # Downloading stop-words
-      #########################
-      # Rendering download buttons with downloadHandler()
-      output$download_stop_words_csv <- downloadHandler(
-        filename = function() {
-          paste("Stop_word_list.csv")
-        },
-        content = function(file) {
-          write_delim(as.data.frame(rv$stop_words_final), file,
-                      delim = ",")
-        }
-      )
-      
-      # Download handler to download tsv
-      output$download_stop_words_tsv <- downloadHandler(
-        filename = function() {
-          paste("Stop_word_list.tsv")
-        },
-        content = function(file) {
-          write_tsv(as.data.frame(rv$stop_words_final), file)
-        }
-      )
     }) # end submit stop-words
+    
+    # Displaying stop-words added
+    output$stop_words_table <- DT::renderDataTable({
+      
+      validate(need(rv$stop_words_final, "No stop-words submitted."))
+      
+      DT::datatable(
+        rv$stop_words_final,
+        options = list(
+          paging = TRUE,
+          pageLength = 3,
+          scrollX = TRUE,
+          scrollY = TRUE,
+          dom = "frtip"
+        ),
+        escape = FALSE,
+        selection = "none",
+        rownames = FALSE # don't show row numbers
+      )
+      
+    }) # end render datatable
     
     
     ########################
@@ -383,14 +385,20 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
     # revert to original content
     observeEvent(input$undo_stop_words, {
       
-      rv$content_stop_rm <- rv$content
-      rv$content_parameterised <- rv$content
-      rv$content_prepared_diplay <- rv$content
+      req(isTruthy(rv$content_primary$content_pre_stop_rm) ||
+            isTruthy(rv$subset_one$content_pre_stop_rm) ||
+            isTruthy(rv$subset_two$content_pre_stop_rm))
+      
+      # require stop-words to actually be submitted
+      req(isTruthy(rv$content_primary$is_stop_rm) ||
+            isTruthy(rv$subset_one$is_stop_rm) ||
+            isTruthy(rv$subset_two$is_stop_rm))
+
+      req(rv$stop_words_final)
       rv$added_stop_words <- NULL
       rv$default_stop_words <- NULL
       rv$stop_words_final <- NULL
       
-      rv$is_tokenised <- FALSE
       rv$is_stop_removed <- FALSE
       
       # Setting content_stop_rm back to pre-stop-removed data in selected dataset
@@ -401,7 +409,6 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
         rv$content_primary$content_stop_rm <- NULL
         rv$content_primary$is_stop_rm <- FALSE
         rv$content_prepared_display_2 <- rv$content_primary$content_prepared
-        
         
       } else if(input$data_stop_rm == "Subset one"){
         rv$subset_one$content_prepared <- rv$subset_one$content_pre_stop_rm
@@ -418,8 +425,7 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
       
       # using a list of rv's to delete each w for loop if exists
       to_reset <- c(
-        "default_check", "stop_word_check",
-        "added_words", "submit_stop_words"
+        "default_check", "added_words", "submit_stop_words"
       )
       for (i in 1:length(to_reset)) {
         if (!is.null(to_reset[i])) {

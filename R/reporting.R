@@ -20,45 +20,32 @@ reportingUI <- function(id){
           width = 3, 
           
           h3("Quick summary"), 
-          
           p(textOutput(ns("stats1"))),
           p(textOutput(ns("stats2"))), 
           p(textOutput(ns("max_min_IDs")))
-        
-      ), 
+      ),
       
       #### Word cloud ####
-      box(title = "Word cloud", 
-          status = "primary",
-          solidHeader = T,
-          collapsible = T, 
-          width = 6, 
-          
-          # h4(textOutput(ns("tokenise_please4")), 
-          #    style = "background-color: crimson; color: white;"),
-          
+      box(title = "Word cloud", status = "primary",
+          solidHeader = T,collapsible = T, width = 6, 
           wordcloud2Output(ns("wordcloud"), width = "100%"),
-          
           ),
       
       # Generating quick report
-      box(title = " ", 
-          status = "success", 
-          solidHeader = T,
-          collapsible = T, 
+      box(title = " ", status = "success", 
+          solidHeader = T, collapsible = T, 
           width = 3, 
           
           h3("Quick report"),
           p("Generate a report using default figure settings below"),
           em("Note: generate your customised report in the reporting tab."),
           
-          hr(),
-          
+          hr(class = "hr-blank"),
           downloadButton(ns("download_quick_report"), 
                          label = "Generate report"),
-          hr()
+          hr(class = "hr-blank"),
       )
-    ),
+    ), # end fluid row
     
     #### Generating token frequency plot of entire corpus ####
     fluidRow(
@@ -111,7 +98,7 @@ reportingUI <- function(id){
           downloadButton(ns("download_token_freq_plot"), 
                          label= "Save .png")
 
-      ),
+      ), # end info box
       
       # Word frequency plot box
       box(title = "Token frequency plot", 
@@ -120,13 +107,11 @@ reportingUI <- function(id){
           collapsible = T,
           width = 8,
           
-          # h4(textOutput(ns("tokenise_please")), 
-          #    style = "background-color: crimson; color: white;"),
-          
-          plotOutput(ns("word_freq")),
+          # plotOutput(ns("word_freq")),
+          plotlyOutput(ns("word_freq_plotly"))
 
       ), 
-    ),
+    ), # end fluid row
     
     # Plot of single vs. corpus frequency ####
     fluidRow(
@@ -141,9 +126,8 @@ reportingUI <- function(id){
           p("Tokens closer to the line have similar frequencies in both sets of texts."),
           hr(), 
           selectInput(ns("content_single_ID"), 
-                       label = "Choose a single text to 
-                      compare to the corpus", 
-                       choices = list("N/A" =  "na")
+                       label = "Choose a single text to compare to the corpus", 
+                       choices = list("N/A" = "na")
                       ),
           
           textInput(ns("comp_freq_plot_title"), 
@@ -177,12 +161,13 @@ reportingUI <- function(id){
               numericInput(ns("comp_freq_plot_w"),
                            label = "W (in)", 
                            value = 29.16)
-            })
-          ),
+            }),
+          
+          ), # end fluid row
           
           downloadButton(ns("download_comp_freq_plot"), 
                          label= "Save .png")
-      ),
+      ), # end info box
       
       box(title = "Token frequency comparison", 
           status = "primary", 
@@ -190,13 +175,13 @@ reportingUI <- function(id){
           collapsible = T,
           width = 8,
           
-          # h4(textOutput(ns("tokenise_please2")), 
-          #    style = "background-color: crimson; color: white;"),
+          # plotOutput(ns("comp_freq")),
+          plotlyOutput(ns("comp_freq_plotly"))
           
-          plotOutput(ns("comp_freq"))
-          
-      ), 
-    ),
+      ), # end box
+      
+    ), # end fluid row
+    
     
     # Zipfs law vis. ####
     fluidRow(
@@ -209,7 +194,7 @@ reportingUI <- function(id){
           h3("Illustrating Zipf's Law"),
           p("Zipf's law states that the frequency of a word appearing is inversely proportional to its rank."),
           imageOutput(ns("zipfs_law"), height = '70px'),
-          p("This inverse proportional relationship can be visualised by plotting these values on log scales"),
+          p("This inverse proportional relationship can be visualised by plotting these values on log scales.  Each line represents a text document in the current corpus."),
           tags$a(href="https://www.tidytextmining.com/tfidf.html#zipfs-law", 
                  "Learn more about Zipf's Law"),
           hr(),
@@ -252,13 +237,10 @@ reportingUI <- function(id){
           collapsible = T,
           width = 7,
           
-          # h4(textOutput(ns("tokenise_please5")), 
-          #    style = "background-color: crimson; color: white;"),
-          
-          plotOutput(ns("zipfs_plot"))
-          
+          #plotOutput(ns("zipfs_plot")),
+          plotlyOutput(ns("zipfs_plotly"))
       ), 
-    ),
+    ), # end fluid row
     
     # Tf-idf vis. ####
     fluidRow(
@@ -274,7 +256,7 @@ reportingUI <- function(id){
           imageOutput(ns("idf_eqn"), height = '90px'),
           p("The method aims to decrease weighting of common terms and increase weighting of terms with low frequencies."),
           em("For the most accurate results, remove any stop-words from your data and tokenise by words.", style = "color: crimson;"),
-
+          br(),
           tags$a(href="https://www.tidytextmining.com/tfidf.html#tfidf", 
                  "Learn more about tf-idf"),
           
@@ -327,17 +309,15 @@ reportingUI <- function(id){
           collapsible = T,
           width = 8,
           
-          h4(textOutput(ns("tokenise_please6")), 
-             style = "background-color: crimson; color: white;"),
-          
-          plotOutput(ns("tf_idf_plot"))
+          # plotOutput(ns("tf_idf_plot")),
+          plotlyOutput(ns("tf_idf_plotly")),
+          hr(class = "hr-blank", style = "height: 400px;"),
           
       ), 
-    ),
+    ), # end fluid row
     
     
-    
-    ##### Interactive datatable #####
+    # Interactive datatable #
     fluidRow(
         
         box(title = " ", 
@@ -348,211 +328,197 @@ reportingUI <- function(id){
             
             h2("Interactive Datatable"),
             p("Explore your tf-idf data by filtering, sorting, and searching with the buttons and boxes below."),
-            em("Note: Actions performed on the datatable below will not affect your parameterised data. If you wish to fine-tune your data for analysis and reporting, visit the 'Search/Concordance' tab.", style = "color: gray;"),
-            hr(),
+            em("Note: Actions performed on the datatable below will not affect your prepared data. If you wish to fine-tune your data for analysis and reporting, visit the 'Text Preparation' tab.", style = "color: gray;"),
+            hr(class = "hr-blank"),
             
-            h4(textOutput(ns("tokenise_please3")), 
-               style = "background-color: crimson; color: white;"),
             DT::dataTableOutput(ns("interact_DT")),
-            hr()
+            hr(class = "hr-blank"),
         ),
     ), # end fluid row datatable
   )
 }
 
-
-
 reportingServer <- function(id, rv = rv, report_rv = report_rv){
   moduleServer(id, function(input, output, session){
     
-   # Getting names of each file uploaded for the dropdown menu
-   # choices
-    choices_ID <- reactive({
-      req(rv$content_prepared)
-      return(unique(rv$content_prepared$ID))
-
-    })
-
+    # In text frequency, rv$content_to_visualise was created which
+    # has $plotting_data containing just ID and Token columns ready
+    # to plot which is checked to be sufficiently tokenised.
+    
+    # Getting names of each file uploaded for the dropdown menu
+    # choices
     # To generate the list of IDs from
     # content_prepared for the selectInput
     # drop down for single vs. corpus figure,
     # need to use observe & updateSelectInput
+    
     observe({
-      req(rv$content_prepared)
-      rv$choices_ID <- choices_ID()
-
+      print("in reporting server: content_to_visualise$plotting_data in rv being passed to reporting:")
+      print(rv$content_to_visualise$plotting_data)
+      
+      req(rv$content_to_visualise_DT$ID)
+      rv$choices_ID <- unique(rv$content_to_visualise_DT$ID)
+      
       updateSelectInput(session, "content_single_ID",
-                        choices = unique(rv$content_prepared$ID),
-                        selected= unique(rv$content_prepared$ID)[1])
-      print("content_single_ID updated")
+                        choices = rv$choices_ID,
+                        selected= rv$choices_ID[1])
     })
-
-
+    
     # Summary stats stuff
-    total_tokens <- reactive({
-      req(rv$content_tf_idf)
-      rv$content_tf_idf$`Corpus token count`[1]
-    })
-    output$total_tokens <- renderText(total_tokens())
+    # total_tokens <- reactive({
+    #   req(rv$content_tf_idf)
+    #   rv$content_tf_idf$`Corpus token count`[1]
+    # })
+    # output$total_tokens <- renderText(total_tokens())
+    # 
+    # mean_token_count <- reactive({
+    #   req(rv$content_tf_idf)
+    #   rv$content_tf_idf$`Mean token count`[1]
+    # })
+    # 
+    # sd_token_count <- reactive({
+    #   req(rv$content_tf_idf)
+    #   sd(rv$content_tf_idf$`Token Count`)
+    # })
+    # 
+    # output$stats1 <- renderText({
+    #   validate(need(rv$content_to_visualise$content_tf_idf, "Submit text data in the Text Selector Tab to generate quick summaries."))
+    # 
+    #   paste("Corpus contains:  ",
+    #         length(rv$choices_ID),
+    #         " document(s), with ", nrow(rv$stop_words_final),
+    #         " stop-words omitted.", collapse = ",")
+    # })
+    # 
+    # output$stats2 <- renderText({
+    # 
+    #   req(rv$content_to_visualise$content_tf_idf)
+    # 
+    #   paste("Total tokens in corpus: ", total_tokens(), ".  Mean token count per document is ", mean_token_count(), " with a standard deviation of ", round(sd_token_count(), 4), collapse = ",")
+    # })
+    # 
+    # # Summary text for max and min document tokens
+    # max_min_token <- reactive({
+    # 
+    #   req(rv$content_tf_idf)
+    #   rv$content_tf_idf %>%
+    #     arrange(desc(`Token Count`)) %>%
+    #     dplyr::select(ID,`Token Count`)
+    # })
+    # 
+    # highest_token_count <- reactive(slice_head(max_min_token()))
+    # lowest_token_count <- reactive(slice_tail(max_min_token()))
+    # 
+    # output$max_min_IDs <- renderText({
+    #   req(rv$content_tf_idf)
+    #   req(rv$token)
+    #   req(highest_token_count())
+    #   req(lowest_token_count())
+    #   paste("Document with the highest token count of ",
+    #         highest_token_count()[1,2], " ", rv$token, " was ",
+    #         highest_token_count()[1,1], ".",
+    #         "Document with the lowest token count of ",
+    #         lowest_token_count()[1,2], rv$token, " was ",
+    #         lowest_token_count()[1,1], ".", collapse = ",")
+    #  })
 
-    mean_token_count <- reactive({
-      req(rv$content_tf_idf)
-      rv$content_tf_idf$`Mean token count`[1]
-    })
-
-    sd_token_count <- reactive({
-      req(rv$content_tf_idf)
-      sd(rv$content_tf_idf$`Token Count`)
-    })
-
-    numStop <- reactive({
-      if(is.null(rv$stop_words_final)){
-        return(0)
-      } else {
-        return(nrow(rv$stop_words_final))
-      }
-    })
-
-    output$stats1 <- renderText({
-      req(rv$content_tf_idf)
-      req(rv$numFiles)
-      paste("Corpus contains:  ", rv$numFiles, " document(s). Text tokenised by", rv$token, " with ", numStop(), " stop-words omitted.", collapse = ",")
-    })
-    output$stats2 <- renderText({
-      paste("Total tokens in corpus: ", total_tokens(), ".  Mean token count per document is ", mean_token_count(), " with a standard deviation of ", round(sd_token_count(), 4), collapse = ",")
-    })
-
-    # Summary text for max and min document tokens
-    max_min_token <- reactive({
-      req(rv$content_tf_idf)
-      rv$content_tf_idf %>%
-        arrange(desc(`Token Count`)) %>%
-        dplyr::select(ID,`Token Count`)
-    })
-
-    highest_token_count <- reactive(slice_head(max_min_token()))
-    lowest_token_count <- reactive(slice_tail(max_min_token()))
-
-    output$max_min_IDs <- renderText({
-      req(rv$content_tf_idf)
-      req(rv$token)
-      req(highest_token_count())
-      req(lowest_token_count())
-      paste("Document with the highest token count of ", highest_token_count()[1,2], " ", rv$token, " was ", highest_token_count()[1,1], ".", "Document with the lowest token count of ", lowest_token_count()[1,2], rv$token, " was ", lowest_token_count()[1,1], ".", collapse = ",")
-                                     })
-
-
-    output$content_prepared <- DT::renderDataTable(
-      rv$content_prepared,
-       options = list(
-         dom = "tfrp",
-         paging = TRUE,
-         pageLength = 5,
-         searching = TRUE
-       ),
-      selection = 'none',
-       class = 'row-border',
-       escape = T,
-       rownames = F,
-      filter = "none"  ,
-      width = 500
-    )
 
     # Creating content_freq(), which has frequency of words across entire corpus
-    content_freq <- reactive({
-
-      req(rv$content_prepared)
-
-      # If the column 'Token' exists (a proxy for data being tokenised)
-      if(colnames(rv$content_prepared)[2] == "Token"){
-      # if(rv$is_tokenised){
-        rv$content_prepared %>%
-          # filter(!grepl("pppp", Token, fixed = TRUE)) %>%
-          # mutate(Token = str_extract(Token, "[0-9A-Za-z'\"\"]+")) %>%
-          # using str_extract to get just words & numbers since UTF-8
-          # encoding has things like _a_ to indicate italics etc.
-          # however results in tokenisation into words, need to include
-          # spaces in extract too
-          count(Token, sort = T) %>%
-          mutate(Token = reorder(Token, n))
-      }
-      
-      
-    })
-
-
     observe({
-      rv$content_freq <- content_freq()
+      req(rv$content_to_visualise$plotting_data[['Token']])
 
-      # Setting default as 7
-      rv$min_freq <- {
-        if(is.null(input$min_freq)){
-          return(30)
-        } else input$min_freq
-      }
-
+      rv$content_to_visualise$content_freq <-
+        rv$content_to_visualise$plotting_data %>%
+        # filter(!grepl("pppp", Token, fixed = TRUE)) %>%
+        # mutate(Token = str_extract(Token, "[0-9A-Za-z'\"\"]+")) %>%
+        # using str_extract to get just words & numbers since UTF-8
+        # encoding has things like _a_ to indicate italics etc.
+        # however results in tokenisation into words, need to include
+        # spaces in extract too
+        count(Token, sort = T) %>%
+        mutate(Token = reorder(Token, n))
     })
 
+    ####################
+    #### Word cloud ####
+    ####################
     word_cloud <- reactive({
-      req(rv$content_freq)
-      wordcloud2(rv$content_freq,
+      req(rv$content_to_visualise$content_freq)
+
+      wordcloud2(rv$content_to_visualise$content_freq,
                  size = 1.2,
-                 color= rep_len( c("black","royalblue"),
-                                 nrow(rv$content_freq ) ),
-                 # minRotation = -pi/2, maxRotation = -pi/2,
+                 color= rep_len(c("black","royalblue"),
+                                 nrow(rv$content_to_visualise$content_freq)),
                  minRotation = 0, maxRotation = 0,
                  fontFamily = "sans-serif",
                  fontWeight = "200"
       )
-
     })
-    #### Word cloud ####
+  
     output$wordcloud <- renderWordcloud2({
+      validate(need(try(word_cloud()),
+                    'Select a valid dataset to render visualisations.'))
       word_cloud()
     })
 
+
+    #### Need this?
     observe({
       rv$title1 <- str_wrap(input$token_freq_plot_title, 50)
       rv$cap1 <- str_wrap(input$token_freq_plot_caption, 100)
     })
 
-    # Token frequency plot for entire corpus
+
+    ############################################
+    ## Token frequency plot for entire corpus ##
+    ############################################
     # Creating frequency plot, where users can customise min
     # frequency of a token to be displayed on the plot
     token_freq_plot <- reactive({
-      req(rv$content_freq)
-      print("content_freq valid")
+      req(rv$content_to_visualise$content_freq)
+      req(is.numeric(input$min_freq))
 
-      title <- ifelse(is.null(rv$title1), rv$title1, "Most common tokens by frequency")
-      caption <- ifelse(is.null(rv$cap1), rv$cap1,
-                        "Figure 1: Frequency of most common tokens across the corpus.")
-
-      rv$content_freq %>%
-        filter(n >= rv$min_freq) %>%
+      rv$content_to_visualise$content_freq %>%
+        filter(n >= input$min_freq) %>%
         ggplot(aes(n, Token)) +
         geom_col(fill = "royalblue") +
         labs(x = "Frequency", y = NULL,
-             caption = caption) +
-        ggtitle(title) +
+             caption = rv$cap1) +
+        ggtitle(rv$title1) +
         theme_bw() +
-        theme(plot.title = element_text(hjust = 0, size = 18,
+        theme(plot.title = element_text(hjust = 0, size = 12,
                                         vjust = 1),
-              text = element_text(size = 14),
+              text = element_text(size = 12),
               plot.caption = element_text(hjust=0, vjust = -1.2,
-                                          size = 15, face = "italic"))
-
+                                          size = 10, face = "italic"))
     })
 
     output$word_freq <- renderPlot({
-
-      req(token_freq_plot())
+    validate(need(try(token_freq_plot()),
+                  'Select a valid dataset with a numeric minimum frequency
+                  to render visualisation.'))
+    
       token_freq_plot()
-
     })
 
+    output$word_freq_plotly <- renderPlotly({
 
+      validate(need(rv$content_to_visualise$content_freq,
+                    'Select a valid dataset to render visualisations.'),
+               need(is.numeric(input$min_freq),
+                    'Mimimum frequency must be numeric.')
+               )
+
+      try(ggplotly(token_freq_plot()))
+    })
+
+    #########################
+    ## Comp frequency plot ##
+    #########################
     # First get the ID of the single file to compare with
     observe({
+      req(input$content_single_ID)
+      req(rv$content_to_visualise$plotting_data[['Token']])
       rv$content_single_ID <- input$content_single_ID
     })
 
@@ -565,61 +531,47 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     # filtering content_prepared ID column
     content_param_single <- reactive({
 
-      req(rv$is_tokenised)
-      req(rv$content_prepared)
+      req(rv$content_to_visualise$plotting_data[['Token']])
+      req(input$content_single_ID)
+
       # If a user uploads primary, tokenises, then goes back to upload
       # secondary, joins that, and tokenises it, the selected rv$content_single_ID
-      # from the drop down menu for the frequency comparison data may not be 
+      # from the drop down menu for the frequency comparison data may not be
       # present in rv$content_prepared after the join. So need to check
       # that the selected ID is present in the data
-      req(rv$content_single_ID)
+
       # Require that filtering by selected ID doesn't return nothing (so a valid
       # ID has been selected). Test written as similar as possible to what happens
       # a few lines down
-      req(nrow(filter(rv$content_prepared, ID == rv$content_single_ID)) > 0)
+      req(try(nrow(filter(rv$content_to_visualise$plotting_data,
+                      ID == input$content_single_ID)) > 0))
 
-      validate(need(rv$is_tokenised, NULL))
-      req(!is.null(rv$content_prepared$Token)) # require Token column
-      
-      dat <- rv$content_prepared %>%
-        filter(ID == rv$content_single_ID) %>%
+      rv$content_to_visualise$plotting_data %>%
+        filter(ID == input$content_single_ID) %>%
         count(Token, sort=T) %>%
         mutate(Proportion = n/sum(n)) %>% # proportion calc
-        mutate(Source = rv$content_single_ID)
-      
-      print("single content selected:")
-      print(dat)
-      
-      dat
+        mutate(Source = input$content_single_ID)
     })
 
     # Filtering content_prepared to be the rest of the corpus
     content_param_rest <- reactive({
 
-      req(rv$content_single_ID)
-      req(rv$content_prepared$Token)
+      req(rv$content_to_visualise$plotting_data[['Token']])
+      req(input$content_single_ID)
 
-      validate(need(rv$is_tokenised, NULL))
-      
-      print("filtering content_prepared to be rest of the corpus")
-      print(length(unique(rv$content_prepared$ID)))
+      # If there are more than one unique IDs in dataset
+      if(length(rv$choices_ID) > 1){
 
-      
-      if(rv$is_tokenised && length(unique(rv$content_prepared$ID)) > 1){
-        
-        rv$content_prepared %>%
-          filter(ID != rv$content_single_ID) %>%
+        rv$content_to_visualise$plotting_data %>%
+          filter(ID != input$content_single_ID) %>%
           count(Token, sort = T) %>%
           mutate(Proportion = n/sum(n)) %>% # proportion calc
           mutate(Source = "Corpus")
-        
-      } else if(!rv$is_tokenised &&
-                length(unique(rv$content_prepared$ID)) == 1) {
-        
-        content_param_single()
-        
-      }
 
+      } else {
+        #### Validate to warn to have more than 1 ID?
+        content_param_single()
+      }
     })
 
     # Creating final dataset of widened data for both single and rest to plot
@@ -627,7 +579,6 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     # entire corpus
     content_comp_freq <- reactive({
 
-      req(rv$is_tokenised)
       req(content_param_single())
       req(content_param_rest())
 
@@ -655,7 +606,6 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
         return(content_comp_freq)
       }
 
-      req(content_comp_freq)
       content_comp_freq <- content_comp_freq %>%
         mutate(Diff = abs(Single - Corpus))
       return(content_comp_freq)
@@ -664,69 +614,28 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     # Observe to assign reactives made for corr plot to rv list
     # If content is not tokenised, assign NULL to reactive
     observe({
-      
-      req(rv$is_tokenised) 
-      
-      if(!rv$is_tokenised){
-        rv$content_comp_freq <- NULL
-      }
-
       req(content_comp_freq())
-      rv$content_comp_freq <- content_comp_freq()
-
-    })
-
-    # Text output to let people know to tokenise their data first
-    # if data is not tokenised let user know
-    # I cannot find a way to make this easily reproducible.
-    # Calling the same ns("tokenise_please") breaks the app's conditional panels.
-    # Tried renderUI() in a conditional panel but the condition for the conditional
-    # panel needs to check if rv$is_tokenised is true, which doesn't seem to be
-    # possible. So for now, as much as it pains me, the same code is repeated with
-    # differing output IDs.
-    output$tokenise_please <- renderText({
-      if(!rv$is_tokenised) "Tokenise your data to report on it."
-    })
-    output$tokenise_please2 <- renderText({
-      if(!rv$is_tokenised) "Tokenise your data to report on it."
-    })
-    output$tokenise_please3 <- renderText({
-      if(!rv$is_tokenised) "Tokenise your data to report on it."
-    })
-    output$tokenise_please4 <- renderText({
-      if(is.null(rv$content_freq)) "Tokenise your data to report on it."
-    })
-    output$tokenise_please5 <- renderText({
-      if(is.null(rv$content_freq)) "Tokenise your data to report on it."
-    })
-    output$tokenise_please6 <- renderText({
-      if(!rv$is_tokenised) "Tokenise your data to report on it."
+      rv$content_to_visualise$content_comp_freq <- content_comp_freq()
     })
 
 
     ### Single vs. corpus frequency plot ####
-
     observe({
       rv$title2 <- str_wrap(input$comp_freq_plot_title, 50)
       rv$cap2 <- str_wrap(input$comp_freq_plot_caption, 100)
     })
 
     comp_freq_plot <- reactive({
-      req(rv$content_comp_freq)
+      req(rv$content_to_visualise$content_comp_freq)
 
-      title2 <- ifelse(is.null(rv$title2), rv$title2,
-                      "Comparison of token frequeny (single vs. corpus)")
-      cap2 <- ifelse(is.null(rv$cap2), rv$cap2,
-                        "Figure 2: Comparison of token frequencies between a single selected text and the current corpus.")
-
-      ggplot(rv$content_comp_freq, aes(x = Corpus, y =  Single,
-                                       color = Diff)) +
+      ggplot(rv$content_to_visualise$content_comp_freq,
+             aes(x = Corpus, y =  Single,color = Diff)) +
         geom_abline(color = "gray40", lty = 2) +
         geom_point(alpha = 0.6, size = 1) +
         geom_text(aes(label = Token), alpha = 1,
-                  check_overlap = T, cex = 5,
+                  check_overlap = T, cex = 3,
                   nudge_y = 0.1,
-                  size = 13) +
+                  size = 10) +
         xgx_scale_x_log10(labels = percent_format(),
                           breaks = c(0.001, 0.01, 0.03, 0.1, 0.3, 0.75),
                           limit = c(0.0009, 1.0)) +
@@ -737,66 +646,75 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
                              low = "lightgray", high = "royalblue") +
         theme_bw() +
         theme(legend.position="right",
-              text = element_text(size = 14)) +
-        theme(plot.title = element_text(size = 18, hjust = 0,
+              text = element_text(size = 11)) +
+        theme(plot.title = element_text(size = 12, hjust = 0,
                                         vjust = 1),
               plot.caption = element_text(hjust=0, vjust = -1.2,
-                                          size = 15, face = "italic")) +
-        labs(y = rv$content_single_ID,
-             x = "Corpus proportions",
-             col = "Prop. (%) difference",
-             caption = cap2) +
-        ggtitle(title2)
+                                          size = 12, face = "italic")) +
+        labs(y = input$content_single_ID,
+             x = "Corpus proportions (log)",
+             col = "Prop. difference",
+             caption = rv$cap2) +
+        ggtitle(rv$title2)
     })
 
     output$comp_freq <- renderPlot({
+      validate(need(try(comp_freq_plot()),
+                    'Select a valid dataset to render visualisations.'))
+
       req(rv$content_comp_freq)
       comp_freq_plot()
+    })
+    output$comp_freq_plotly <- renderPlotly({
+
+      validate(need(rv$content_to_visualise$content_comp_freq,
+                    'Select a valid dataset to render visualisations.')
+      )
+      try(ggplotly(comp_freq_plot()))
     })
 
     # Saving correlation test result in rv list
     observe({
-      req(rv$content_prepared)
-      req(rv$content_comp_freq$Single)
-      req(rv$content_comp_freq$Corpus)
-      
-      # First checking that corr test can happen w try statement, 
-      corr_test <- try(cor.test(rv$content_comp_freq$Single,
-                                rv$content_comp_freq$Corpus))
+      req(rv$content_to_visualise$plotting_data)
+      req(rv$content_to_visualise$content_comp_freq$Single)
+      req(rv$content_to_visualise$content_comp_freq$Corpus)
+
+      # First checking that corr test can happen w try statement,
+      rv$corr_test <- try(cor.test(rv$content_to_visualise$content_comp_freq$Single,
+                                rv$content_to_visualise$content_comp_freq$Corpus))
       # If the try-catch produced error (class try-error), indicate this
-      if("try-error" %in% class(corr_test)){
-        rv$cor_test <- "Error"
-      } else { 
-        rv$cor_test <- cor.test(rv$content_comp_freq$Single,
-                                rv$content_comp_freq$Corpus)
-      }
+      # if("try-error" %in% class(corr_test)){
+      #   rv$cor_test <- "Error"
+      # } else {
+      #   rv$cor_test <- cor.test(rv$content_comp_freq$Single,
+      #                           rv$content_comp_freq$Corpus)
+      # }
 
     })
 
     # Rendering the correlation test result to display
     output$cor_value <- renderText({
-      req(rv$cor_test)
-      
+      validate(need(rv$corr_test,
+                    'The selected data does not contain enough finite observations to perform the correlation test.'))
+
       # If correlation test try() produced an error, save this
-      if("Error" %in% rv$cor_test){
+      if("try-error" %in% rv$corr_test){
         text <- paste0("Error: Not enough finite observations to perform correlation test.")
       } else {
-        text <- paste(c("The estimate of correlation obtained
+        text <- paste(c("The estimate of correlation between the selected text 
+                        and the corpus proportions obtained
                  from a product-moment
                  correaltion test is ",
-                 format(round(rv$cor_test$estimate, 3)),
+                 format(round(rv$corr_test$estimate, 3)),
                  " with a 95% CI of (",
-                 format(round(rv$cor_test$conf.int[1], 3)),
+                 format(round(rv$corr_test$conf.int[1], 3)),
                  ", ",
-                 format(round(rv$cor_test$conf.int[2], 3)),
+                 format(round(rv$corr_test$conf.int[2], 3)),
                  ").")
                  )
       }
-      
       return(text)
-
     })
-
 
     #### Zipf visualisations ####
     # Need to use data without stop-words removed
@@ -810,36 +728,31 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     # Token count is analogous to a 'word count' of a text, but we
     # could be counting up bi-grams instead of words
     content_zipf <- reactive({
-
-      req(rv$content_prepared$Token)
+      req(rv$content_to_visualise$plotting_data)
 
       # Only perform is data is tokenised
-      if(rv$is_tokenised){
-        token_counts <- rv$content_prepared %>%
-          count(ID, Token, sort = T) %>%
-          rename("Freq." = "n")
+      token_counts <- rv$content_to_visualise$plotting_data %>%
+        count(ID, Token, sort = T) %>%
+        rename("Freq." = "n")
 
-        token_count <- token_counts %>%
-          group_by(ID) %>%
-          summarise(`Token Count` = sum(`Freq.`)) %>%
-          mutate(`Mean token count` =
-                   floor(mean(`Token Count`)),
-            `Corpus token count` = sum(`Token Count`))
+      token_count <- token_counts %>%
+        group_by(ID) %>%
+        summarise(`Token Count` = sum(`Freq.`)) %>%
+        mutate(`Mean token count` =
+                 floor(mean(`Token Count`)),
+          `Corpus token count` = sum(`Token Count`))
 
-        content_zipf <-
-          left_join(token_counts, token_count, by = c("ID" = "ID")) %>%
-          group_by(ID) %>%
-          mutate(Rank = row_number(),
-                 `Term freq.` = `Freq.`/`Token Count`) %>%
-          ungroup()
-
-        content_zipf
-      }
+      left_join(token_counts, token_count, by = c("ID" = "ID")) %>%
+      group_by(ID) %>%
+      mutate(Rank = row_number(),
+             `Term freq.` = `Freq.`/`Token Count`) %>%
+      ungroup()
     })
 
     # Assigning to reactive value list
     observe({
-      rv$content_zipf <- content_zipf()
+      req(content_zipf())
+      rv$content_to_visualise$content_zipf <- content_zipf()
     })
 
 
@@ -853,14 +766,14 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
 
 
     zipfs_plot <- reactive({
-      req(rv$content_zipf)
+      req(rv$content_to_visualise$content_zipf)
 
       title3 <- ifelse(is.null(rv$title3), rv$title3,
                        "Zipf's law (rank vs. term frequency)")
       cap3 <- ifelse(is.null(rv$cap3), rv$cap3,
                      "Figure 3: A demonstration of Zipf's Law: term frequency against rank on log-log scales.")
 
-      rv$content_zipf %>%
+      rv$content_to_visualise$content_zipf %>%
         ggplot(aes(Rank, `Term freq.`, color = ID)) +
         geom_line(alpha = 0.7, show.legend = F) +
         xgx_scale_x_log10() + # breaks = c(1, 10, 100, 1000, 10000)
@@ -870,60 +783,63 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
         ggtitle(title3) +
         scale_color_manual(values =
                              rep(c("royalblue", "black", "seagreen"),
-                                 nrow(rv$content))
+                                 nrow(rv$content_to_visualise$plotting_data))
         ) +
         theme_bw() +
-        theme(plot.title = element_text(size = 18, hjust = 0,
+        theme(plot.title = element_text(size = 12, hjust = 0,
                                         vjust = 1),
-              text = element_text(size = 14),
+              legend.position = 'none',
+              text = element_text(size = 11),
               plot.caption = element_text(hjust=0 , vjust = -1.2,
-                                          size = 14, face = "italic"))
+                                          size = 12, face = "italic"))
     })
 
     output$zipfs_plot <- renderPlot({
-
-      req(zipfs_plot())
-
+      validate(need(try(zipfs_plot()),
+                    'Select a valid dataset to render visualisations.'))
       zipfs_plot()
-
     })
-
+    
+    output$zipfs_plotly <- renderPlotly({
+      validate(need(try(zipfs_plot()),
+                    'Select a valid dataset to render visualisations.')
+      )
+      try(ggplotly(zipfs_plot()))
+    })
+    
+    ################################
     ##### Tf-idf visualisations ####
-
+    ################################
     # First creating tf-idf dataset
     content_tf_idf <- reactive({
+      req(rv$content_to_visualise$content_zipf)
 
-      req(rv$content_zipf)
-
-      rv$content_zipf %>%
+      rv$content_to_visualise$content_zipf %>%
         bind_tf_idf(Token, ID, `Freq.`) %>%
         arrange(desc(tf_idf))
     })
 
-
-    
     # Updating the checkbox inputs to the unique IDs of data uploaded
     observe({
-      
+      req(rv$choices_ID)
       updateSelectInput(session, "checkbox_content_ID",
-                        choices = unique(rv$content_prepared$ID),
-                        selected= unique(rv$content_prepared$ID)[1])
-      
+                        choices = rv$choices_ID,
+                        selected= rv$choices_ID[1])
+
       updateSelectInput(session, "checkbox_content_ID2",
-                        choices = unique(rv$content_prepared$ID),
-                        selected= unique(rv$content_prepared$ID)[2])
+                        choices = rv$choices_ID,
+                        selected= rv$choices_ID[2])
     })
-    
+
     observe({
-      rv$content_tf_idf <- content_tf_idf()
+      req(content_tf_idf())
+      req(rv$choices_ID > 1)
+      rv$content_to_visualise$content_tf_idf <- content_tf_idf()
 
       # Get the IDs of the files to calc tf-idf of
-      rv$tf_idf_IDs <- list(input$checkbox_content_ID,
+      rv$content_to_visualise$tf_idf_IDs <- list(input$checkbox_content_ID,
                                    input$checkbox_content_ID2)
-
     })
-
-    
 
     observe({
       rv$title4 <- str_wrap(input$tf_idf_plot_title, 50)
@@ -931,49 +847,50 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
     })
 
     tf_idf_plot <- reactive({
-
-      req(rv$content_prepared)
-      req(rv$content_tf_idf)
-      req(rv$tf_idf_IDs)
-
-      title4 <- ifelse(is.null(rv$title4), rv$title4,
-                       "Highest tf-idf tokens of selected documents")
-      cap4 <- ifelse(is.null(rv$cap4), rv$cap4,
-                     "Figure 4: Most important terms according to term frequency-inverse document frequency analysis.")
-
-      rv$content_tf_idf %>%
+      req(rv$content_to_visualise$content_tf_idf)
+      req(rv$content_to_visualise$tf_idf_IDs)
+      
+      rv$content_to_visualise$content_tf_idf %>%
         # filtering to just be IDs selected
-        filter(ID %in% rv$tf_idf_IDs) %>%
+        filter(ID %in% rv$content_to_visualise$tf_idf_IDs) %>%
         group_by(ID) %>%
-        slice_max(tf_idf, n = 12) %>%
+        slice_max(tf_idf, n = 15) %>%
         ungroup() %>%
         ggplot(aes(tf_idf, fct_reorder(Token, tf_idf), fill = ID)) +
-        geom_col(show.legend = F)+
+        geom_col(show.legend = F, width = 0.8)+
         labs(x = "tf-idf", y = NULL,
-             caption = cap4) +
-        facet_wrap(~ID, ncol = 2, scales = "free") +
-        ggtitle(title4) +
+             caption = rv$cap4) +
+        # facet_wrap(~ID, ncol = 2, scales = "free_y") +
+        facet_grid(rows = vars(ID), scales = "free_y") + 
+        ggtitle(rv$title4) +
         theme_bw() +
         scale_fill_manual(values=c("royalblue", "seagreen")) +
-        theme(plot.title = element_text(size = 18, hjust = 0,
-                                        vjust = 1),
-              text = element_text(size = 14),
-              plot.caption = element_text(size = 14, face = "italic",
+        theme(plot.title = element_text(size = 12, hjust = 0,
+                                        vjust = 3),
+              legend.position = 'none',
+              text = element_text(size = 12),
+              plot.caption = element_text(size = 12, face = "italic",
                                           hjust = 0, vjust = -1.2))
     })
 
-
     # Plotting tf-idf plot, facet wrap by ID too
     output$tf_idf_plot <- renderPlot({
-
-      req(rv$tf_idf_IDs)
-      req(rv$content_tf_idf)
-
+      validate(need(try(tf_idf_plot()),
+                    'Select a valid dataset to render visualisations.'))
       tf_idf_plot()
+    })
+    output$tf_idf_plotly <- renderPlotly({
+      validate(need(try(tf_idf_plot()),
+                    'Select a valid dataset to render visualisations.'))
+      
+      try(ggplotly(tf_idf_plot()) %>%
+            layout(height = 800))
     })
 
 
+    ##########################
     #### Rendering images ####
+    ##########################
 
     # Send a pre-rendered image, and don't delete the image after sending it
     output$zipfs_law <- renderImage({
@@ -1039,13 +956,18 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
 
     ####  Interactive data table ####
     interact_DT <- reactive({
-      req(rv$content_tf_idf)
-      
-      rv$content_tf_idf %>%
+      req(rv$content_to_visualise$content_tf_idf)
+
+      rv$content_to_visualise$content_tf_idf %>%
         dplyr::select(-tf)
     })
-    output$interact_DT <- DT::renderDataTable(
-      interact_DT(),
+
+    output$interact_DT <- DT::renderDataTable({
+
+      validate(need(try(interact_DT()),
+                    'Select a valid dataset to explore.'))
+
+      DT::datatable(interact_DT(),
       options = list(
         # dom = "tfirp",
         ordering = TRUE,
@@ -1058,7 +980,8 @@ reportingServer <- function(id, rv = rv, report_rv = report_rv){
       escape = T,
       rownames = F,
       filter = "bottom"
-    )
+      )
+    })
 
     #### Download plot buttons ####
 

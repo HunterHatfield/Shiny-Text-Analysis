@@ -1,24 +1,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Cardo:ital@0;1&family=Fira+Sans:wght@300&family=Inconsolata:wght@400&family=Space+Mono&display=swap');
 
+.shiny-output-error {
+    text-align: center;
+    vertical-align: middle;
+    margin-left: auto;
+    margin-right: auto;
+    font-family: 'Fira Sans', sans-serif;
+    font-size: 1em;
+    font-style: italic;
+}
+
 .shiny-output-error-validation {
     text-align: center;
     vertical-align: middle;
 }
 
 .shiny-output-error-validation-red {
-    color: crimson;
-    font-family: 'Inconsolata', monospace;
-    font-size: 1em;
-}
-
-.shiny-output-error-validation-red-center {
-    color: crimson;
-    font-family: 'Inconsolata', monospace;
-    font-size: 1em;
-    
+    background-color: crimson;
+    color: white;
 }
 
 .shiny-output-error-validation-italic{
     font-size: 1em;
     font-style: italic;
 }
+

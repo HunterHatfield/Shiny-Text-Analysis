@@ -7,6 +7,7 @@ textSelectorUI <- function(id, label = "Choose file(s):"){
   tagList(
     sidebarLayout(
       sidebarPanel(
+
         h1("01 | Select"), 
         em("Upload text for analysis by choosing your own files, scraping webpages, or through a public domain of texts provided by Project Gutenberg."),
         hr(),
@@ -26,15 +27,17 @@ textSelectorUI <- function(id, label = "Choose file(s):"){
         hr(),
         
         # Secondary uploads UI
-        secondaryUI(ns("secondary")) 
+        secondaryUI(ns("secondary")),
+        
+        
           
       ), # end side bar panel
-      
+
       mainPanel(
 
         fluidRow(
           
-          box(title = " ", 
+          box(title = NULL, 
             status = "primary", 
             solidHeader = T,
             collapsible = T,
@@ -56,7 +59,7 @@ textSelectorUI <- function(id, label = "Choose file(s):"){
 
           ), # end box
           
-          box(title = " ", 
+          box(title = NULL, 
               status = "success", 
               solidHeader = T,
               collapsible = T,
@@ -94,6 +97,7 @@ textSelectorServer <- function(id, rv = rv, session = session){
       secondaryServer("secondary", rv = rv)
       
       gutenbergRServer("gutenbergR", rv = rv)
+      
       
       
       #### Subtitles ####

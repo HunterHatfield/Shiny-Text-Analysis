@@ -50,7 +50,7 @@ homeUI <- function(id){
       
       ),
       
-      hr(),
+      hr(class = "hr-blank"),
       
       fluidRow(
     

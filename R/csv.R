@@ -7,7 +7,7 @@ csvUI <- function(id, label = "Choose text file(s):"){
   ns <- NS(id)
   tagList(
 
-    h1("Upload your table"),
+    h1("Upload a table"),
     p("Upload a file containing comma separated values (.csv) or tab separated values (.tsv) for primary text analysis."),
     em("Note: file upload size is limited to 10MB"),
     hr(),
@@ -138,12 +138,14 @@ csvServer <- function(id, rv = rv){
                                                  is_tokenised = FALSE, 
                                                  is_filtered = FALSE,
                                                  is_mutated = FALSE,
+                                                 content_prepared = 
+                                                   csvtsv_contents(),
+                                                 content_edited = 
+                                                   csvtsv_contents(),
                                                  content_primary_tf_idf = NULL)
         
         # Saving content_primary list containing data & characteristics in main rv list
         rv$content_primary <- content_primary
-        print("Assigned content_primary list to rv$content_primary:")
-        print(rv$content_primary)
 
         rv$numFiles <- nrow(rv$content_primary$data)
         

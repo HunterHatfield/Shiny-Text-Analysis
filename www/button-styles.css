@@ -2,7 +2,7 @@
 
 .btn {
     border-radius: 5px;
-    color: black;
+    color: #1D1D1D;
     background-color: white;
     padding: 8px 1em 8px 1em;
 
@@ -20,7 +20,7 @@
     color: white;
 } 
 
-/* Submit buttons */
+/* Submit buttons - #8AB92D */
 .btn-success{
     width: 100%;
     border: 1px solid rgb(138, 185, 45);

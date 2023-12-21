@@ -3,17 +3,22 @@
 #### Tokenisation module ####
 #############################
 
-# Handles tokenisation of text.
+# Handles Tokenisation of text.
 # Requires initial dataset to tokenise on, rv$content_primary$content_prepared,
 # provided in a 2D reactive value list, rv. 
 # Depends on 1 function, tokenise_data(), in utils.R
 
-#### TOKENISATION MODULE UI ####
-tokenizeUI <- function(id) {
+#### Tokenisation MODULE UI ####
+tokeniseUI <- function(id) {
   ns <- NS(id)
   tagList(
     
     h3("Tokenisation"),
+    p("Tokenisation breaks text into smaller units, or tokens, like words or bi-grams. This enables us to produce visualisations and efficiently analyse token frequencies  within text data."),
+    tags$a(href="https://neptune.ai/blog/tokenization-in-nlp", 
+           "Learn more about tokenisation here"),
+    
+    hr(),
     
     selectInput(ns("data_to_tokenise"), 
                 label = "Select a dataset:", 
@@ -35,27 +40,26 @@ tokenizeUI <- function(id) {
                 selected = "Words"
     ),
     conditionalPanel(
-      condition = "input.tokens == 'ngrams'",
+      condition = "input.token == 'ngrams'",
       ns = ns,
-      # uiOutput(ns("ngramsUI")) # was using renderUI in server to make UI for this
       numericInput(ns("n_grams"), label = "Enter n-grams:", value = 2)
     ),
     conditionalPanel(
-      condition = "input.tokens == 'other'",
+      condition = "input.token == 'other'",
       ns = ns,
       # make mini UI for regex token
       textInput(ns("other_token"), "Specify a custom token:")
     ),
     fluidRow(
       column(6, {
-        actionButton(ns("submit_tokenise"),
-                     label = "Tokenise",
+        actionButton(ns("tokenise_trigger"),
+                     label = "Tokenise...",
                      class = "btn-success"
         )
       }),
       column(6, {
         actionButton(ns("revert_tokenise"),
-                     label = "Revert",
+                     label = "Undo",
                      class = "btn-danger"
         )
       })
@@ -63,8 +67,8 @@ tokenizeUI <- function(id) {
   )
 }
 
-#### TOKENISATION SERVER ####
-tokenizeServer <- function(id, rv = rv) {
+#### tokenisation SERVER ####
+tokeniseServer <- function(id, rv = rv) {
   moduleServer(id, function(input, output, session) {
     
     # rv$is_tokenised <- FALSE
@@ -77,9 +81,6 @@ tokenizeServer <- function(id, rv = rv) {
       # Create list of possible datasets to select from
       req(rv$content_primary)
       potential_sets_tokenise <- list("Primary data")
-      print("Made potential sets list:")
-      print(potential_sets_tokenise)
-      
       if(!is.null(rv$subset_one)){
         potential_sets_tokenise[length(potential_sets_tokenise) + 1] <- "Subset one"
       }
@@ -127,16 +128,79 @@ tokenizeServer <- function(id, rv = rv) {
     })
     
     
+    ### Tokenise button triggers modal
+    # set the session namespace and return modelDilog() content 
+    show_tokenise_modal <- function(){
+      
+      ns <- session$ns
+      modalDialog(
+        size = "l",
+        h2("Confirm tokenisation?"),
+        p("Clicking submit will break up text data into specified tokens."),
+        p("Tokenising from smaller to larger tokens where rows must be combined will not preserve additional columns added."),
+        hr(class = "hr-blank"),
+        fluidRow(
+          column(12, 
+                 actionButton(ns("submit_tokenise"), label = "Submit tokenise",
+                              class = "btn-success"),
+          )
+        ), # end fluid row
+      )
+    } # end show_subset_modal() function
+    
+    observeEvent(input$tokenise_trigger, {
+      req(rv$content_primary$content_prepared)
+      
+      showModal(show_tokenise_modal())
+    })
+    
     #####################
     ### Tokenisation ####
     #####################
+    tokenise_alert <- function(){ 
+      shinyalert(
+      title = "Tokenisation failed: invalid selection",
+      text = "Attempts to convert data from smaller to larger token forms will fail if data is not reverted to paragraph form first. \n \n To convert data from e.g. word tokens to bi-grams, revert text data to paragraphs first then tokenise.",
+      size = "s", 
+      closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+      html = FALSE, type = "warning",
+      showConfirmButton = TRUE, showCancelButton = FALSE,
+      confirmButtonText = "Dismiss",
+      confirmButtonCol = "#4169E1",
+      timer = 0, imageUrl = "", animation = TRUE
+    )
+    }
+    
     # When "tokenise" button clicked...
     observeEvent(input$submit_tokenise, {
+      removeModal()
       req(rv$content_primary) # always require something submitted
       
       # For selected dataset, create pre-stop-removed dataset in case of undo, 
       # and then tokenise with tokenise_data() function in utils.R
       if(input$data_to_tokenise == "Primary data"){
+        
+        # initializing list of already tokenised cols
+        if(is.null(rv$content_primary$tokenised_col_names)){
+          rv$content_primary$tokenised_col_names <- list()
+        }
+        
+        # Generating alert is column is already tokenised
+        if({input$col_name_to_tokenise} %in% rv$content_primary$tokenised_col_names){
+          shinyalert(
+            title = "Column already tokenised",
+            text = "Undo tokenisation on this column with the 'Undo' button before re-tokenising.",
+            size = "s", 
+            closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+            html = FALSE, type = "warning",
+            showConfirmButton = TRUE, showCancelButton = FALSE,
+            confirmButtonText = "Dismiss",
+            confirmButtonCol = "#4169E1",
+            timer = 0, imageUrl = "", animation = TRUE
+          )
+          
+          return()
+        }
         
         # Save copy of content_prepared in case of undo
         rv$content_primary$content_pre_tokenise <- 
@@ -145,21 +209,61 @@ tokenizeServer <- function(id, rv = rv) {
         # Use tokenise_data function, passing in data_to_tokenise, 
         # col_name_to_tokenise, input$token and if input$token = "other"
         # pass in custom_token = input$other_token
-        content_tokenised <- tokenise_data(rv$content_primary$content_prepared, 
+        content_tokenised <- try(tokenise_data(rv$content_primary$content_prepared, 
                                            col_name = input$col_name_to_tokenise, 
                                            token = input$token, 
                                            custom_token = input$other_token, 
-                                           n_grams = input$n_grams)
+                                           n_grams = input$n_grams))
+        
+        # Check that tokenisation didn't return all NAs or an error
+        # need to split up to check if produces try-error first then check
+        # if column is NA, since can't subset to find a column if produces error
+        if("try-error" %in% class(content_tokenised)){
+          print(" try error occurred")
+          tokenise_alert()
+          return()
+        } else if(all(is.na(content_tokenised[[input$col_name_to_tokenise]]))){
+          print("all NA occurred")
+          tokenise_alert()
+          return()
+        }
         
         # Set tokenised data to rv$content_primary$content_prepared and 
         # set is_tokenised = TRUE
         rv$content_primary$content_prepared <- content_tokenised
         rv$content_primary$is_tokenised <- TRUE
         
-        print("Tokenised, rv$content_primary$content_prepared display:")
-        print(rv$content_primary$content_prepared)
+        # Adding col_name to tokenised columns list
+        rv$content_primary$tokenised_col_names <- append(
+          rv$content_primary$tokenised_col_names, 
+          {input$col_name_to_tokenise})
+        
+        # Updating display table with tokenised content
+        rv$content_prepared_display_2 <- content_tokenised
         
       } else if(input$data_to_tokenise == "Subset one"){
+        
+        # initializing list of already tokenised cols
+        if(is.null(rv$subset_one$tokenised_col_names)){
+          rv$subset_one$tokenised_col_names <- list()
+        }
+        
+        if(input$col_name_to_tokenise %in% rv$subset_one$tokenised_col_names){
+          
+          shinyalert(
+            title = "Column already tokenised",
+            text = "Undo tokenisation on this column with the 'Revert' button before re-tokenising.",
+            size = "s", 
+            closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+            html = FALSE, type = "warning",
+            showConfirmButton = TRUE, showCancelButton = FALSE,
+            confirmButtonText = "Dismiss",
+            confirmButtonCol = "#4169E1",
+            timer = 0, imageUrl = "", animation = TRUE
+          )
+          
+          return()
+        }
         
         # Save copy of content_prepared in case of undo
         rv$subset_one$content_pre_tokenise <- rv$subset_one$content_prepared
@@ -171,11 +275,52 @@ tokenizeServer <- function(id, rv = rv) {
                                            custom_token = input$other_token, 
                                            n_grams = input$n_grams)
         
+        # need to split up to check if produces try-error first then check
+        # if column is NA, since can't subset to find a column if produces error
+        if("try-error" %in% class(content_tokenised)){
+          print(" try error occurred")
+          tokenise_alert()
+          return()
+          
+        } else if(all(is.na(content_tokenised[[input$col_name_to_tokenise]]))){
+          print("all NA occurred")
+          tokenise_alert()
+          return()
+        }
+        
         rv$subset_one$content_prepared <- content_tokenised
         rv$subset_one$is_tokenised <- TRUE
         
+        rv$subset_one$tokenised_col_names<- append(
+            rv$subset_one$tokenised_col_names, 
+            {input$col_name_to_tokenise})
+        
+        # Updating display table with tokenised content
+        rv$content_prepared_display_2 <- content_tokenised
         
       } else if(input$data_to_tokenise == "Subset two"){
+        
+        # initializing list of already tokenised cols
+        if(is.null(rv$subset_two$tokenised_col_names)){
+          rv$subset_two$tokenised_col_names <- list()
+        }
+        
+        if(input$col_name_to_tokenise %in% rv$subset_two$tokenised_col_names){
+          
+          shinyalert(
+            title = "Column already tokenised",
+            text = "Undo tokenisation on this column with the 'Revert' button before re-tokenising.",
+            size = "s", 
+            closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+            html = FALSE, type = "warning",
+            showConfirmButton = TRUE, showCancelButton = FALSE,
+            confirmButtonText = "Dismiss",
+            confirmButtonCol = "#4169E1",
+            timer = 0, imageUrl = "", animation = TRUE
+          )
+          
+          return()
+        }
         
         # Save copy of content_prepared in case of undo
         rv$subset_two$content_pre_tokenise <- rv$subset_two$content_prepared
@@ -187,40 +332,34 @@ tokenizeServer <- function(id, rv = rv) {
                                            custom_token = input$other_token, 
                                            n_grams = input$n_grams)
         
+        # Check that tokenisation didn't return all NAs or an error
+        # need to split up to check if produces try-error first then check
+        # if column is NA, since can't subset to find a column if produces error
+        if("try-error" %in% class(content_tokenised)){
+          print(" try error occurred")
+          tokenise_alert()
+          return()
+          
+        } else if(all(is.na(content_tokenised[[input$col_name_to_tokenise]]))){
+          print("all NA occurred")
+          tokenise_alert()
+          return()
+        }
+        
         rv$subset_two$content_prepared <- content_tokenised
         rv$subset_two$is_tokenised <- TRUE
+        rv$subset_two$tokenised_col_names <- append(
+          rv$subset_two$tokenised_col_names, 
+          {input$col_name_to_tokenise})
+        # Updating display table with tokenised content
+        rv$content_prepared_display_2 <- content_tokenised
         
       }
       
-      # Tokenising content tibble. Output column is selected token, input is
-      # Contents columns, tokenising by user-selected token
-      # content_tokenised <- reactive({
-      # # if token is easily handled, just unnest w input$token
-      # if (input$token == "words" || input$token == "sentences") {
-      #   rv$content_stop_rm %>%
-      #     unnest_tokens(Token, Contents, token = input$token)
-      # } else if (input$token == "bigrams") {
-      #   rv$content_stop_rm %>%
-      #     unnest_ngrams(Token, Contents, n = 2)
-      # } else if (input$token == "ngrams") {
-      #   rv$content_stop_rm %>%
-      #     unnest_ngrams(Token, Contents, n = input$n_grams)
-      # } else if (input$token == "other") {
-      #   # unnest on the user inputted regex
-      #   rv$content_stop_rm %>%
-      #     unnest_regex(Token, Contents,
-      #       pattern = tolower(input$other_token))
-      # }
-      # }) # end assigning reactive content_tokenised
+      print("after tokenise error got to here")
       
-      # rv$content_parameterised <- content_tokenised() %>%
-      #   relocate(Token, .after = ID)
-      
-      rv$content_prepared <- rv$content_parameterised
-      rv$is_tokenised <- TRUE
       
     }) # end observeEvent tokenise button
-    
     
     
     #####################
@@ -230,27 +369,55 @@ tokenizeServer <- function(id, rv = rv) {
     # to pre_tokenised data saved
     observeEvent(input$revert_tokenise, {
       
-      if (rv$is_tokenised) {
-        rv$content_prepared <- rv$content_stop_rm
-      }
-      rv$is_tokenised <- FALSE
-      
       # For selected dataset, create pre-stop-removed dataset in case of undo, 
       # and then tokenise with tokenise_data() function in utils.R
       if(input$data_to_tokenise == "Primary data"){
+        req(rv$content_primary$content_pre_tokenise)
+        req(rv$content_primary$tokenised_col_names)
+        
         rv$content_primary$content_prepared <- 
           rv$content_primary$content_pre_tokenise
         rv$content_primary$is_tokenised <- FALSE
         
+        # Undoing tokenise goes back one step from the last thing tokenised,
+        # thus removing last column added to tokenised col names list
+        rv$content_primary$tokenised_col_names <- 
+          rv$content_primary$tokenised_col_names[-length(
+            rv$content_primary$tokenised_col_names
+          )]
+        
+        rv$content_prepared_display_2 <- rv$content_primary$content_prepared
+        
       } else if(input$data_to_tokenise == "Subset one"){
+        req(rv$subset_one$content_pre_tokenise)
+        req(rv$subset_one$tokenised_col_names)
+        
         # Save copy of content_prepared in case of undo
         rv$subset_one$content_prepared <- rv$subset_one$content_pre_tokenise 
         rv$subset_one$is_tokenised <- FALSE
         
+        rv$subset_one$tokenised_col_names <- 
+          rv$subset_one$tokenised_col_names[-length(
+            rv$subset_one$tokenised_col_names
+          )]
+        
+        rv$content_prepared_display_2 <- rv$subset_one$content_prepared
+        
       } else if(input$data_to_tokenise == "Subset two"){
+        req(rv$subset_two$content_pre_tokenise)
+        req(rv$subset_two$tokenised_col_names)
+        
         # Save copy of content_prepared in case of undo
         rv$subset_two$content_prepared <- rv$subset_two$content_pre_tokenise
         rv$subset_two$is_tokenised <- FALSE
+        
+        rv$subset_two$tokenised_col_names <- 
+          rv$subset_two$tokenised_col_names[-length(
+            rv$subset_two$tokenised_col_names
+          )]
+        
+        rv$content_prepared_display_2 <- rv$subset_two$content_prepared
+        
       }
       
       shinyjs::reset(input$token)

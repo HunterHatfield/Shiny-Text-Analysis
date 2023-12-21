@@ -8,7 +8,7 @@ statsUI <- function(id){
     
     fluidPage(
       wellPanel(
-        h1("0X | Statistical Analysis"),
+        h1("04 | Statistical Analysis"),
         em("Perform exploratory data analyses, regression analyses and model checking through a customisable workflow."),
       ),
       
@@ -20,9 +20,8 @@ statsUI <- function(id){
                      selectInput(ns("content_stats_choose"), 
                                  label = NULL, 
                                  choices = list(
-                                   "Raw submitted data" = "submitted", 
-                                   "Parameterised data" = "parameterised", 
-                                   "Tf-idf data" = "tfidf"
+                                   "Primary data (raw)" = "submitted", 
+                                   "Primary data (prepared)" = "primary_prepared"
                                  )),
                      hr(),
                      
@@ -383,98 +382,161 @@ statsServer <- function(id, rv = rv){
     id, 
     function(input, output, session){
 
-      #### Creating contents_stats to be used  ####
-      # Content stats is rendered to be whatever is selected in drop-down
-      content_stats <- reactive({
-        req(rv$content)
-        
-        if(input$content_stats_choose == "submitted"){
-          rv$content_primary$data %>%
-            clean_names()
-        } else if(input$content_stats_choose == "parameterised"){
-          req(rv$content_prepared)
-          rv$content_prepared %>%
-            clean_names()
-        } else if(input$content_stats_choose == "tfidf"){
-          req(rv$content_prepared)
-          req(rv$content_tf_idf)
-          req(rv$is_tokenised)
-          rv$content_prepared %>%
-            full_join(rv$content_tf_idf, by = c('ID', 'Token')) %>%
-            dplyr::select(-`Term freq.`, -`Mean token count`, -`Corpus token count`) %>%
-            clean_names()
+      #######################
+      ### Dataset chooser ###
+      #######################
+      observe({
+        # Create list of possible datasets to select from
+        req(rv$content_primary)
+        potential_sets_stats <- list("Primary data (raw)", "Primary data (prepared)", 
+                                     "Visualised")
+        if(!is.null(rv$subset_one)){
+          potential_sets_stats[length(potential_sets_stats) + 1] <- "Subset one (original)"
+          potential_sets_stats[length(potential_sets_stats) + 1] <- "Subset one (prepared)"
         }
+        if(!is.null(rv$subset_two)){
+          potential_sets_stats[length(potential_sets_stats) + 1] <- "Subset two (original)"
+          potential_sets_stats[length(potential_sets_stats) + 1] <- "Subset two (prepared)"
+        }
+        
+        updateSelectInput(session, "content_stats_choose",
+                          choices = potential_sets_stats,
+                          selected= potential_sets_stats[1])
       })
       
-      # Ensuring rv$content_stats updated to content_stats() created above
+      # Content stats is rendered to be whatever is selected in drop-down
+      # Rendering whatever dataset selected in datatable display. Needs to be
+      # rendered as diff sets selected before confirm button clicked
+
       observe({
-        req(content_stats())
-        rv$content_stats <- content_stats()
+        req(rv$content_primary)
+
+        if(input$content_stats_choose == "Primary data (raw)"){
+          req(rv$content_primary$data)
+          rv$content_stats <- try(rv$content_primary$data %>%
+            clean_names())
+          print("content_stats assigned to primary")
+        } else if(input$content_stats_choose == "Primary data (prepared)"){
+          req(rv$content_primary$content_prepared)
+          rv$content_stats <- try(rv$content_primary$content_prepared %>%
+            clean_names())
+        } else if(input$content_stats_choose == "Subset one (original)"){
+          req(rv$subset_one$data)
+          rv$content_stats <- try(rv$subset_one$data %>%
+            clean_names())
+        } else if(input$content_stats_choose == "Subset two (original)"){
+          req(rv$subset_two$data)
+          rv$content_stats <- try(rv$subset_two$data %>%
+            clean_names())
+        } else if(input$content_stats_choose == "Subset one (prepared)"){
+          req(rv$subset_one$content_prepared)
+          rv$content_stats <- try(rv$subset_one$content_prepared %>%
+            clean_names())
+        } else if(input$content_stats_choose == "Subset one (prepared)"){
+          req(rv$subset_two$content_prepared)
+          rv$content_stats <- try(rv$subset_two$content_prepared %>%
+            clean_names())
+        } else if(input$content_stats_choose == "Visualised"){
+          req(rv$content_to_visualise_DT)
+          req(rv$content_to_visualise$content_tf_idf)
+          rv$content_stats <- try(rv$content_to_visualise$content_tf_idf %>%
+            #full_join(rv$content_to_visualise$plotting_data, by = c('ID', 'Token')) %>%
+            #dplyr::select(-`Term freq.`, -`Mean token count`, -`Corpus token count`) %>%
+            clean_names())
+        }
+        
+        print("rv$content_stats made:")
+        print(rv$content_stats)
+      })
+      
+      # Always update possible dataset list with current available subsets
+      observe({
+        
+        if("try-error" %in% class(rv$content_stats)){
+          shinyalert(title = "",
+                     text = "")
+        }
+        
+        req(rv$content_stats)
+        rv$content_stats_DT <- rv$content_stats
+        # switch(input$content_stats_choose,
+        #        "Primary data" =  rv$content_primary$content_prepared,
+        #        "Subset one (prepared)" = rv$subset_one$content_prepared,
+        #        "Subset two (prepared)" = rv$subset_two$content_prepared,
+        #        "Subset one (original)" = rv$subset_one$data,
+        #        "Subset two (original)" = rv$subset_one$data,
+        #        "Visualised" = rv$
+        #        )
       })
       
       # Table output for raw content stats
-      output$content_stats_raw <- DT::renderDataTable(
-        rv$content_stats,
-        filter = 'top',
-        options = list(
-          paging = TRUE,
-          pageLength = 5,
-          scrollX = TRUE,
-          scrollY = TRUE,
-          dom = 'frtip',
-          columnDefs =
-            list(
-              list(targets = 1,
-                   render = JS("function(data, type, row, meta) {",
-                               "return type === 'display' && data.length > 100 ?",
-                               "'<span title=\"' + data + '\">' + data
-                        .substr(0, 100) + '...</span>' : data;","}"
-                   )
+      output$content_stats_raw <- DT::renderDataTable({
+        validate(need(rv$content_stats_DT, "Select a valid dataset."))
+        
+        DT::datatable(
+          rv$content_stats_DT,
+          filter = 'top',
+          options = list(
+            paging = TRUE,
+            pageLength = 5,
+            scrollX = TRUE,
+            scrollY = TRUE,
+            dom = 'frtip',
+            columnDefs =
+              list(
+                list(targets = 1,
+                     render = JS("function(data, type, row, meta) {",
+                                 "return type === 'display' && data.length > 100 ?",
+                                 "'<span title=\"' + data + '\">' + data
+                          .substr(0, 100) + '...</span>' : data;","}"
+                     )
+                )
               )
-            )
-        ),
-        selection = 'none',
-        rownames = FALSE
-      )
+          ),
+          selection = 'none',
+          rownames = FALSE
+        )
+      })
       
       # Glimpse from finalfit package used to show summary stats
       eda_summary_stats <- reactive({
         req(rv$content_stats)
-        finalfit::ff_glimpse(rv$content_stats)
-        
+        try(finalfit::ff_glimpse(rv$content_stats))
       })
       
       # Saving only the summary stats for continuous variables - could just move this up to finalfit call above?
       observe({
         req(eda_summary_stats())
         rv$content_stats_summary <- eda_summary_stats()$Continuous
-        print(rv$content_stats_summary)
       })
       
       # Table output for summary stats for content stats selected
       output$content_stats_summary <- 
-        DT::renderDataTable(rv$content_stats_summary,
-                      rownames=FALSE, 
-                      colnames = c("", "N", "Missing N", "Missing %", "Mean", "SD", "Min", "25% quartile", "Median", "75% quartile", "Max"),
-                      options = list(dom = 't', 
-                                     scrollX = TRUE, 
-                                     paging=FALSE,
-                                     fixedColumns = list(leftColumns = 1, 
-                                                         rightColumns = 0),
-                                     searching = FALSE
-                      )
-      )
+        DT::renderDataTable({
+          
+          validate(need(rv$content_stats_summary, 
+                        "Summary statistics could not be rendered from the 
+                        selected dataset."))
+          
+          DT::datatable(rv$content_stats_summary,
+            rownames=FALSE, 
+            colnames = c("", "N", "Missing N", "Missing %", "Mean", "SD", 
+                         "Min", "25% quartile", "Median", "75% quartile", "Max"),
+            options = list(dom = 't', 
+                           scrollX = TRUE, 
+                           paging=FALSE,
+                           fixedColumns = list(leftColumns = 1, 
+                                               rightColumns = 0),
+                           searching = FALSE
+            )
+          )
+      })
       
       # Generating ui for content stats display. If user selects checkbox to 
       # show summary stats, this will be rendered instead of raw data
       output$content_stats_display <- renderUI({
-        validate(
-          need(
-            rv$content_stats,
-            "Select and submit text data to continue"
-          ),
-          
-          errorClass = "validation-red")
+        validate(need(rv$content_stats, 
+                      "Select and submit text data to continue"))
         
         ns <- NS(id)
         raw <- tagList(
@@ -526,7 +588,7 @@ statsServer <- function(id, rv = rv){
       # Rendering last variable in content_stats since this is most
       # likely what user wants to see, not ID (not numeric)
       # Also means that when transformation saved it is rendered immediately
-      observeEvent(!is.null(rv$content_stats), {
+      observe({
         req(rv$content_stats)
         updateSelectInput(session, "eda_hist_var",
                           choices = colnames(rv$content_stats), 
@@ -557,6 +619,7 @@ statsServer <- function(id, rv = rv){
       # applies the given transformation based on inputted variable and returns
       # transformed vector
       eda_hist_plot_var <- reactive({
+        req(rv$content_stats)
         selected_var <- input$eda_hist_var
         transformation <- input$eda_transformation
         
@@ -573,15 +636,13 @@ statsServer <- function(id, rv = rv){
           need(
             is.numeric(rv$content_stats[[input$eda_hist_var]]),
             "Select a numeric variable."
-          ),
-          errorClass = "validation-red")
+          ))
         
         validate(
           need(
             eda_hist_plot_var(),
             "Transformation invalid."
-          ),
-          errorClass = "validation-red")
+          ))
 
         # Creating histogram. If include density curve is selected, 
         # the probability / proportion density is 
@@ -609,8 +670,7 @@ statsServer <- function(id, rv = rv){
             need(
               try(density(eda_hist_plot_var())),
               "Density curve cannot be plotted due to missing values."
-            ),
-            errorClass = "validation-red")
+            ))
           
           lines(density(eda_hist_plot_var()),
                 col = "royalblue")
@@ -640,7 +700,7 @@ statsServer <- function(id, rv = rv){
         var <- rv$content_stats[[input$eda_normality_var]]
         
         # ensuring variable is numeric
-        validate( need(is.numeric(var),"Select a numeric variable."), errorClass = "validation-red")
+        validate( need(is.numeric(var),"Select a numeric variable."))
         
         var
         
@@ -663,7 +723,7 @@ statsServer <- function(id, rv = rv){
         req(eda_normality_var())
         req(length(eda_normality_var()) < 5000)
         
-        shapiro.test(eda_normality_var())
+        try(shapiro.test(eda_normality_var()))
       })
       
       # Saving Anderson-darling test result
@@ -671,7 +731,7 @@ statsServer <- function(id, rv = rv){
         req(eda_normality_var())
         req(nrow(eda_normality_var()) > 7)
         
-        nortest::ad.test(eda_normality_var())
+        try(nortest::ad.test(eda_normality_var()))
       })
       
       # saving SW & AD results in reactive value list
@@ -684,8 +744,10 @@ statsServer <- function(id, rv = rv){
       
       # Rendering table with shapiro-wilk result
       output$eda_shapiro_wilk <- renderPrint({
-        
-        req(eda_normality_var())
+        validate(need(eda_normality_var(), 
+                      "Invalid input for normality test selected."))
+        validate(need(rv$shapiro_wilk_res, 
+                      "Invalid input for normality test selected."))
         # If SW length too high thus null, give user instructions 
         ifelse(length(eda_normality_var()) > 5000, 
                paste0("n > 5000, use Anderson-Darling test for normality."), 
@@ -694,6 +756,8 @@ statsServer <- function(id, rv = rv){
       
       # Rendering table with Anderson-darling result
       output$eda_anderson_darling <- renderPrint({
+        validate(need(rv$anderson_darling_res, 
+                      "Invalid input for normality test selected."))
         rv$anderson_darling_res
       })
       
@@ -732,7 +796,7 @@ statsServer <- function(id, rv = rv){
         req(ggheatmap)
         
         # Converting ggplot object into plotly object to be interactive
-        # ggplotly(ggheatmap)
+        try(ggplotly(ggheatmap))
       })
       
       # Rendering corr_plot object with plotly

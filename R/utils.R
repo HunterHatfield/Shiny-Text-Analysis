@@ -33,38 +33,24 @@ join_secondary <- function(content_primary, content_secondary,
   # This is done due to the by argument not receiving 
   # objects/variables in lieu of a column name.
   
-  # # Note when checking: could use {} to eval dynamic col names
-  # colnames(content_primary)[which(names(content_primary) == col_primary)] <- "Primary Common"
-  # colnames(content_secondary)[which(names(content_secondary) == col_secondary)] <- "Secondary Common"
-  
   # Perform join on Primary Common and Secondary Common columns
   # based on the join type passed to function arguments
   content_joined <- {
     if(join_type == "inner"){
-      
       inner_join(content_primary, content_secondary, 
                  by = setNames(col_secondary, col_primary))
-      
     } else if(join_type == "full"){
-      
       full_join(content_primary, content_secondary, 
                 by = setNames(col_secondary, col_primary))
-      
     } else if(join_type == "left"){
-      
       left_join(content_primary, content_secondary, 
                 by = setNames(col_secondary, col_primary))
-      
     } else if(join_type == "right"){
-      
       right_join(content_primary, content_secondary, 
                  by = setNames(col_secondary, col_primary))
       
     }
   }
-  
-  # Finally resetting the column name "Primary Common" back to original
-  # colnames(content_joined)[which(names(content_joined) == "Primary Common")] <- col_primary
   
   return(content_joined)
   
@@ -77,14 +63,14 @@ join_secondary <- function(content_primary, content_secondary,
 # Resets rv list values to NULL inorder to reset downstream graphs & widgets
 clear_reactives <- function(){
   
-  req(rv$content) 
-  
   rv$files <- NULL
   rv$csvtsv_file <- NULL
   rv$content <- NULL
   rv$numFiles <- nrow(rv$content) # obviously going to be 0 
   
   rv$content_primary <- NULL
+  rv$content_to_visualise <- NULL
+  rv$content_to_visualise_DT <- NULL
   
   rv$content_secondary <- NULL
   rv$secondary_file <- NULL
@@ -104,7 +90,6 @@ clear_reactives <- function(){
   
   mini_rv <- NULL
   report_rv <- NULL
-  
 }
 
 
@@ -118,7 +103,7 @@ advanced_mutate <- function(content_prepared_in,
                             mutate_new_col_name = NULL,
                             mutate_col_to_update = NULL,
                             mutate_advanced_condition_col,
-                            mutate_advanced_condition = "is equal to",
+                            mutate_advanced_condition = "is equal to (numeric)",
                             mutate_advanced_condition_numeric_input = NULL,
                             mutate_advanced_condition_text_input = NULL,
                             mutate_advanced_equals_true = TRUE,
@@ -129,7 +114,6 @@ advanced_mutate <- function(content_prepared_in,
   # Need to join rows not in DT at end 
   content_prepared <- content_prepared_in[which(in_datatable$ID %in% 
                                                   content_prepared_in$ID),]
-  
   
   # Doing all numeric or string checking & conversion first, 
   # then actually updating after
@@ -151,9 +135,6 @@ advanced_mutate <- function(content_prepared_in,
       mutate_advanced_condition_numeric_input <- 
         as.numeric(mutate_advanced_condition_numeric_input)
     )
-    
-    print("Converted numeric condition:")
-    print(mutate_advanced_condition_numeric_input)
     
     # If the try-catch produced error (class try-error)  or
     # produced NAs by coercion when trying to convert column or 
@@ -178,48 +159,31 @@ advanced_mutate <- function(content_prepared_in,
       )
       
       return(content_prepared_in)
-      
     }
     
     # end numeric conversion checking
   } else { # else ensure string methods like string matching and contains 
     # have condition input and condition column convertible to strings
     
-    # Attempting to convert col to char
-    # print("Printing content_prepared[mutate_advanced_condition_col]")
-    # print(content_prepared[mutate_advanced_condition_col])
-    
     convert_attempt_col_text <- try(
       content_prepared[mutate_advanced_condition_col] <- 
         as.character(content_prepared[[mutate_advanced_condition_col]])
-      #as.character(content_prepared[mutate_advanced_condition_col])
     )
-    # print("Printing content_prepared[mutate_advanced_condition_col] after conversion")
-    # print(content_prepared[mutate_advanced_condition_col])
-    # 
-    # print("Printing mutate_advanced_condition_text_input")
-    # print(mutate_advanced_condition_text_input)
     convert_attempt_condition_text <- try(
       mutate_advanced_condition_text_input <- 
         as.character(mutate_advanced_condition_text_input)
     )
     
-    # print("converted string condition:")
-    # print(mutate_advanced_condition_text_input)
-    
-    # If the try-catch produced error (class try-error)  or
-    # produced NAs by coercion when trying to convert column or 
-    # condition input to char, show alert
+    # If the try-catch produced error (class try-error) show alert
     if("try-error" %in% class(convert_attempt_col_text) ||
        "try-error" %in% class(convert_attempt_condition_text) ||
        is_empty(mutate_advanced_condition_text_input) ||
        is.na(mutate_advanced_condition_text_input) ||
        NA %in% convert_attempt_col_text){
       
-      # Alert if something isn't convertible / NAs produced
       shinyalert(
         title = "Update failed: conversion error",
-        text = "Updating using strings takes a string and compares it to strings in the selected column. \n \n Ensure both your selected column and inputted condition are convertible to strings/character vectors.",
+        text = "Updating with strings compares the strings in the selected column and inputted condition. \n \n Ensure both your selected column and inputted condition are convertible to strings/character vectors.",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -231,22 +195,15 @@ advanced_mutate <- function(content_prepared_in,
       
       return(content_prepared_in)
     } # end alert check
-    
   } # end string conversion checking
   
   
   #### Actually mutating #####
-  
   # Where mutate update option is selected
   if(mutate_option == "mutate_update") { 
     
-    # for each row in data to update
-    # for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
-    
     # If checking if less than...
     if(mutate_advanced_condition == "is less than"){
-      
-      print("Mutate update advanced: checking is less than...")
       
       # For each row in mutate_advanced_condition_col:
       # if condition true: input true value provided by user, 
@@ -304,8 +261,6 @@ advanced_mutate <- function(content_prepared_in,
       
     } else if(mutate_advanced_condition == "is equal to (numeric)"){
       
-      print("Mutate update advanced: checking is equal to...")
-      
       # for each row in data to update
       for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
         
@@ -327,8 +282,6 @@ advanced_mutate <- function(content_prepared_in,
       # end is equal to numeric checking
       
     } else if(mutate_advanced_condition == "matches string"){
-      
-      print("Matches string case")
       
       # for each row in data to update
       for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
@@ -354,8 +307,6 @@ advanced_mutate <- function(content_prepared_in,
       
     } else if(mutate_advanced_condition == "contains"){
       
-      print("Contains string case")
-      
       # for each row in data to update
       for(i in seq_len(nrow(content_prepared[mutate_col_to_update]))){
         
@@ -377,28 +328,16 @@ advanced_mutate <- function(content_prepared_in,
             mutate_advanced_equals_false
           
         } # end else case
-        
       } # end for loop
-      
     } # end mutate update contains logic
-    
-    # } # end for loop
-    
-    print("Result of advanced_update function:")
-    print(content_prepared)
-    # return(content_prepared[mutate_col_to_update])
+
     return(content_prepared)
     
   } # end if mutate_update logic
   
-  # Where advanced add new col selected
+  
+  #### Where advanced add new col selected
   if(mutate_option == "mutate_new"){
-    
-    print("advanced add new selected")
-    
-    # For each row in mutate_advanced_condition_col, if condition true
-    # input true value provided by user, else is condition fails input
-    # false value
     
     # Using vector-based comparisons to generate vector of boolean 
     # indicating if condition met for each row, which is then used 
@@ -427,13 +366,11 @@ advanced_mutate <- function(content_prepared_in,
         content_prepared[[mutate_advanced_condition_col]] ==
         mutate_advanced_condition_text_input
       
-      
     } else if(mutate_advanced_condition == "contains"){
       
       is_condition_met <- 
         grepl(mutate_advanced_condition_text_input,
               content_prepared[[mutate_advanced_condition_col]])
-      
     }
     
     # Adding new column named as user input
@@ -442,10 +379,7 @@ advanced_mutate <- function(content_prepared_in,
                if_else(is_condition_met,
                        mutate_advanced_equals_true,
                        mutate_advanced_equals_false))
-    
-    
-    print("Result of advanced_update function:")
-    print(content_prepared)
+
     return(content_prepared)
     
   } # end mutate option add new logic
@@ -467,84 +401,100 @@ remove_stop_words <- function(data, col_name, stop_words,
   # Check that supplied column exists in data and is chars
   req(c("ID", col_name) %in% colnames(data))
   req(is.character(data[[col_name]]))
-  print("Data valid")
+  
+  # Creating subset of un-needed cols
+  # data_other_cols <- data %>%
+  #   dplyr::select(-{col_name})
+
+  # If inputted data and data un-nested as words are same length, 
+  # inputted data was already word-tokenised, so doesn't
+  # need to be flattened and can just anti-join and return
+  data_words <- data %>%
+    # dplyr::select(ID, {col_name}) %>%
+    unnest_tokens(!!col_name, {col_name}, token = "words")
+
+  if(nrow(data_words) == nrow(data)){
+    print("Data is already word-tokenised")
+    
+    # changing colnames of stop-words df to col_name supplied
+    # since anti_join wouldn't accept default 'word' name
+    timestamp <- format(Sys.time(), "%Y%m%d%H%M%S")
+    col_name_random <- sprintf("column_%s", timestamp)
+    colnames(stop_words) <- col_name_random
+    colnames(data_words)[which(colnames(data_words) == {col_name})] =
+      col_name_random
+    
+    # Anti-join with stop-word list
+    data_stop_rm <- dplyr::anti_join(data_words, stop_words, 
+                                     by = {col_name_random})
+    
+    colnames(data_stop_rm)[
+      which(colnames(data_stop_rm) == {col_name_random})
+      ] = col_name
+
+    return(data_stop_rm)
+    
+    # else the data was not word-tokenised
+  } else {
+    
+    # Convert stop words to list with as.list & flatten to 1D with unlist
+    stop_words_list <- unlist(as.list(stop_words[['word']]), 
+                              recursive = TRUE)
+    
+    # Ensuring data is UTF-8 encoded
+    data[[{col_name}]] <- iconv(data[[{col_name}]], to = "UTF-8", sub = "byte")
+    
+    # converted selected col to a Corpus object using the VectorSource 
+    # function, use tm_map to transform to lower and remove puncuation
+    # then remove stop-words and clean whitespace etc.
+    corpus <- Corpus(VectorSource(data[[{col_name}]]))
+    corpus <- tm_map(corpus, removePunctuation)
+    corpus <- tm_map(corpus, content_transformer(tolower))
+    corpus_stop_rm <- tm_map(corpus, removeWords, stop_words_list)
+    
+    cleaned_text <- sapply(corpus_stop_rm, function(x) {
+      PlainTextDocument(stripWhitespace(as.character(x)))
+    })
+    
+    # Then replacing original text with stop-removed text
+    data_stop_rm <- data
+    for(i in 1:nrow(data_stop_rm)){
+      data_stop_rm[[i, {col_name}]] <- cleaned_text[, i]$content
+    }
+
+    return(data_stop_rm)
+  }
+  
+  # Reverting text data back into paragraphs by flattening, 
+  # otherwise data will return as word-tokenised.
+  # data_stop_rm <- data_stop_rm %>%
+  #   group_by(ID) %>%
+  #   summarize("{col_name}" := 
+  #               str_flatten(!!sym(col_name_random), 
+  #                           collapse = " ")) %>%
+  #   ungroup()
+  
+  # Then joining stop-removed column and rest of cols
+  # data_stop_rm <- inner_join(data_stop_rm,
+  #                           data_other_cols, by = c("ID", "Contents"))
   
   # If data not tokenised, select just ID and column, unnest to words, 
   # anti-join with stop_word data, and re-flatten data to be chunk of 
   # text per row. Finally, add other extra columns with full_join
-  if(!is_tokenised){
-    
-    print("Data not tokenised")
-    # Removing stop-words with anti-join on selected column
-    # Then grouping by ID and collapsing back into paragraphs 
-    # Always unnesting by word first - even if data is tokenised
-    # it could be in bigrams etc.
-    data_cols_stop_rm <- data %>% 
-        dplyr::select(ID, {col_name}) %>%
-        unnest_tokens(!!col_name, {col_name}, token = "words")
-    
-    # changing colnames of stop-words df to col_name supplied
-    # since anti_join wouldn't accept default 'word' name
-    colnames(stop_words) <- c("contents")
-    colnames(data_cols_stop_rm) <- c("ID", "contents")
-    
-    data_cols_stop_rm <- dplyr::anti_join(data_cols_stop_rm, 
-                         stop_words, by = "contents")
-  
-    data_cols_stop_rm <- data_cols_stop_rm %>%
-      group_by(ID) %>%
-      summarize("{col_name}" := 
-                  str_flatten(contents, collapse = " ")) 
-    
-    # Creating subset of rest of cols in submitted content
-    data_other_cols <- data %>% 
-      dplyr::select(-{col_name})
-    
-    print("Other columns of data set (deselect col_name)")
-    print(data_other_cols)
-    
-    print("Data of stop-removal function just before full join")
-    print(data_cols_stop_rm)
-    # Then joining stop-removed column and rest of cols
-    data_stop_rm <- full_join(data_cols_stop_rm,
-                              data_other_cols, by = "ID")
-    
-    print("Data of stop-removal function after full join")
-    print(data_stop_rm)
-  
-  } 
+  # if(!is_tokenised){
+  #   print("Data not tokenised")
+  # 
+  # }
   # Else if tokenised, tokenise into words and anti-join
   # entire dataset with stop_words provided
   # provided by user
-  else {
-    print("Data is tokenised:")
-    
-    data <- data %>% 
-      unnest_tokens(!!col_name, {col_name}, token = "words")
-    print("Unnested data")
-    print(data)
-    
-    print("Now anti-joining with stop-words:")
-    
-    # Renaming column names for ease of use with anti_join()
-    colnames(stop_words) <- c("contents")
-    colnames(data)[which(colnames(data) == {col_name})] = "contents"
-    
-    # Anti-join to remove stop-words
-    data_stop_rm <- dplyr::anti_join(data, stop_words, 
-                                     by = "contents")
-    
-    # Renaming column of interest back to original name
-    colnames(data_stop_rm)[which(colnames(data_stop_rm) == 
-                                   "contents")] = {col_name}
-    
-    print("Data after anti-join:")
-    print(data_stop_rm)
-    
-  }
-  
-  print("Final stop-removed dataset:")
-  print(data_stop_rm)
+  # else {
+
+    # data <- data %>%
+    #   unnest_tokens(!!col_name, {col_name}, token = "words")
+
+
+  # }
   
   # Final stop-removed dataset
   return(data_stop_rm)
@@ -561,15 +511,16 @@ tokenise_data <- function(data, col_name, token,
   
   # Check that supplied column exists in data and is chars
   req(c("ID", col_name) %in% colnames(data))
-  req(is.character(data[[col_name]]))
   
   ##### In try catch loop
   # If contents uploaded are not character, attempt to convert
-  if (!is.character(rv$content_stop_rm$Contents)) {
-    print("Contents not character, attempting conversion")
+  if (!is.character(data[[col_name]])) {
+    print("attempting to convert to char to tokenise")
     data[[col_name]] <- as.character(data[[col_name]])
-    print("Conversion success")
+    print(data[col_name])
   }
+  
+  # First need to mash together
   
   # Actually tokenising
   if (token == "words" || token == "sentences") {
@@ -592,14 +543,13 @@ tokenise_data <- function(data, col_name, token,
     # unnest on the user inputted regex
     data_tokenised <- data %>%
       unnest_regex(!!col_name, {col_name},
-                   pattern = tolower(custom_token))
+                   pattern = custom_token)
   }
   
   data_tokenised <- data_tokenised %>%
     relocate({col_name}, .after = ID)
   
   return(data_tokenised)
-  
 }
 
 
@@ -628,12 +578,36 @@ stem_data <- function(data, col_name){
     mutate("{col_name}" := Stem_1) %>%
     select(-Stem_1, -Stem_2)
   
-  print("Stemmed data:")
-  print(data_stemmed)
-  
   return(data_stemmed)
+
 }
 
+
+#######################################
+#### check sufficiently tokenised #####
+#######################################
+# Returns a logical value indicating whether or not
+# a supplied dataset has 1-3 tokens/words per row.
+# Takes a dataset and column name to check, specified column is then
+# tokenised into words to contain one token per row. 
+# If this one-token-per-row dataset is greater than 3 times the length
+# of the original dataset, the original dataset must have more than 3
+# words in one or more rows.
+# Also can check if tokenised into words
+tokenised_enough <- function(data, col_name, 
+                             check_if_words = FALSE){
+  
+  data_tokenised <- data %>%
+    unnest_tokens(!!col_name, {col_name}, token = "words")
+  
+  if(check_if_words){
+    ifelse(nrow(data_tokenised) != nrow(data), 
+           return(FALSE), return(TRUE))
+  }
+  
+  ifelse(nrow(data_tokenised) > 3 * nrow(data), 
+         return(FALSE), return(TRUE))
+}
 
 
 #######################################
