@@ -15,79 +15,110 @@ always_allow_html: true
 
 ```{r, setup}
 #| echo: false
-#| message: false
-#| warning: false
-#| error: false
+#| message: true
+#| warning: true
+#| error: true
 
-library(knitr)
-library(tidyr)
-library(dplyr)
-library(ggplot2)
-library(kableExtra)
-library(readr)
-library(stringr)
-library(flextable)
+if(!require('pacman'))install.packages('pacman')
+library(pacman)
 
+pacman::p_load(
+  dplyr,
+  flextable,
+  ggplot2,
+  kableExtra,
+  knitr,
+  readr,
+  stringr,
+  tidyr
+  )
 ```
 
 ```{r}
 #| echo: false
 #| warning: false
 
+# Setting defaults to render where parts missing, e.g. user downloads report with nothing uploaded
+counts_subtitle <- ""
+summary_stats_subtitle <- ""
+num_stops <- 0
+num_files <- 0
+
 # Summary stats 
-
-# Creating variable for number of stop-words that were included. Better readability to have "no stop-words" instead of 0 stop-words too.
-
-if(!is.null(params$report_rv$stop_words_final) && 
-   nrow(params$report_rv$stop_words_final) > 0){
-  numStops <- nrow(params$report_rv$stop_words_final)
-} else {
-  numStops <- "no"
+if(!is.null(params$report_rv$num_files)){
+  num_files <- params$report_rv$num_files
 }
 
-total_tokens <- params$report_rv$content_tf_idf$`Corpus token count`[1]
-mean_token_count <- params$report_rv$content_tf_idf$`Mean token count`[1]
-sd_token_count <- c(sd(params$report_rv$content_tf_idf$`Token Count`))
+# Creating variable for number of stop-words that were included.
+if(!is.null(params$report_rv$stop_words_final)){
+  num_stops <- nrow(params$report_rv$stop_words_final)
+} 
 
-max_min_token <- params$report_rv$content_tf_idf %>%
-  arrange(desc(`Token Count`)) %>%
-  select(ID,`Token Count`)
-highest_token_count <- slice_head(max_min_token)
-lowest_token_count <- slice_tail(max_min_token)
+# Creating summary stats values
+if(!is.null(params$report_rv$content_tf_idf)){
+    total_tokens <- params$report_rv$content_tf_idf$`Corpus token count`[1]
+  mean_token_count <- params$report_rv$content_tf_idf$`Mean token count`[1]
+  sd_token_count <- c(sd(params$report_rv$content_tf_idf$`Token Count`))
+  
+  summary_stats_subtitle <-  paste("The total count of all tokens in the corpus was ", total_tokens,
+                                   ". The mean token count per document was ", 
+                            mean_token_count, 
+                            " with a standard deviation of ", 
+                            round(sd_token_count, 2), ".",
+                          collapse = ",")
+  
+  max_min_token <- params$report_rv$content_tf_idf %>%
+    arrange(desc(`Token Count`)) %>%
+    select(ID,`Token Count`)
+  highest_token_count <- slice_head(max_min_token)
+  lowest_token_count <- slice_tail(max_min_token)
+  
+  highest_count <- highest_token_count[1,2]
+  highest_doc <- highest_token_count[1,1]
+  lowest_count <- lowest_token_count[1,2]
+  lowest_doc <- lowest_token_count[1,1]
+  
+  counts_subtitle <-  paste("The document with the highest token count (", highest_count, ") was ", 
+                            highest_doc, 
+                            ". The document with the lowest token count (", lowest_count, ") was ", 
+                            lowest_doc, ".",
+                          collapse = ",")
+}
 ```
 
 ------------------------------------------------------------------------
 
 ## Summary statistics
 
-A corpus consisting of `r params$report_rv$numFiles` documents was submitted for analysis. Text was tokenised by `r params$report_rv$token` and `r numStops` stop-words were omitted from their contents.
+A corpus consisting of `r num_files` documents was submitted for analysis. A total of `r num_stops` stop-words were omitted from their contents.
 
-This resulted in the total count of all tokens in the corpus being `r total_tokens`, with the mean token count (`r params$report_rv$token`) per document being `r mean_token_count` with a standard deviation of `r sd_token_count`.
+`r summary_stats_subtitle`
+\
 
-The document with the highest token count (`r highest_token_count[1,2]` `r params$report_rv$token`) was `r highest_token_count[1,1]`, whilst the document with the lowest token count (`r lowest_token_count[1,2]` `r params$report_rv$token`) was `r lowest_token_count[1,1]`.
-
-A summary of these statistics can be found in Table 1 below.\
+`r counts_subtitle`
+\
 
 ```{r}
 #| echo: false
 #| warning: false
 
 data <- params$report_rv$content_tf_idf
-summary <- tibble(`Token type` = params$report_rv$token,
-                  `Mean document token count` = 
+if(!is.null(data)){
+  summary <- tibble(`Mean document token count` = 
                     mean_token_count, 
                   `Std. dev.` = c(sd(data$`Token Count`)),
                   `Min.` = min(data$`Token Count`), 
                   `Max.` = max(data$`Token Count`), 
-                  `Total corpus count` = total_tokens
+                  `Total corpus tokens` = total_tokens
                   )
 
-flextable(summary, cwidth = 2) %>% 
-  set_caption(caption =  "Table 1. Summary statistics for the current corpus.") %>% 
-  # font(fontname = "Calibri (Body)", part = "all") %>%
-  # fontsize(size = 10, part = "body") %>%
-  # theme_booktabs() %>% # default theme
-  autofit()
+  flextable(summary, cwidth = 2) %>% 
+    set_caption(caption =  "Table 1. Summary statistics for the current corpus.") %>% 
+    # font(fontname = "Calibri (Body)", part = "all") %>%
+    # fontsize(size = 10, part = "body") %>%
+    # theme_booktabs() %>% # default theme
+    autofit()
+}
 ```
 
 ```{r }
@@ -96,13 +127,11 @@ flextable(summary, cwidth = 2) %>%
 #| error: false
 
 # Generating titles for stuff
-
-if(!is.null(params$report_rv$tf_idf_plot) && params$report_rv$tf_idf_plot != ""){
+if(!is.null(params$report_rv$tf_idf_plot)){
   tf_idf_title <- "Term frequency-inverse document frequency (tf-idf)"
 } else {
   tf_idf_title <- NULL
 }
-
 ```
 
 \
@@ -111,7 +140,7 @@ if(!is.null(params$report_rv$tf_idf_plot) && params$report_rv$tf_idf_plot != "")
 
 ### Most frequent terms across the corpus
 
-This plot presents the most common tokens in your text data by calculating their frequency (number of times occuring) (Fig. 1).
+This plot presents the most common tokens in your text data by calculating their frequency (number of times occurring) (Fig. 1).
 
 ```{r}
 #| echo: false
@@ -120,8 +149,10 @@ This plot presents the most common tokens in your text data by calculating their
 #| fig.width: 10
 #| out.width: 650
 
-if(!is.null(params$report_rv$token_freq_plot) && params$report_rv$token_freq_plot != ""){
+if(!is.null(params$report_rv$token_freq_plot)){
   params$report_rv$token_freq_plot
+} else {
+  paste("Token frequency plot could not be downloaded.")
 }
 ```
 
@@ -139,8 +170,11 @@ Tokens closer to the line have similar frequencies in both sets of texts.\
 #| warning: false
 #| fig.width: 10
 #| out.width: 650
-if(!is.null(params$report_rv$comp_freq_plot) && params$report_rv$comp_freq_plot != ""){
+
+if(!is.null(params$report_rv$comp_freq_plot)){
   params$report_rv$comp_freq_plot
+} else {
+  paste("Token frequency comparison plot could not be downloaded.")
 }
 ```
 
@@ -150,7 +184,7 @@ if(!is.null(params$report_rv$comp_freq_plot) && params$report_rv$comp_freq_plot 
 
 Zipf's law states that the frequency of a word appearing is inversely proportional to its rank.
 
-![](zipfs_law.png){width="10%"}\
+![](zipfs_law.png){width="30%"}\
 
 This inverse proportional relationship is visualised by plotting these values on log scales in Fig. 3.
 
@@ -160,8 +194,11 @@ This inverse proportional relationship is visualised by plotting these values on
 #| fig.width: 10
 #| out.width: 650
 #| fig.align: center
-if(!is.null(params$report_rv$zipfs_plot) && params$report_rv$zipfs_plot != ""){
+
+if(!is.null(params$report_rv$zipfs_plot)){
   params$report_rv$zipfs_plot
+} else {
+  paste("Zipf's law plot could not be downloaded.")
 }
 ```
 
@@ -182,34 +219,42 @@ The method aims to decrease weighting of common terms and increase weighting of 
 #| warning: false
 #| echo: false
 
+tf_idf_subtitle_1 <- NULL
+tf_idf_subtitle_2 <- NULL
+
 # First check if user wants to include tf_idf stuff
-if(!is.null(params$report_rv$tf_idf_plot) && params$report_rv$content_tf_idf != ""){
-  
-  # Extract IDs tf-idf is performed on
-  id1 <- params$report_rv$tf_idf_IDs[1]
-  id2 <- params$report_rv$tf_idf_IDs[2]
+if(!is.null(params$report_rv$tf_idf_plot)){
 
-  # Extract list of most important words according to tf-idf
-  # for each document.
-  tf_idf_id1 <- params$report_rv$content_tf_idf %>%
-    filter(ID == id1) %>%
-    arrange(desc(tf_idf)) %>%
-    select(Token)
+# Extract IDs tf-idf is performed on
+id1 <- params$report_rv$tf_idf_IDs[1]
+id2 <- params$report_rv$tf_idf_IDs[2]
 
-  tf_idf_id2 <- params$report_rv$content_tf_idf %>%
-    filter(ID == id2) %>%
-    arrange(desc(tf_idf)) %>%
-    select(Token)
-  
-  tf_idf_subtitle <-  paste("Tf-idf analysis shows some of the most important words to the document",
-                            id1, " are: ", tf_idf_id1$Token[1], ",",
-                            tf_idf_id1$Token[2],
-                            ", and ", 
-                            tf_idf_id1$Token[3], ".",
-                            collapse = ",")
-} else {
-  tf_idf_subtitle <- "" 
+# Extract list of most important words according to tf-idf
+# for each document.
+tf_idf_id1 <- params$report_rv$content_tf_idf %>%
+  filter(ID == id1) %>%
+  arrange(desc(tf_idf)) %>%
+  select(Token)
+
+tf_idf_id2 <- params$report_rv$content_tf_idf %>%
+  filter(ID == id2) %>%
+  arrange(desc(tf_idf)) %>%
+  select(Token)
+
+tf_idf_subtitle_1 <-  paste("Tf-idf analysis shows some of the most important words to the document",
+                          id1, " are: ", tf_idf_id1$Token[1], ",",
+                          tf_idf_id1$Token[2],
+                          ", and ", 
+                          tf_idf_id1$Token[3], ".",
+                          collapse = ",")
+tf_idf_subtitle_2 <-  paste("Furthermore, the most important words to the document",
+                          id2, " according to tf-idf analysis are: ", tf_idf_id2$Token[1], ",",
+                          tf_idf_id2$Token[2],
+                          ", and ", 
+                          tf_idf_id2$Token[3], ".",
+                          collapse = ",")
 }
+
 ```
 
 ```{r}
@@ -218,12 +263,15 @@ if(!is.null(params$report_rv$tf_idf_plot) && params$report_rv$content_tf_idf != 
 #| fig.width: 10
 #| out.width: 650
 
-if(!is.null(params$report_rv$tf_idf_plot) && params$report_rv$tf_idf_plot != ""){
+if(!is.null(params$report_rv$tf_idf_plot)){
   params$report_rv$tf_idf_plot
+} else {
+  paste("Tf-idf plot could not be downloaded.")
 }
-
 ```
 
 \
 
-`r tf_idf_subtitle`
+`r tf_idf_subtitle_1`
+`r tf_idf_subtitle_2`
+

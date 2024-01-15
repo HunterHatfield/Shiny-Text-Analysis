@@ -5,6 +5,12 @@
     /* font-family: 'Fira Sans', sans-serif;  
 } */
 
+*::selection {
+color: #fff;
+background-color: royalblue;
+}
+
+
 html {
     scroll-behavior: smooth;
 }
@@ -221,6 +227,10 @@ main-sidebar .user-panel,
     background-color: white;
 }
 
+.form-group{
+  margin-top: 15px;
+}
+
 form.well{
   margin-top: 0px;
 }
@@ -232,6 +242,11 @@ form.well{
 
 .progress{
   margin-bottom: 0px;
+}
+
+/* Icons in sidebar */
+i.fas{
+  padding-right: 5px;
 }
 
 div#shiny-notification-panel{

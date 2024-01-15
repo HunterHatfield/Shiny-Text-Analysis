@@ -63,14 +63,16 @@ stopWordsUI <- function(id) {
       p(textOutput(ns("default_caption")))
     ),
     hr(),
-    h3("Submitted stop-words"),
+    h4("Submitted stop-words"),
     p("Default English stop-words are sourced from the tidytext package in R."),
     tags$a(href="https://rdrr.io/cran/tidytext/man/stop_words.html", 
            "View tidytext docs here"),
     wellPanel(
       p(textOutput(ns("stop_word_display"))),
       DT::dataTableOutput(ns("stop_words_table")),
-      hr(class = "hr-blank")
+      # downloadButton(ns("download_stop_words"),
+      #                label = "Download stop-words (.csv)"
+      # )
     ),
     
     
@@ -356,18 +358,22 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
     }) # end submit stop-words
     
     # Displaying stop-words added
-    output$stop_words_table <- DT::renderDataTable({
+    output$stop_words_table <- DT::renderDataTable(
+      server = F, {
       
       validate(need(rv$stop_words_final, "No stop-words submitted."))
       
       DT::datatable(
         rv$stop_words_final,
+        extensions = "Buttons",
         options = list(
           paging = TRUE,
           pageLength = 3,
           scrollX = TRUE,
           scrollY = TRUE,
-          dom = "frtip"
+          dom = "frtipB", 
+          buttons = list(list(extend = 'csv',
+                              text = "Download stop-words (.csv)"))
         ),
         escape = FALSE,
         selection = "none",
@@ -432,6 +438,21 @@ stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
           shinyjs::reset(to_reset[i])
         }
       }
-    })
+    }) # end undo stops
+    
+    
+    # Rendering a download stops button with downloadHandler()
+    # output$download_stop_words <- downloadHandler(
+    #   filename = function() {
+    #     paste("submitted_stop_words.csv")
+    #   },
+    #   content = function(file) {
+    #     req(rv$stop_words_final)
+    #     write_delim(as.data.frame(rv$stop_words_final), file,
+    #                 delim = ","
+    #     )
+    #   }
+    # )
+    
   })
 }

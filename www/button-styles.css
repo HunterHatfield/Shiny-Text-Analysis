@@ -55,3 +55,21 @@
     border: 1px solid crimson;
     color: white;
 } 
+
+/*
+DT buttons
+*/
+button.dt-button.buttons-csv{
+  border-radius: 5px;
+  color: #1D1D1D;
+  background-color: white;
+  background: none;
+  width: 100%;
+  border: 1px solid royalblue;
+}
+button.dt-button.buttons-csv:hover{
+  border-radius: 5px;
+  color: white;
+  background: royalblue;
+  border: 1px solid royalblue;
+}

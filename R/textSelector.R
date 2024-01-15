@@ -90,13 +90,58 @@ textSelectorUI <- function(id, label = "Choose file(s):"){
 textSelectorServer <- function(id, rv = rv, session = session){
   moduleServer(id, function(input, output, session){ 
 
-      uploadServer("upload", rv = rv, parent = session)
-      
-      csvServer("csv", rv = rv)
-      
-      secondaryServer("secondary", rv = rv)
-      
-      gutenbergRServer("gutenbergR", rv = rv)
+    # Inner modules for file uploads, csv uploads and secondary uploads
+    uploadServerAttempt <- try(uploadServer("upload", 
+                                            rv = rv, parent = session))
+    if("try-error" %in% class(uploadServerAttempt)){
+      shinyalert(
+        title = "File uploads just broke!",
+        text = "The file upload module's backend server returned a fatal error. Refresh your app and try again.",
+        size = "xs", 
+        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+        html = FALSE, type = "info",
+        showConfirmButton = TRUE, showCancelButton = FALSE,
+        confirmButtonText = "Dismiss",
+        confirmButtonCol = "#4169E1",
+        timer = 0, imageUrl = "", animation = TRUE
+      )
+      return()
+    }
+    
+    csvServerAttempt <- try(csvServer("csv", rv = rv))
+    if("try-error" %in% class(csvServerAttempt)){
+      shinyalert(
+        title = ".csv uploads just broke!",
+        text = "The csv upload module's backend server returned a fatal error. Refresh your app and try again.",
+        size = "xs", 
+        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+        html = FALSE, type = "info",
+        showConfirmButton = TRUE, showCancelButton = FALSE,
+        confirmButtonText = "Dismiss",
+        confirmButtonCol = "#4169E1",
+        timer = 0, imageUrl = "", animation = TRUE
+      )
+      return()
+    }
+    
+    secondaryServerAttempt <- try(secondaryServer("secondary", rv = rv))
+    if("try-error" %in% class(secondaryServerAttempt)){
+      shinyalert(
+        title = "Secondary uploads just broke!",
+        text = "The secondary upload module's backend server returned a fatal error. Refresh your app and try again.",
+        size = "xs", 
+        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+        html = FALSE, type = "info",
+        showConfirmButton = TRUE, showCancelButton = FALSE,
+        confirmButtonText = "Dismiss",
+        confirmButtonCol = "#4169E1",
+        timer = 0, imageUrl = "", animation = TRUE
+      )
+      return()
+    } 
+    
+    # old gutenberg server
+    # gutenbergRServer("gutenbergR", rv = rv)
       
       
       

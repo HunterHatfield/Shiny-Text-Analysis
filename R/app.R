@@ -76,7 +76,9 @@ options(DT.TOJSON_ARGS = list(na = 'string'))
 
 
 rv <- shiny::reactiveValues() # creating reactive values list
-report_rv <- shiny::reactiveValues() # creating rv list for the report
+
+# Reactive value lists for reports
+report_rv <- shiny::reactiveValues()
 mini_rv <- shiny::reactiveValues()
 stats_report_rv <- shiny::reactiveValues()
 
@@ -158,10 +160,10 @@ textApp <- function(...){
         # Stat UI
         tabItem(tabName = "statsTab",
                 statsUI("stats")
+        ),
+        tabItem(tabName = "reportingTab",
+                reportMakerUI("reportMaker")
         )
-        # tabItem(tabName = "reportingTab",
-        #         reportMakerUI("reportMaker")
-        # )
       )
     ) # end dashboard body
   )
@@ -170,18 +172,12 @@ textApp <- function(...){
   server <- function(input, output, session) {
     
     # inner module servers
-    homeServer("home", rv=rv, parent = session)
     
-    textSelectorServer("textSelector", rv = rv)
-    
-    textFreqServer("textFreq", rv = rv)
-    textPrepServer("textPrep", rv = rv)
-    
-    statsServerAttempt <- try(statsServer("stats", rv = rv))
-    if("try-error" %in% class(statsServerAttempt)){
+    homeAttempt <- try(homeServer("home", rv=rv, parent = session))
+    if("try-error" %in% class(homeAttempt)){
       shinyalert(
-        title = "Stats tab broke",
-        text = "Congrats! You just broke the statistics tab.",
+        title = "Hey bull! Stop running around in my china shop!",
+        text = "The home tab's backend server returned a fatal error. Refresh your app or navigate to another tab.",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -190,11 +186,89 @@ textApp <- function(...){
         confirmButtonCol = "#4169E1",
         timer = 0, imageUrl = "", animation = TRUE
       )
-    } else {
-      statsServer("stats", rv = rv)
+      return()
     }
     
-    reportMakerServer("reportMaker", rv = rv, report_rv = report_rv)
+    textSelectorAttempt <- try(textSelectorServer("textSelector", rv = rv))
+    if("try-error" %in% class(textSelectorAttempt)){
+      shinyalert(
+        title = "The text selector server broke!",
+        text = "The text selector tab's backend server returned a fatal error. Refresh your app and try again.",
+        size = "xs", 
+        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+        html = FALSE, type = "info",
+        showConfirmButton = TRUE, showCancelButton = FALSE,
+        confirmButtonText = "Dismiss",
+        confirmButtonCol = "#4169E1",
+        timer = 0, imageUrl = "", animation = TRUE
+      )
+      return()
+    }
+    
+    textFreqAttempt <- try(textFreqServer("textFreq", rv = rv))
+    if("try-error" %in% class(textFreqAttempt)){
+      shinyalert(
+        title = "The text frequency server broke!",
+        text = "The text frequency tab's backend server returned a fatal error. Refresh your app and try again.",
+        size = "xs", 
+        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+        html = FALSE, type = "info",
+        showConfirmButton = TRUE, showCancelButton = FALSE,
+        confirmButtonText = "Dismiss",
+        confirmButtonCol = "#4169E1",
+        timer = 0, imageUrl = "", animation = TRUE
+      )
+      return()
+    }
+    
+    
+    textPrepAttempt <- try(textPrepServer("textPrep", rv = rv))
+    if("try-error" %in% class(textPrepAttempt)){
+      shinyalert(
+        title = "The text preparation server broke!",
+        text = "The text preparation tab's backend server returned a fatal error. Refresh your app and try again.",
+        size = "xs", 
+        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+        html = FALSE, type = "info",
+        showConfirmButton = TRUE, showCancelButton = FALSE,
+        confirmButtonText = "Dismiss",
+        confirmButtonCol = "#4169E1",
+        timer = 0, imageUrl = "", animation = TRUE
+      )
+      return()
+    }
+    
+    statsServerAttempt <- try(statsServer("stats", rv = rv))
+    if("try-error" %in% class(statsServerAttempt)){
+      shinyalert(
+        title = "The statistical analysis tab just broke!",
+        text = "The statistics tab's backend server returned a fatal error. Refresh your app and try again.",
+        size = "xs", 
+        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+        html = FALSE, type = "info",
+        showConfirmButton = TRUE, showCancelButton = FALSE,
+        confirmButtonText = "Dismiss",
+        confirmButtonCol = "#4169E1",
+        timer = 0, imageUrl = "", animation = TRUE
+      )
+      return()
+    }
+    
+    reportMakerAttempt <- try(reportMakerServer("reportMaker", rv = rv, report_rv = report_rv))
+    if("try-error" %in% class(reportMakerAttempt)){
+      shinyalert(
+        title = "The reporting tab just broke!",
+        text = "The reporting tab's backend server returned a fatal error. Refresh your app and try again.",
+        size = "xs", 
+        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+        html = FALSE, type = "info",
+        showConfirmButton = TRUE, showCancelButton = FALSE,
+        confirmButtonText = "Dismiss",
+        confirmButtonCol = "#4169E1",
+        timer = 0, imageUrl = "", animation = TRUE
+      )
+      return()
+    }
     
     onStop(function() {
       cat("\n This will run on session stop")

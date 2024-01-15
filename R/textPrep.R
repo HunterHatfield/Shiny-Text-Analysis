@@ -1,9 +1,5 @@
 # Text preparation tab
 
-# Copied from old textPrep.R to edit stop-removal, tokenisation and stemming
-# to be done on content_prepared instead of content_stop_rm, and have written
-# functions to do actions instead of all in little modules
-
 #### TEXT PREP UI #####
 textPrepUI <- function(id) {
   ns <- NS(id)
@@ -24,7 +20,7 @@ textPrepUI <- function(id) {
           width = 12,
           fluidRow(
             column(4,
-              h3("Mutate data"),
+              h3("Mutate"),
               p("Edit your text data by double-clicking on the table and/or add a column using the mutating tools."),
 
               # Radio buttons to render which type of mutation controls
@@ -92,7 +88,7 @@ textPrepUI <- function(id) {
               hr(class = "hr-blank"),
               
               # Filtering options 
-              h3("Filter data"),
+              h3("Filter"),
               p("Use the interactive datatable to filter attributes of your text data. Save your filtered data to use in further analyses."),
               em("Note: filtering data will remove any rows that do not pass the filter. If you want to keep all rows, save the filtered set as a subset.", style = "color: gray; margin-bottom: 0px 0px 50px;"),
               
@@ -197,7 +193,7 @@ textPrepUI <- function(id) {
             collapsible = T,
             width = 12,
             h3("Download data"),
-            p("Save a copy of the displayed data to your device."),
+            p("Save a copy of the prepared data to your device."),
             fluidRow(
               column(6,
                 downloadButton(ns("download_parameterised_csv"),
@@ -245,11 +241,39 @@ textPrepUI <- function(id) {
 
 #### TEXT PREP SERVER ####
 textPrepServer <- function(id, rv = rv) {
-  moduleServer(
-    id,
-    function(input, output, session) {
-      stopWordsServer("stopwords", rv = rv)
-      tokeniseServer("tokenise", rv = rv)
+  moduleServer(id,function(input, output, session) {
+    
+      # Inner modules for file uploads, csv uploads and secondary uploads
+      stopWordsServerAttempt <- try(stopWordsServer("stopwords", rv = rv))
+      if("try-error" %in% class(stopWordsServerAttempt)){
+        shinyalert(
+          title = "Stop-words server error",
+          text = "There was a fatal error in the server function of the stop-words module. Refresh your app and try again.",
+          size = "xs", 
+          closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+          html = FALSE, type = "info",
+          showConfirmButton = TRUE, showCancelButton = FALSE,
+          confirmButtonText = "Dismiss",
+          confirmButtonCol = "#4169E1",
+          timer = 0, imageUrl = "", animation = TRUE
+        )
+        return()
+      }
+      tokeniseServerAttempt <- try(tokeniseServer("tokenise", rv = rv))
+      if("try-error" %in% class(tokeniseServerAttempt)){
+        shinyalert(
+          title = "Tokenise server error",
+          text = "There was a fatal error in the server function of the tokeniser module. Refresh your app and try again.",
+          size = "xs", 
+          closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+          html = FALSE, type = "info",
+          showConfirmButton = TRUE, showCancelButton = FALSE,
+          confirmButtonText = "Dismiss",
+          confirmButtonCol = "#4169E1",
+          timer = 0, imageUrl = "", animation = TRUE
+        )
+        return()
+      }
       
       # Initialising datatable data to be initial upload
       observe({
@@ -499,7 +523,7 @@ textPrepServer <- function(id, rv = rv) {
           } else { # Where advanced mutate new is selected:
             
             # Running advanced_mutate from utils.R, parsing in user inputs
-            res <- advanced_mutate(
+            res <- try(advanced_mutate(
               content_prepared_in = rv$content_primary$content_prepared,
               in_datatable = in_datatable,
               mutate_option = input$mutate_option,
@@ -513,10 +537,27 @@ textPrepServer <- function(id, rv = rv) {
                 input$mutate_advanced_condition_text_input,
               mutate_advanced_equals_true = input$mutate_advanced_equals_true,
               mutate_advanced_equals_false = input$mutate_advanced_equals_false
-            )
+            ))
             
-            rv$content_primary$content_mutated <- res
-            rv$content_primary$is_mutated <- TRUE
+            # if res has class try-error, generate failed alert
+            if("try-error" %in% class(res)){
+              shinyalert(
+                title = "Mutate failed",
+                text = "This action failed to complete. \n \n Ensure the values submitted are valid numeric or character inputs. \n \n To mutate an existing column, select the 'Update existing column' button.",
+                size = "xs", 
+                closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+                html = FALSE, type = "warning",
+                showConfirmButton = TRUE, showCancelButton = FALSE,
+                confirmButtonText = "Dismiss",
+                confirmButtonCol = "#4169E1",
+                timer = 0, imageUrl = "", animation = TRUE
+              )
+              
+              return()
+            } else {
+              rv$content_primary$content_mutated <- res
+              rv$content_primary$is_mutated <- TRUE
+            }
           }
           
         } # END mutate new logic
@@ -546,7 +587,7 @@ textPrepServer <- function(id, rv = rv) {
             # Where advanced update column is selected:
           } else {
 
-            res <- advanced_mutate(
+            res <- try(advanced_mutate(
               content_prepared_in = rv$content_primary$content_prepared,
               in_datatable = in_datatable,
               mutate_option = input$mutate_option,
@@ -560,11 +601,28 @@ textPrepServer <- function(id, rv = rv) {
                 input$mutate_advanced_condition_text_input,
               mutate_advanced_equals_true = input$mutate_advanced_equals_true,
               mutate_advanced_equals_false = input$mutate_advanced_equals_false
+              ))
+            
+            # if res has class try-error, generate failed alert
+            if("try-error" %in% class(res)){
+              shinyalert(
+                title = "Mutate failed",
+                text = "This action failed to complete. \n \n Ensure the values submitted are valid numeric or character inputs. \n \n To mutate an existing column, select the 'Update existing column' button.",
+                size = "xs", 
+                closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+                html = FALSE, type = "warning",
+                showConfirmButton = TRUE, showCancelButton = FALSE,
+                confirmButtonText = "Dismiss",
+                confirmButtonCol = "#4169E1",
+                timer = 0, imageUrl = "", animation = TRUE
               )
+              
+              return()
+            } else {
+              rv$content_primary$content_mutated <- res
+              rv$content_primary$is_mutated <- TRUE
+            }
 
-            rv$content_primary$content_mutated <- res
-
-            rv$content_primary$is_mutated <- TRUE
           }
         }
 
@@ -573,17 +631,18 @@ textPrepServer <- function(id, rv = rv) {
         req(rv$content_primary$content_mutated)
         rv$content_primary$content_edited <- rv$content_primary$content_mutated
         rv$content_primary$content_prepared <- rv$content_primary$content_mutated
-      })
+      
+        })
 
 
       ## Undo mutations:
       ## If content has been mutated, revert to pre_mutated_temp
       observeEvent(input$undo_mutate, {
         req(rv$content_primary$is_mutated)
+        req(rv$content_primary$pre_mutated_temp)
 
         rv$content_primary$content_prepared <- rv$content_primary$pre_mutated_temp
         rv$content_primary$content_edited <- rv$content_primary$pre_mutated_temp
-
         rv$content_primary$is_mutated <- FALSE
       })
 
@@ -609,7 +668,7 @@ textPrepServer <- function(id, rv = rv) {
       # When undo filters button clicked, revert content_stats to original
       observeEvent(input$undo_filters, {
         req(rv$content_primary$is_filtered)
-        req(rv$content_primary$pre_filtered_temp) # require original reactive value
+        req(rv$content_primary$pre_filtered_temp) 
 
         rv$content_primary$content_parameterised <- rv$content_primary$pre_filtered_temp # revert to original
         rv$content_primary$content_prepared <- rv$content_primary$content_parameterised
@@ -722,32 +781,39 @@ textPrepServer <- function(id, rv = rv) {
       )
 
       # Creating datatable 2 of content parameterised after stop word removal
-      output$content_prepared_DT_2 <- DT::renderDataTable({
+      output$content_prepared_DT_2 <- DT::renderDataTable(
+        # server = F, 
+        {
         
         validate(need(rv$content_prepared_display_2, 
                       "Submit files in the Text Selector tab to continue."))
         
         # rv$content_primary$content_prepared,
-        DT::datatable(rv$content_prepared_display_2,
-        options = list(
-          paging = TRUE,
-          pageLength = 7,
-          scrollX = TRUE,
-          scrollY = TRUE,
-          dom = "rtip",
-          columnDefs =
-            list(
+        DT::datatable(
+          rv$content_prepared_display_2,
+          # extensions = "Buttons",
+          options = list(
+            paging = TRUE,
+            pageLength = 7,
+            scrollX = TRUE,
+            scrollY = TRUE,
+            dom = "rtip", # B
+            columnDefs =
               list(
-                targets = '_all',
-                render = JS(
-                  "function(data, type, row, meta) {",
-                  "return type === 'display' && data.length > 200 ?",
-                  "'<span title=\"' + data + '\">' + data
-                        .substr(0, 200) + '...</span>' : data;", "}"
+                list(
+                  targets = '_all',
+                  render = JS(
+                    "function(data, type, row, meta) {",
+                    "return type === 'display' && data.length > 200 ?",
+                    "'<span title=\"' + data + '\">' + data
+                          .substr(0, 200) + '...</span>' : data;", "}"
+                  )
                 )
-              )
-            )
-        ),
+              ) # ,
+            # buttons = list(list(extend = 'csv',
+            #                     text = "Download data (.csv)")
+            #                )
+          ),
         selection = "none",
         rownames = FALSE
         )
@@ -956,43 +1022,40 @@ textPrepServer <- function(id, rv = rv) {
       ######################
       observeEvent(input$revert_all, {
         req(rv$content_primary$data)
+        content_primary <- shiny::reactiveValues(data = 
+                                                   rv$content_primary$data,
+                                                 is_stop_rm = FALSE, 
+                                                 is_tokenised = FALSE, 
+                                                 is_filtered = FALSE,
+                                                 is_mutated = FALSE,
+                                                 content_prepared = 
+                                                   rv$content_primary$data,
+                                                 content_edited = 
+                                                   rv$content_primary$data,
+                                                 content_primary_tf_idf = NULL)
+        rv$content_primary <- content_primary
         
-        if(input$data_to_stem == "Primary data"){
-          content_primary <- shiny::reactiveValues(data = 
-                                                     rv$content_primary$data,
-                                                   is_stop_rm = FALSE, 
-                                                   is_tokenised = FALSE, 
-                                                   is_filtered = FALSE,
-                                                   is_mutated = FALSE,
-                                                   content_prepared = 
-                                                     rv$content_primary$data,
-                                                   content_edited = 
-                                                     rv$content_primary$data,
-                                                   content_primary_tf_idf = NULL)
-          rv$content_primary <- content_primary
-        } else if(input$data_to_stem == "Subset one"){
-          req(rv$subset_one$data)
-          # initializing reactive value list of data and characteristics
-          subset_one <- shiny::reactiveValues(data = 
-                                                rv$subset_one$data, 
-                                              is_stop_rm = F, 
-                                              is_tokenised = F, 
-                                              content_prepared = 
-                                                rv$subset_one$data)
-          rv$subset_one <- subset_one
-        } else if(input$data_to_stem == "Subset two"){
-          req(rv$subset_two$data)
-          # initializing reactive value list of data and characteristics
-          subset_two <- shiny::reactiveValues(data = 
-                                                rv$subset_two$data, 
-                                              is_stop_rm = F, 
-                                              is_tokenised = F, 
-                                              content_prepared = 
-                                                rv$subset_two$data)
-          rv$subset_two <- subset_two
-        }
+        req(rv$subset_one$data)
+        # initializing reactive value list of data and characteristics
+        subset_one <- shiny::reactiveValues(data = 
+                                              rv$subset_one$data, 
+                                            is_stop_rm = F, 
+                                            is_tokenised = F, 
+                                            content_prepared = 
+                                              rv$subset_one$data)
+        rv$subset_one <- subset_one
         
-      })
+        req(rv$subset_two$data)
+        # initializing reactive value list of data and characteristics
+        subset_two <- shiny::reactiveValues(data = 
+                                              rv$subset_two$data, 
+                                            is_stop_rm = F, 
+                                            is_tokenised = F, 
+                                            content_prepared = 
+                                              rv$subset_two$data)
+        rv$subset_two <- subset_two
+        
+      }) # end observe revert all
       
     }
   )

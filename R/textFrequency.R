@@ -28,7 +28,7 @@ textFreqUI <- function(id){
                         choices = list("N/A" = "na")),
             
             selectInput(ns("col_name_to_visualise"), 
-                        label = "Select a column to tokenise:", 
+                        label = "Select variable to visualise:", 
                         choices = list("N/A" = "na")),
             
             actionButton(ns("confirm_data_to_visualise"),
@@ -221,7 +221,22 @@ textFreqServer <- function(id, rv = rv){
       ######################
       ## Reporting stuff ###
       ######################
-      reportingServer("reporting", rv = rv)
+      # Inner modules for file uploads, csv uploads and secondary uploads
+      reportingServerAttempt <- try(reportingServer("reporting", rv = rv))
+      if("try-error" %in% class(reportingServerAttempt)){
+        shinyalert(
+          title = "Reporting tab error",
+          text = "There was a fatal error in the server function of the reporting module. Refresh your app and try again.",
+          size = "xs", 
+          closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+          html = FALSE, type = "info",
+          showConfirmButton = TRUE, showCancelButton = FALSE,
+          confirmButtonText = "Dismiss",
+          confirmButtonCol = "#4169E1",
+          timer = 0, imageUrl = "", animation = TRUE
+        )
+        return()
+      }
       
     }
   )

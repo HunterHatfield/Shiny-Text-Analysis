@@ -48,21 +48,15 @@ reportMakerUI <- function(id){
           hr(),
           
           h3("Statistical analysis"),
-          checkboxInput(ns("add_corr_plot"),
-                        label = " Correlation heat-map "),
           
-          checkboxInput(ns("add_regression"),
-                        label = " Regression analysis "),
-          
-          checkboxInput(ns("add_residual_plots"),
-                        label = " Residual plots "),
-          
-          checkboxInput(ns("add_anova"),
-                        label = " ANOVA results "),
-          
-          checkboxInput(ns("add_ttest"),
-                        label = " T-test results "),
-          
+          ##### Turn all of this into renderUI w only valid
+          ##### stuff available to select?
+          uiOutput(ns("stats_report_select_corr")),
+          uiOutput(ns("stats_report_select_reg")),
+          uiOutput(ns("stats_report_select_residual_plots")),
+          uiOutput(ns("stats_report_select_anova")),
+          uiOutput(ns("stats_report_select_ttest")),
+          uiOutput(ns("stats_report_select_chisq")),
           
       ), # end box
       
@@ -122,7 +116,7 @@ reportMakerUI <- function(id){
           
           conditionalPanel(
             condition = paste0("input['", 
-                               ns("add_regression"), 
+                               ns("add_reg"), 
                                "'] == true "),
             p("Regression analysis")
           ),
@@ -143,6 +137,12 @@ reportMakerUI <- function(id){
                                ns("add_ttest"), 
                                "'] == true "),
             p("T-test results ")
+          ),
+          conditionalPanel(
+            condition = paste0("input['", 
+                               ns("add_chisq"), 
+                               "'] == true "),
+            p("Chi-squared test results")
           ),
           
       ), # end box
@@ -189,21 +189,16 @@ reportMakerUI <- function(id){
 reportMakerServer <- function(id, rv = rv, report_rv = report_rv){
   moduleServer(id, function(input, output, session){
     
-
     # Summary stats stuff 
-    
     # total_tokens <- reactive({
     #   rv$content_tf_idf$`Corpus token count`[1]
     # })
-    # 
     # mean_token_count <- reactive({
     #   rv$content_tf_idf$`Mean token count`[1]
     # })
-    # 
     # sd_token_count <- reactive({
     #   sd(rv$content_tf_idf$`Token Count`)
     # })
-    # 
     # numStop <- reactive({
     #   if(is.null(rv$stop_words_final)){
     #     return(0)
@@ -216,23 +211,13 @@ reportMakerServer <- function(id, rv = rv, report_rv = report_rv){
     # Creating rvs list to pass to final report, need to check if user 
     # wants each one included first
     observe({
-
-      # Summary stats stuff - always included
-      report_rv$content <- rv$content # for what files uploaded
-      report_rv$stop_words_final <- rv$stop_words_final # for stop count
-      report_rv$numFiles <- rv$numFiles # number of files count
-      report_rv$token <- rv$token # token used to tokenise
-      report_rv$other_token <- rv$other_token # ""
       
-      report_rv$content_tf_idf <- rv$content_tf_idf
-      
-      stats_report_rv$corr_plot <- rv$corr_plot
-      stats_report_rv$formula_reg <- rv$formula_reg
-      stats_report_rv$reg_result_table <- rv$reg_result_table
-      stats_report_rv$residual_plots <- rv$residual_plots
-      stats_report_rv$anova_table <- rv$anova_table
-      stats_report_rv$ttest_table <- rv$ttest_table
-      
+      # Creating rv list to pass into reports, is just everything
+      report_rv$content <- rv$content_to_visualise$plotting_data
+      report_rv$stop_words_final<- rv$stop_words_final
+      report_rv$num_files <- rv$num_files # number of files count
+      report_rv$content_tf_idf <-  rv$content_to_visualise$content_tf_idf
+      report_rv$content_stats <- rv$content_stats
     })
 
     # Using onclick functions to determine whether
@@ -247,74 +232,221 @@ reportMakerServer <- function(id, rv = rv, report_rv = report_rv){
     shinyjs::onclick("add_token_freq_plot", {
       ifelse(input$add_token_freq_plot == TRUE, 
              report_rv$token_freq_plot <- rv$token_freq_plot, 
-             report_rv$token_freq_plot <-  "")
+             report_rv$token_freq_plot <-  NULL)
     }) 
     shinyjs::onclick("add_comp_freq_plot", {
       ifelse(input$add_comp_freq_plot == TRUE, 
              report_rv$comp_freq_plot <- rv$comp_freq_plot,
-             report_rv$comp_freq_plot <-  "")
+             report_rv$comp_freq_plot <-  NULL)
     }) 
     shinyjs::onclick("add_zipfs_plot", {
       ifelse(input$add_zipfs_plot == TRUE, 
              report_rv$zipfs_plot <- rv$zipfs_plot, 
-             report_rv$zipfs_plot <-  "")
+             report_rv$zipfs_plot <-  NULL)
     }) 
     shinyjs::onclick("add_tf_idf_plot", {
       ifelse(input$add_tf_idf_plot == TRUE, 
              {
-               report_rv$tf_idf_IDs <- rv$tf_idf_IDs
-               report_rv$tf_idf_plot <- rv$tf_idf_plot
+               report_rv$tf_idf_IDs <- try(rv$tf_idf_IDs)
+               report_rv$tf_idf_plot <- try(rv$tf_idf_plot)
              },
              {
-               report_rv$tf_idf_IDs  <-  ""
-               report_rv$content_tf_idf  <-  ""
-               report_rv$tf_idf_plot  <-  ""
+               report_rv$tf_idf_IDs  <-  NULL
+               report_rv$content_tf_idf  <-  NULL
+               report_rv$tf_idf_plot  <-  NULL
              })
     })
     
+    ##############################################
+    ## Stats report selection onClick/renderUI  ##
+    ##############################################
+    
+    # Correlation plots
+    output$stats_report_select_corr <- renderUI({
+      ns <- NS(id)
+      corr_attempt <- try(rv$corr_plot)
+      corr_attempt_2 <- try(rv$corr_plot_non_plotly)
+      
+      # if there are not any try errors/nulls in attempting to
+      # call on correlation plots, generate checkbox to add to report
+      if(!any(c("try-error", "NULL") == class(corr_attempt)) &&
+         !any(c("try-error", "NULL") == class(corr_attempt_2))){
+        tagList(
+          checkboxInput(ns("add_corr_plot"),
+                        label = " Correlation heat-map "),
+        )
+      } else {
+        tagList(
+          em("Correlation heat-map (unavailable)", 
+             style = "color: lightgray;")
+        )
+      }
+    })
+    # When checkbox ticked, double check corr plot is available then add
+    # to rv list to be sent to report. 
+    # When unchecked, remove corr plots from rv list
     shinyjs::onclick("add_corr_plot", {
-      ifelse(input$add_corr_plot == TRUE, 
-             stats_report_rv$corr_plot <- rv$corr_plot, 
-             stats_report_rv$corr_plot <-  "")
-    }) 
-    shinyjs::onclick("add_regression", {
-      ifelse(input$add_regression == TRUE, 
-             {
-               stats_report_rv$formula_reg <- rv$formula_reg
-               stats_report_rv$reg_result_table <- rv$reg_result_table
-             },
-             {
-               stats_report_rv$formula_reg <- ""
-               stats_report_rv$reg_result_table <- ""
-             })
-    }) 
+      if(input$add_corr_plot == TRUE){
+                    req(rv$corr_plot)
+          req(rv$corr_plot_non_plotly)
+          stats_report_rv$corr_plot <- rv$corr_plot
+          stats_report_rv$corr_plot_non_plotly <- 
+            rv$corr_plot_non_plotly
+        
+      } else { # tickbox not selected, remove vals
+        stats_report_rv$corr_plot <- NULL
+        stats_report_rv$corr_plot_non_plotly <- NULL
+      }
+    })
+    
+    # Regression analysis results selection
+    output$stats_report_select_reg <- renderUI({
+      ns <- NS(id)
+      formula_reg_attempt <- try(rv$formula_reg)
+      reg_summary_raw_attempt <- try(rv$reg_summary_raw)
+      reg_table_attempt <- try(rv$reg_result_table)
+      
+      if(!any(c("try-error", "NULL") == 
+              class(formula_reg_attempt)) &&
+         !any(c("try-error", "NULL") == 
+              class(reg_summary_raw_attempt)) &&
+         !any(c("try-error", "NULL") == 
+              class(reg_table_attempt))){
+        tagList(
+          checkboxInput(ns("add_reg"),
+                        label = "Regression analysis results"),
+        )
+      } else { 
+        tagList(
+          em("Regression analysis results (unavailable)", 
+             style = "color: lightgray;")
+        )
+      }
+    })
+    shinyjs::onclick("add_reg", {
+      if(input$add_reg == TRUE){
+        req(rv$formula_reg)
+        req(rv$reg_result_table)
+        stats_report_rv$formula_reg <- rv$formula_reg
+        stats_report_rv$reg_result_table <- rv$reg_result_table
+        stats_report_rv$reg_summary_raw <- rv$reg_summary_raw
+      } else {
+        stats_report_rv$formula_reg <- NULL
+        stats_report_rv$reg_summary_raw <- NULL
+        stats_report_rv$reg_result_table <- NULL
+      }
+    })
+
+    # Residual plot selection
+    output$stats_report_select_residual_plots <- renderUI({
+      ns <- NS(id)
+      residual_plots_attempt <- try(rv$residual_plots)
+      
+      if(!any(c("try-error", "NULL") == class(residual_plots_attempt))){
+        tagList(
+          checkboxInput(ns("add_residual_plots"),
+                        label = "Residual plots"),
+        )
+      } else { 
+        tagList(
+          em("Residual plots (unavailable)", style = "color: lightgray;")
+        )
+      }
+    })
     shinyjs::onclick("add_residual_plots", {
-      ifelse(input$add_residual_plots == TRUE, 
-             {
-               stats_report_rv$residual_plots <- rv$residual_plots
-             },
-             {
-               stats_report_rv$residual_plots <- ""
-             })
-    }) 
+      if(input$add_residual_plots == TRUE){
+        req(rv$residual_plots)
+        stats_report_rv$residual_plots <- rv$residual_plots
+      } else {
+        stats_report_rv$residual_plots <- NULL
+      }
+    })
+    
+    # ANOVA selection
+    output$stats_report_select_anova <- renderUI({
+      ns <- NS(id)
+      anova_attempt <- try(rv$anova_table)
+      
+      if(!any(c("try-error", "NULL") == class(anova_attempt))){
+        tagList(
+          checkboxInput(ns("add_anova"),
+                        label = "ANOVA results"),
+        )
+      } else { 
+        tagList(
+          em("ANOVA results (unavailable)", style = "color: lightgray;")
+        )
+      }
+    })
     shinyjs::onclick("add_anova", {
-      ifelse(input$add_anova == TRUE, 
-             {
-               stats_report_rv$anova_table <- rv$anova_table
-             },
-             {
-               stats_report_rv$anova_table <- ""
-             })
-    }) 
+      if(input$add_anova == TRUE){
+        req(rv$anova_table)
+        stats_report_rv$anova_table <- rv$anova_table
+      } else {
+        stats_report_rv$anova_table <- NULL
+      }
+    })
+    
+    # T-test selection
+    output$stats_report_select_ttest <- renderUI({
+      ns <- NS(id)
+      ttest_table_attempt <- try(rv$ttest_table)
+      ttest_attempt <- try(rv$ttest_res)
+      
+      if(!any(c("try-error", "NULL") == class(ttest_table_attempt)) &&
+         !any(c("try-error", "NULL") == class(ttest_attempt))
+         ){
+        tagList(
+          checkboxInput(ns("add_ttest"),
+                        label = " T-test results"),
+        )
+      } else { 
+        tagList(
+          em("T-test results (unavailable)", style = "color: lightgray;")
+        )
+      }
+    })
     shinyjs::onclick("add_ttest", {
-      ifelse(input$add_ttest == TRUE, 
-             {
-               stats_report_rv$ttest_table <- rv$ttest_table
-             },
-             {
-               stats_report_rv$ttest_table <- ""
-             })
-    }) 
+      if(input$add_ttest == TRUE){
+        req(rv$ttest_table)
+        req(rv$ttest_res)
+        stats_report_rv$ttest_table <- rv$ttest_table
+        stats_report_rv$ttest_res <- rv$ttest_res
+      } else {
+        stats_report_rv$ttest_table <- NULL
+        stats_report_rv$ttest_res <- NULL
+      }
+    })
+    
+
+    ######################
+    # Chi-squared test 
+    output$stats_report_select_chisq <- renderUI({
+      ns <- NS(id)
+      chisq_attempt <- try(rv$chisq_res)
+      
+      if(!any(c("try-error", "NULL") == class(chisq_attempt))){
+        tagList(
+          checkboxInput(ns("add_chisq"),
+                        label = "Chi-squared test results"),
+        )
+      } else { 
+        tagList(
+          em("Chi-squared results (unavailable)", style = "color: lightgray;")
+        )
+      }
+    })
+    shinyjs::onclick("add_chisq", {
+      if(input$add_chisq == TRUE){
+        req(rv$chisq_res)
+        stats_report_rv$chisq_res <- rv$chisq_res
+      } else {
+        stats_report_rv$chisq_res <- NULL
+      }
+    })
+    
+    
+    ######################
     
     
     # Formatting report. Have to return report source and file name
@@ -330,6 +462,7 @@ reportMakerServer <- function(id, rv = rv, report_rv = report_rv){
         return("www/Report_word.qmd")
       } 
     })
+    
     observe(rv$report_file <- report_file())
     
     report_name <- reactive({
@@ -356,7 +489,6 @@ reportMakerServer <- function(id, rv = rv, report_rv = report_rv){
         return("www/Stats_report_word.qmd")
       } 
     })
-    
     observe(rv$stats_report_file <- stats_report_file())
     
     stats_report_name <- reactive({

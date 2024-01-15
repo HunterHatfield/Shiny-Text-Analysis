@@ -15,50 +15,58 @@ statsUI <- function(id){
       sidebarLayout(
         sidebarPanel(width = 3, 
                      
-                     h3("Data selection"),
-                     p("Select a dataset to perform statistical analyses on:"),
+                     h3("Select data"),
+                     p("Select a dataset for statistical analyses:"),
                      selectInput(ns("content_stats_choose"), 
                                  label = NULL, 
                                  choices = list(
                                    "Primary data (raw)" = "submitted", 
                                    "Primary data (prepared)" = "primary_prepared"
                                  )),
+                     actionButton(ns("content_stats_choose_button"), 
+                                  label = "Select", 
+                                  class = "btn-primary"),
                      hr(),
                      
-                     h3("Data filtering"),
-                     p("Use the interactive datatable to filter attributes of your text data. Save your filtered data to use in further analyses."),
+                     h4("Filter"),
+                     p("Use the interactive table to filter text data.  Save/undo filters data using the buttons below."),
                      
                      fluidRow(
                        column(width = 6, 
                               actionButton(ns("submit_filters"), 
-                                           label = "Submit filters", 
+                                           label = "Submit", 
                                            class = "btn-primary")
                               ),
                        column(width = 6, 
                               actionButton(ns("undo_filters"), 
-                                           label = "Undo filters", 
+                                           label = "Undo", 
                                            class = "btn-danger")
                               )
                      ),
                      
                      hr(),
                      
-                     h3("Summary statistics"),
-                     p("Render summary statistics for your selected data using the checkbox option below."),
+                     h4("Summary statistics"),
+                     p("Render summary statistics for numeric data below."),
                      checkboxInput(ns("show_eda_summary_stats"), 
                                    label = "Show summary statistics")
         ),
         
         mainPanel(width = 9,
-          
-          wellPanel(
-            h3("Selected Data"),
-            
-            uiOutput(ns("content_stats_display"))
-            
+                  fluidRow(
+                    box(title = NULL, 
+                        status = "primary", 
+                        solidHeader = T,
+                        collapsible = T,
+                        width = 12,
+                      
+                      uiOutput(ns("content_stats_display")),
+                      # DT::dataTableOutput(ns("content_stats_raw")),
+                      # DT::dataTableOutput(ns("content_stats_summary")),
+                      hr(class = "hr-blank")
+                    ),
+                  ),
           ),
-
-        ),
       ),
       
       wellPanel(
@@ -183,7 +191,7 @@ statsUI <- function(id){
       
       fluidRow(
           box(title = NULL, 
-              status = "success", 
+              status = "primary", 
               solidHeader = T, 
               collapsible = T,
               width = 12,
@@ -205,10 +213,7 @@ statsUI <- function(id){
             column(
               width = 4,
               
-              h3("Regression Type"),
-              p("Select a type of regression to show a brief summary of the method and perform an analysis"),
-              
-              hr(),
+              h3("Select regression type"),
               radioButtons(ns("regression_type"), 
                            label = NULL,
                            choices = list("Linear" = "linear", 
@@ -224,6 +229,8 @@ statsUI <- function(id){
               width = 8,
               box(
                 status = "primary",
+                collapsible = T,
+                solidHeader = T,
                 width = 12,
                 
                 # Here render UI based on radio button selection
@@ -262,6 +269,7 @@ statsUI <- function(id){
                  # Rendering same ui to choose vars for liner, log 
                  # and poisson, however different ui for mixed 
                  # regression to choose random & fixed effects
+                 h3("Specify formula"),
                  uiOutput(ns("perform_regression"))
                  ),
           
@@ -406,16 +414,15 @@ statsServer <- function(id, rv = rv){
       
       # Content stats is rendered to be whatever is selected in drop-down
       # Rendering whatever dataset selected in datatable display. Needs to be
-      # rendered as diff sets selected before confirm button clicked
+      # rendered as diff sets selected before select button clicked
 
-      observe({
-        req(rv$content_primary)
+      observeEvent(input$content_stats_choose_button, {
+        req(rv$content_primary$data)
 
         if(input$content_stats_choose == "Primary data (raw)"){
           req(rv$content_primary$data)
           rv$content_stats <- try(rv$content_primary$data %>%
             clean_names())
-          print("content_stats assigned to primary")
         } else if(input$content_stats_choose == "Primary data (prepared)"){
           req(rv$content_primary$content_prepared)
           rv$content_stats <- try(rv$content_primary$content_prepared %>%
@@ -432,7 +439,7 @@ statsServer <- function(id, rv = rv){
           req(rv$subset_one$content_prepared)
           rv$content_stats <- try(rv$subset_one$content_prepared %>%
             clean_names())
-        } else if(input$content_stats_choose == "Subset one (prepared)"){
+        } else if(input$content_stats_choose == "Subset two (prepared)"){
           req(rv$subset_two$content_prepared)
           rv$content_stats <- try(rv$subset_two$content_prepared %>%
             clean_names())
@@ -441,44 +448,60 @@ statsServer <- function(id, rv = rv){
           req(rv$content_to_visualise$content_tf_idf)
           rv$content_stats <- try(rv$content_to_visualise$content_tf_idf %>%
             #full_join(rv$content_to_visualise$plotting_data, by = c('ID', 'Token')) %>%
-            #dplyr::select(-`Term freq.`, -`Mean token count`, -`Corpus token count`) %>%
+            dplyr::select(-`Term freq.`, -`Mean token count`, -`Corpus token count`) %>%
             clean_names())
         }
+        
+        # Saving content_stats to display in DT
+        req(rv$content_stats)
+        rv$content_stats_DT <- rv$content_stats
         
         print("rv$content_stats made:")
         print(rv$content_stats)
       })
       
-      # Always update possible dataset list with current available subsets
-      observe({
-        
-        if("try-error" %in% class(rv$content_stats)){
-          shinyalert(title = "",
-                     text = "")
-        }
-        
+      ###################
+      ## Summary stats ##
+      ###################
+      eda_summary_stats <- reactive({
         req(rv$content_stats)
-        rv$content_stats_DT <- rv$content_stats
-        # switch(input$content_stats_choose,
-        #        "Primary data" =  rv$content_primary$content_prepared,
-        #        "Subset one (prepared)" = rv$subset_one$content_prepared,
-        #        "Subset two (prepared)" = rv$subset_two$content_prepared,
-        #        "Subset one (original)" = rv$subset_one$data,
-        #        "Subset two (original)" = rv$subset_one$data,
-        #        "Visualised" = rv$
-        #        )
+        try(finalfit::ff_glimpse(rv$content_stats))
       })
+      observe({
+        req(eda_summary_stats())
+        rv$content_stats_summary <- try(eda_summary_stats()$Continuous)
+        print("rv$content_stats_summary")
+        print(rv$content_stats_summary)
+      })
+      
+      # Removed this - user must select dataset from dropdown and confirm to enforce
+      # confirmation and avoid confusion surrounding users assuming the shown data has
+      # been selected
+      # observe({
+      #   req(rv$content_primary$data)
+      #   
+      #   rv$content_stats_DT <- 
+      #     switch(input$content_stats_choose, 
+      #            "Primary data (raw)" =  try(rv$content_primary$data), 
+      #            "Primary data (prepared)" = try(rv$content_primary$content_prepared),
+      #            "Subset one (original)" = try(rv$subset_one$data),
+      #            "Subset two (original)" = try(rv$subset_one$data),
+      #            "Subset one (prepared)" = try(rv$subset_one$content_prepared),
+      #            "Subset two (prepared)" = try(rv$subset_one$content_prepared),
+      #            "Visualised" = try(rv$content_to_visualise$content_tf_idf)
+      #     )
+      # })
       
       # Table output for raw content stats
       output$content_stats_raw <- DT::renderDataTable({
-        validate(need(rv$content_stats_DT, "Select a valid dataset."))
+        validate(need(rv$content_stats_DT, "Selected data not available."))
         
         DT::datatable(
           rv$content_stats_DT,
           filter = 'top',
           options = list(
             paging = TRUE,
-            pageLength = 5,
+            pageLength = 6,
             scrollX = TRUE,
             scrollY = TRUE,
             dom = 'frtip',
@@ -498,25 +521,15 @@ statsServer <- function(id, rv = rv){
         )
       })
       
-      # Glimpse from finalfit package used to show summary stats
-      eda_summary_stats <- reactive({
-        req(rv$content_stats)
-        try(finalfit::ff_glimpse(rv$content_stats))
-      })
-      
-      # Saving only the summary stats for continuous variables - could just move this up to finalfit call above?
-      observe({
-        req(eda_summary_stats())
-        rv$content_stats_summary <- eda_summary_stats()$Continuous
-      })
-      
       # Table output for summary stats for content stats selected
       output$content_stats_summary <- 
         DT::renderDataTable({
           
-          validate(need(rv$content_stats_summary, 
-                        "Summary statistics could not be rendered from the 
-                        selected dataset."))
+          # req(rv$content_stats_summary)
+          # req(try(nrow(rv$content_stats_summary)) > 0)
+          validate(need(rv$content_stats_summary,
+                        "Summary statistics only available for 
+                        submitted numeric variables."))
           
           DT::datatable(rv$content_stats_summary,
             rownames=FALSE, 
@@ -532,52 +545,65 @@ statsServer <- function(id, rv = rv){
           )
       })
       
-      # Generating ui for content stats display. If user selects checkbox to 
+      # Generating ui for content stats display. If user selects checkbox to
       # show summary stats, this will be rendered instead of raw data
       output$content_stats_display <- renderUI({
-        validate(need(rv$content_stats, 
+        validate(need(rv$content_stats,
                       "Select and submit text data to continue"))
-        
+
         ns <- NS(id)
         raw <- tagList(
           DT::dataTableOutput(ns("content_stats_raw"))
-        )
-        
+          )
+
         summary_stats <- tagList(
-          DT::dataTableOutput(ns("content_stats_summary"))
-        )
-        
+          DT::dataTableOutput(ns("content_stats_summary")),
+          em("Summary statistics only available for submitted numeric variables.")
+          )
+
         # Rendering either raw or summary of content stats depending on input
         if(input$show_eda_summary_stats){
           summary_stats
         } else {
           raw
         }
-        
       })
+      
+      # Used renderUI instead as show/hide doesn't fully hide validate errors
+      # showing/hiding diff datatables for if summary stats or not
+      # observe({
+      #   if(input$show_eda_summary_stats) {
+      #     hide(id = "content_stats_raw")
+      #     show(id = "stats_summary_note")
+      #     show(id = "content_stats_summary")
+      #   } else {
+      #     show(id = "content_stats_raw")
+      #     hide(id = "content_stats_summary")
+      #     hide(id = "stats_summary_note")
+      #   }
+      # })
       
       #### Filtering data #####
       # When submit filters clicked, subset content_stats by filtered rows
       observeEvent(input$submit_filters, {
-        
         req(rv$content_stats)
         
-        # Creating temporary storage hold 
-        temp <- rv$content_stats
-        
-        # Subsetting content_stats by filters
+        # Saving. pre-filtered then subsetting content_stats by filters
+        rv$pre_filtered_content_stats <- rv$content_stats
         rv$content_stats <- 
-          temp[input[["content_stats_raw_rows_all"]], ]
+          rv$pre_filtered_content_stats[input[["content_stats_raw_rows_all"]], ]
+        rv$content_stats_DT <- rv$content_stats
         
+        print("filtered content stats made:")
+        print(rv$content_stats)
       })
       
-      # When undo filters button clicked, revert content_stats to original
+      # When undo filters button clicked, revert content_stats to pre-filtered
       observeEvent(input$undo_filters, {
-        
-        req(content_stats()) # require original reactive value
-        
-        rv$content_stats <- content_stats() # revert to original 
-        
+        req(rv$pre_filtered_content_stats) # require pre-filtered content 
+        rv$content_stats <- rv$pre_filtered_content_stats # revert to original 
+        rv$content_stats_DT <- rv$pre_filtered_content_stats
+        rv$pre_filtered_content_stats <- NULL
       })
       
       
@@ -632,17 +658,11 @@ statsServer <- function(id, rv = rv){
       eda_hist_plot <- reactive({
         req(rv$content_stats)
 
-        validate(
-          need(
-            is.numeric(rv$content_stats[[input$eda_hist_var]]),
+        validate(need(is.numeric(rv$content_stats[[input$eda_hist_var]]),
             "Select a numeric variable."
           ))
         
-        validate(
-          need(
-            eda_hist_plot_var(),
-            "Transformation invalid."
-          ))
+        validate(need(eda_hist_plot_var(),"Transformation invalid."))
 
         # Creating histogram. If include density curve is selected, 
         # the probability / proportion density is 
@@ -700,10 +720,10 @@ statsServer <- function(id, rv = rv){
         var <- rv$content_stats[[input$eda_normality_var]]
         
         # ensuring variable is numeric
-        validate( need(is.numeric(var),"Select a numeric variable."))
+        validate(need(is.numeric(var),"Select a numeric variable."))
+        print("made eda_normality_var:")
         
         var
-        
       })
       
       #### Rendering qqplot ####
@@ -728,37 +748,53 @@ statsServer <- function(id, rv = rv){
       
       # Saving Anderson-darling test result
       anderson_darling_res <- reactive({
+        
         req(eda_normality_var())
-        req(nrow(eda_normality_var()) > 7)
+        req(length(eda_normality_var()) > 7)
         
         try(nortest::ad.test(eda_normality_var()))
       })
       
-      # saving SW & AD results in reactive value list
-      observe({
-        req(anderson_darling_res())
-        req(shapiro_wilk_res()) 
-        rv$anderson_darling_res <- anderson_darling_res()
-        rv$shapiro_wilk_res <- shapiro_wilk_res()
-      })
       
       # Rendering table with shapiro-wilk result
       output$eda_shapiro_wilk <- renderPrint({
-        validate(need(eda_normality_var(), 
+        validate(need(shapiro_wilk_res(), 
                       "Invalid input for normality test selected."))
-        validate(need(rv$shapiro_wilk_res, 
-                      "Invalid input for normality test selected."))
-        # If SW length too high thus null, give user instructions 
-        ifelse(length(eda_normality_var()) > 5000, 
-               paste0("n > 5000, use Anderson-Darling test for normality."), 
-               rv$shapiro_wilk_res)
+        shapiro_wilk_res()
       })
       
       # Rendering table with Anderson-darling result
       output$eda_anderson_darling <- renderPrint({
-        validate(need(rv$anderson_darling_res, 
+        validate(need(anderson_darling_res(), 
                       "Invalid input for normality test selected."))
-        rv$anderson_darling_res
+        anderson_darling_res()
+      })
+      
+      # Creating non-plotly heatmap for pdf/word reports
+      corr_plot_non_plotly <- reactive({
+        req(rv$content_stats)
+        
+        # Filtering to only include numeric data
+        content_stats_numeric <- rv$content_stats %>%
+          dplyr::select(where(is.numeric))
+        
+        # Creating correlation matrix
+        # & reshaping data to has three cols (pair of vars & cor coef)
+        cor_melted <- melt(round(cor(content_stats_numeric), 3))
+        
+        # Generating heat map with ggplot
+        ggplot(cor_melted, aes(Var2, Var1, fill = value))+
+          geom_tile()+
+          geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+          labs(x = NULL, y = NULL) +  # no axis titles
+          scale_fill_gradient2(low = "royalblue", high = "darkred", mid = "white",
+                               midpoint = 0, limit = c(-1,1), space = "Lab",
+                               name="Pearson\nCorrelation") +
+          theme_minimal() + # minimal theme
+          theme(axis.text.x = element_text(angle = 45, vjust = 1,
+                                           size = 12, hjust = 1)
+          ) +
+          ggtitle("Correlation matrix heatmap")
       })
       
       # Creating correlation heatmap
@@ -784,6 +820,7 @@ statsServer <- function(id, rv = rv){
         ggheatmap <- ggplot(cor_melted, aes(Var2, Var1, fill = value))+
           geom_tile()+
           geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+          labs(x = NULL, y = NULL) +  # no axis titles
           scale_fill_gradient2(low = "royalblue", high = "darkred", mid = "white",
                                midpoint = 0, limit = c(-1,1), space = "Lab",
                                name="Pearson\nCorrelation") +
@@ -805,10 +842,12 @@ statsServer <- function(id, rv = rv){
         corr_plot()
       })
       
-      # Saving corr_plot object to rv list 
+      # Saving corr_plot objects to rv list 
       observe({
         req(corr_plot())
         rv$corr_plot <- corr_plot()
+        req(corr_plot_non_plotly())
+        rv$corr_plot_non_plotly <- corr_plot_non_plotly()
       })
       
       
@@ -850,6 +889,8 @@ statsServer <- function(id, rv = rv){
       #### Perform regression ####
       # RenderUI to only render when linear, log or poisson regression option chosen
       output$perform_regression <- renderUI({
+        validate(need(rv$content_stats, 
+                      "Submit and select a valid dataset to perform regression analyses."))
         req(rv$content_stats)
         
         ns <- NS(id)
@@ -935,6 +976,7 @@ statsServer <- function(id, rv = rv){
       
       # Render text to display selected formula
       output$formula_reg <- renderPrint({
+        validate(need(formula_reg(), "Invalid formula."))
         formula_reg()
       })
       
@@ -970,8 +1012,8 @@ statsServer <- function(id, rv = rv){
       
       output$lin_log_pois_res <- renderUI({
         
+        validate(need(rv$content_stats,  "Select a valid dataset to perform regression analyses."))
         req(rv$content_stats)
-        # req(!is.null(rv$reg_result_res))
         
         ns <- NS(id)
         
@@ -996,19 +1038,20 @@ statsServer <- function(id, rv = rv){
           return(validUI)
         } else if(!rv$is_valid_regression){
           return(invalidUI)
-        } 
-        
+        }
       })
       
       # Render text with regression error if present
       output$reg_error <- renderPrint({
+        req(rv$reg_error)
         rv$reg_error
       })
       
       # Render datatable of regression results
       # Using tab_model to generate, then returning HTML
       output$reg_model <- renderText({
-
+        validate(need(rv$content_stats, "Select a valid dataset."),
+                 need(rv$reg_model, "Invalid regression model."))
         table <- sjPlot::tab_model(rv$reg_model,
                                    show.fstat = TRUE,
                                    show.aic = TRUE,
@@ -1016,8 +1059,10 @@ statsServer <- function(id, rv = rv){
                                    # show.std = TRUE,
                                    show.stat = TRUE,
                                    CSS = list(
-                                     css.thead = 'font-size: 14px;',
-                                     css.summary = 'font-weight: bold;'
+                                     css.thead = 
+                                       'font-size: 14px;',
+                                     css.summary = 
+                                       'font-weight: bold;'
                                    ))
         
         rv$reg_result_table <- table # saving table in rv list
@@ -1028,18 +1073,13 @@ statsServer <- function(id, rv = rv){
       
       # Rendering raw model output
       output$reg_result_raw <- renderPrint({
-        
-        validate(
-          need(!is.null(rv$is_valid_regression), 
-               "Submit a valid formula to begin.")
-          )
-        
+        validate(need(!is.null(rv$is_valid_regression), 
+               "Invalid formula submitted."))
         if(rv$is_valid_regression){
           rv$reg_summary_raw
         } else {
           rv$reg_error
         }
-        
       })
       
       
@@ -1099,37 +1139,13 @@ statsServer <- function(id, rv = rv){
       }) # end renderUI 
       
       # Generating residual plots for fitted model
-      # output$residual_plots <- renderPlot({
-      # 
-      #   validate(
-      #     need(!is.null(rv$is_valid_regression),
-      #          "Submit a valid formula to begin."),
-      #     need(rv$is_valid_regression,
-      #          "Submit regression to begin.")
-      #   )
-      # 
-      #   if(input$regression_type == "mixed"){
-      #     plot(fitted(rv$reg_model), residuals(rv$reg_model),
-      #          xlab = "Fitted", ylab = "Residuals")
-      #     abline(h = 0, lty = 2)
-      #     lines(smooth.spline(fitted(rv$reg_model), residuals(rv$reg_model)))
-      #   } else {
-      #     autoplot(rv$reg_model) +
-      #       theme(panel.grid.major = element_blank(),
-      #             panel.grid.minor = element_blank())
-      #   }
-      # 
-      # })
-      
-      # Generating residual plots
       residual_plots <- reactive({
         validate(
-          need(!is.null(rv$is_valid_regression),
-               "Submit a valid formula to begin."),
           need(rv$is_valid_regression,
-               "Submit regression to begin.")
+               "Submit a valid regression model to render model diagnostic plots.")
         )
-
+        req(rv$reg_model)
+        
         if(input$regression_type == "mixed"){
           plot(fitted(rv$reg_model), residuals(rv$reg_model),
                xlab = "Fitted", ylab = "Residuals")
@@ -1145,6 +1161,7 @@ statsServer <- function(id, rv = rv){
       # Displaying residual plots
       output$residual_plots <- renderPlot({
         req(residual_plots())
+        validate(need(residual_plots(), "Submit a valid regression model to render residual plots."))
         residual_plots()
       })
       
@@ -1157,56 +1174,51 @@ statsServer <- function(id, rv = rv){
       anova_res <- reactive({
         req(rv$formula_reg)
         req(rv$is_valid_regression)
-        
-        rstatix::anova_test(rv$reg_model)
+        try(rstatix::anova_test(rv$reg_model))
       })
-      
-      # Saving anova result
       observe({
         req(anova_res())
         rv$anova_res <- anova_res()
       })
-      
       # Rendering raw anova output
       output$anova_res_raw <- renderPrint({
         validate(
-          need(rv$anova_res, "Submit a valid regression model to perform ANOVA.")
+          need(rv$anova_res, paste0("ANOVA could not be performed given the current (or lack of) model formula.", 
+                                    rv$anova_res))
         )
         rv$anova_res
       })
-      
       
       # Render datatable of ANOVA results
       # Using tab_model to generate, then returning HTML
       anova_table <- reactive({
         req(rv$anova_res)
-        get_anova_table(rv$anova_res)
+        try(get_anova_table(rv$anova_res))
       })
-      
-      output$anova_table <- renderTable({
-        req(anova_table())
-        anova_table()
-      })
-      
       observe({
         rv$anova_table <- anova_table()
+      })
+      output$anova_table <- renderTable({
+        validate(
+          need(rv$anova_table, paste0("ANOVA could not be performed given the current (or lack of) model formula.", 
+                                      rv$anova_table))
+          )
+        rv$anova_table
       })
       
       # Performing t-test
       ttest_res <- reactive({
+        req(rv$content_stats)
         req(rv$formula_reg)
         tt_formula <- try(as.formula(rv$formula_reg))
         
-        validate(
-          need(!("try-error" %in% class(tt_formula)), "Submit valid data and formula to perform t-test.")
-        )
-        
-        # Put in try-catch
-        return(try(rstatix::t_test(data = rv$content_stats, formula = tt_formula)))
+        try(rstatix::t_test(data = rv$content_stats, 
+                            formula = tt_formula))
       })
       
       # Saving t-test result
       observe({
+        req(ttest_res())
         rv$ttest_res <- ttest_res()
       })
       
@@ -1214,8 +1226,8 @@ statsServer <- function(id, rv = rv){
       output$t_test_res_raw <- renderPrint({
         # Check that the t-test result is not an error
         validate(
-          need(rv$formula_reg, "Submit valid data and formula to perform t-test."),
-          need(!("try-error" %in% class(rv$ttest_res)), paste0("T-test yielded the following error: ", rv$ttest_res))
+          need(rv$ttest_res, paste0("T-test could not be performed given the current (or lack of) model formula.", 
+                                    rv$ttest_res))
         )
 
         rv$ttest_res
@@ -1225,10 +1237,10 @@ statsServer <- function(id, rv = rv){
       output$t_test_res_table <- renderText({
         # Check that the t-test result is not an error
         validate(
-          need(rv$formula_reg, "Submit valid data and formula to perform t-test."),
-          need(!("try-error" %in% class(rv$ttest_res)), paste0("T-test yielded the following error: ", rv$ttest_res))
+          need(rv$ttest_res, paste0("T-test could not be performed given the current (or lack of) model formula.", 
+                                    rv$ttest_res))
         )
-        
+        req(rv$ttest_res)
         table <- kable(rv$ttest_res) %>% 
                   kable_styling(latex_options = 'striped')
         
@@ -1266,79 +1278,62 @@ statsServer <- function(id, rv = rv){
       
       # When perform chisq button clicked, perform with selected variables
       observeEvent(input$submit_chisq, {
-        
+        req(rv$content_stats[[input$chisq_var1]])
+        req(rv$content_stats[[input$chisq_var2]])
         # Try handler to ensure conversion to factors does not produce a fatal error
         var1 <- try(as.factor(rv$content_stats[[input$chisq_var1]]))
         var2 <- try(as.factor(rv$content_stats[[input$chisq_var2]]))
         
         # Ensure that var1 & var2 are both categorical/can be converted to categorical
         
-        validate(need(!("try-error" %in% class(var1)), "Select a categorical variable."), 
-                 need(!("try-error" %in% class(var2)), "Select a categorical variable."))
+        req(var1)
+        req(var2)
         
         # Creating table of selected vars
-        chisq_table <- table(var1, var2)
+        chisq_table <- try(table(var1, var2))
         
         # Saving reactive variable
         chisq_res <- reactive({
           req(chisq_table)
-          res <- try(stats::chisq.test(chisq_table))
-          
-          if("try-error" %in% class(res)){
-            paste0("Invalid categorical variables selected. Error returned: ", res)
-          } else {
-            res
-          }
+          try(stats::chisq.test(chisq_table))
         })
         
         # Saving in reactive list to eventually export to report generation
-        req(chisq_res())
         rv$chisq_res <- chisq_res()
         
       })
       
       output$chisq_res <- renderPrint({
-        validate(need(rv$chisq_res, "Submit categorical variables to begin."))
-        
+        validate(need(rv$chisq_res, 
+                      "Submit categorical variables to begin."))
         rv$chisq_res
       })
       
       #### Kruskal-Wallis test ####
       kw_res <- reactive({
-        
+        req(rv$content_stats)
         req(rv$formula_reg)
-        
         formula <- try(as.formula(rv$formula_reg))
-        
-        res <- try(kruskal.test(formula, data = rv$content_stats))
-        
-        if("try-error" %in% class(res)){
-          paste0("Invalid variables selected. Error returned: ", res)
-        } else {
-          res
-        }
-        
+        try(kruskal.test(formula, data = rv$content_stats))
       })
       
+      ##################
       observe({
         req(kw_res())
         rv$kw_res <- kw_res()
       })
       
       output$kw_res <- renderPrint({
-        validate(need(rv$kw_res, "Submit valid data and formula to perform Kruskal-Wallis test."))
-        
+        validate(need(rv$kw_res, 
+                      "Submit valid data and formula to perform Kruskal-Wallis test."))
         rv$kw_res
-        
       })
       
       #### Welch one-way test ####
       welch_res <- reactive({
-        
+        req(rv$content_stats)
         req(rv$formula_reg)
-        
         formula <- try(as.formula(rv$formula_reg))
-        
         res <- try(oneway.test(formula, data = rv$content_stats, var.equal = FALSE))
         
         if("try-error" %in% class(res)){
@@ -1346,7 +1341,6 @@ statsServer <- function(id, rv = rv){
         } else {
           res
         }
-        
       })
       
       observe({
@@ -1355,21 +1349,17 @@ statsServer <- function(id, rv = rv){
       })
       
       output$welch_res <- renderPrint({
-        validate(need(rv$welch_res, "Submit valid data and formula to perform 
-                      Welch one-way test."))
+        validate(need(rv$welch_res, "Submit valid data and formula to perform Welch one-way test."))
         
         rv$welch_res
-        
       })
       
       
       #### Mann-whitney/Wilcoxon ####
       mann_wil_res <- reactive({
-
+        req(rv$content_stats)
         req(rv$formula_reg)
-
         formula <- try(as.formula(rv$formula_reg))
-
         res <- try(wilcox.test(formula, data = rv$content_stats))
 
         if("try-error" %in% class(res)){
@@ -1386,22 +1376,13 @@ statsServer <- function(id, rv = rv){
       })
 
       output$mann_wil_res <- renderPrint({
-        validate(need(rv$mann_wil_res,
-      "Submit valid data and formula to perform Mann-Whitney test."))
+        validate(need(rv$mann_wil_res, "Submit valid data and formula to perform Mann-Whitney test."))
 
         rv$mann_wil_res
-
       })
       
 
     }) # end module server inner function
 } # end module server
-
-
-
-
-
-
-
 
 

@@ -8,186 +8,324 @@ params:
   stats_report_rv: ""
 always_allow_html: true
 ---
-
-```{r}
+```{r setup}
 #| echo: false
 #| message: false
 #| warning: false
 #| error: false
+if(!require('pacman'))install.packages('pacman')
+library(pacman)
 
-library(knitr)
-library(tidyr)
-library(dplyr)
-library(ggplot2)
-library(kableExtra)
-library(readr)
-library(stringr)
-library(flextable)
+pacman::p_load(
+  dplyr,    flextable,
+  ggplot2, kableExtra,
+  knitr, readr,
+  stringr, tidyr
+  )
 
-opts_chunk$set(fig.align = 'center',
+knitr::opts_chunk$set(fig.align = 'center',
                out.width = 650, 
                fig.width = 10)
-```
 
+```
 ---
 
+```{r}
+#| echo: false
+#| warning: false
+
+# Setting defaults to render where parts missing, e.g. user downloads report with nothing uploaded
+counts_subtitle <- ""
+summary_stats_subtitle <- ""
+num_stops <- 0
+num_files <- 0
+
+# Summary stats 
+if(!is.null(params$report_rv$num_files)){
+  num_files <- params$report_rv$num_files
+}
+
+# Creating variable for number of stop-words that were included.
+if(!is.null(params$report_rv$stop_words_final)){
+  num_stops <- nrow(params$report_rv$stop_words_final)
+} 
+
+# Creating summary stats values
+if(!is.null(params$report_rv$content_tf_idf)){
+    total_tokens <- params$report_rv$content_tf_idf$`Corpus token count`[1]
+  mean_token_count <- params$report_rv$content_tf_idf$`Mean token count`[1]
+  sd_token_count <- c(sd(params$report_rv$content_tf_idf$`Token Count`))
+  
+  summary_stats_subtitle <-  paste("The total count of all tokens in the corpus was ", total_tokens,
+                                   ". The mean token count per document was ", 
+                            mean_token_count, 
+                            " with a standard deviation of ", 
+                            round(sd_token_count, 2), ".",
+                          collapse = ",")
+  
+  max_min_token <- params$report_rv$content_tf_idf %>%
+    arrange(desc(`Token Count`)) %>%
+    select(ID,`Token Count`)
+  highest_token_count <- slice_head(max_min_token)
+  lowest_token_count <- slice_tail(max_min_token)
+  
+  highest_count <- highest_token_count[1,2]
+  highest_doc <- highest_token_count[1,1]
+  lowest_count <- lowest_token_count[1,2]
+  lowest_doc <- lowest_token_count[1,1]
+  
+  counts_subtitle <-  paste("The document with the highest token count (", highest_count, ") was ", 
+                            highest_doc, 
+                            ". The document with the lowest token count (", lowest_count, ") was ", 
+                            lowest_doc, ".",
+                          collapse = ",")
+}
+```
+
+--------------------------------------------------------
+
+## Corpus summary statistics
+
+A corpus consisting of `r num_files` documents was submitted for analysis. A total of `r num_stops` stop-words were omitted from their contents.
+
+`r summary_stats_subtitle`
+\
+
+`r counts_subtitle`
 \
 
 ```{r}
 #| echo: false
 #| warning: false
-# 
-# data <- params$report_rv$content_tf_idf
-# summary <- tibble(`Token type` = params$report_rv$token,
-#                   `Mean document token count` = 
-#                     mean_token_count, 
-#                   `Std. dev.` = c(sd(data$`Token Count`)),
-#                   `Min.` = min(data$`Token Count`), 
-#                   `Max.` = max(data$`Token Count`), 
-#                   `Total corpus count` = total_tokens
-#                   )
-# 
-# flextable(summary, cwidth = 2) %>% 
-#   set_caption(caption =  "Table 1. Summary statistics for the current corpus.") %>% 
-#   autofit()
+
+data <- params$report_rv$content_tf_idf
+if(!is.null(data)){
+  summary <- tibble(`Mean document token count` = 
+                    mean_token_count, 
+                  `Std. dev.` = c(sd(data$`Token Count`)),
+                  `Min.` = min(data$`Token Count`), 
+                  `Max.` = max(data$`Token Count`), 
+                  `Total corpus tokens` = total_tokens
+                  )
+
+  flextable(summary, cwidth = 2) %>% 
+    set_caption(caption =  "Table 1. Summary statistics for the current corpus.") %>% 
+    # font(fontname = "Calibri (Body)", part = "all") %>%
+    # fontsize(size = 10, part = "body") %>%
+    # theme_booktabs() %>% # default theme
+    autofit()
+}
 ```
 
 
-\
-
-```{r }
+```{r}
 #| echo: false
 #| warning: false
 #| error: false
 
 # Generating titles for stuff
-
-if(!is.null(params$stats_report_rv$corr_plot) && params$stats_report_rv$corr_plot != ""){
+corr_title <- ""
+if(!is.null(params$stats_report_rv$corr_plot)){
   corr_title <- "Correlation heat-map"
-} else {
-  corr_title <- NULL
 }
 ```
 
-\
-
 ---
-
-## Correlation Matrix Heat-map
-
-Below shows a correlation heat-map of the submitted variables. 
 
 ```{r}
 #| echo: false
 #| warning: false
 #| error: false
-#| message: false
-if(!is.null(params$stats_report_rv$corr_plot) && params$stats_report_rv$corr_plot != ""){
-  params$stats_report_rv$corr_plot
+correlation_title <- ""
+correlation_blurb <- ""
+plot <- ""
+
+if(!is.null(params$stats_report_rv$corr_plot)){
+  correlation_title <- "Correlation Matrix Heat-map"
+  correlation_blurb <- "Below shows a correlation heat-map between variables within the selected dataset."
+  plot <- params$stats_report_rv$corr_plot
 }
 ```
 
----
+## `r correlation_title`
 
-## Regression Analysis
-
-### Model formulation
-
-The following outlines the regression formula and summary of the model fitted.\
+`r correlation_blurb`
 
 \
 
-```{r fig1}
+`r plot`
+
+---
+
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+reg_title <- ""
+reg_blurb <- ""
+formula <- ""
+
+if(!is.null(params$stats_report_rv$formula_reg)){
+  reg_title <- "Regression analysis"
+  reg_blurb <- "The following outlines the regression formula and summary of the model fitted."
+  formula <-  paste("The specified regression formula was:",
+                     params$stats_report_rv$formula_reg, ".",
+                    collapse = ",")
+}
+```
+
+## `r reg_title`
+
+`r reg_blurb`
+
+`r formula`
+
+```{r}
 #| echo: false
 #| warning: false
 #| error: false
 
-if(!is.null(params$stats_report_rv$formula_reg) && params$stats_report_rv$formula_reg != ""){
-  params$stats_report_rv$formula_reg
-}
-
-if(!is.null(params$stats_report_rv$reg_result_table) && params$stats_report_rv$reg_result_table != ""){
+# HTML can render the regression result table 
+if(!is.null(params$stats_report_rv$reg_result_table)){
   params$stats_report_rv$reg_result_table
 }
 ```
 
-\
-
 ---
-
-
-## Residual Plots
-
-The residual plots for the fitted regression model are shown below.\
-
-\
-
-
-```{r fig2, R.options= list(width = 10)}
-#| echo: false
-#| warning: false
-
-# if(!is.null(params$stats_report_rv$residual_plots) && params$stats_report_rv$residual_plots != ""){
-  params$stats_report_rv$residual_plots
-# }
-```
-
-\
-
-\
-
-
----
-
-
-## Statistical Tests
-
-The ANOVA test is used to determine if there is a statistically significant difference between the means of three or more independent groups. ANOVA test results for the fitted model are shown below.
 
 ```{r}
 #| echo: false
 #| warning: false
+#| error: false
+resid_title <- ""
+resid_blurb <- ""
+if(!is.null(params$stats_report_rv$residual_plots)){
+  resid_title <- "Residual Plots"
+  resid_blurb <- "The residual plots for the fitted regression model are shown below."
+}
 
-if(!is.null(params$stats_report_rv$anova_table) && params$stats_report_rv$anova_table != ""){
+```
+
+### `r resid_title`
+
+`r resid_blurb`
+
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+
+if(!is.null(params$stats_report_rv$residual_plots)){
+  params$stats_report_rv$residual_plots
+}
+```
+
+---
+
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+
+# Statistical test headers/blurbs
+
+stats_tests_title <- ""
+# If not any (none) of the statistical tests are null, 
+# render statistical test title
+if(!any(is.null(c(params$stats_report_rv$anova_table, 
+                  params$stats_report_rv$ttest_table, 
+                  params$stats_report_rv$chisq_res)))
+   ){
+  stats_tests_title <- "Statistical Tests"
+}
+
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+
+# ANOVA test headers/blurbs
+anova_title <- ""
+anova_blurb <- ""
+
+if(!is.null(params$stats_report_rv$anova_table)){
+  anova_title <- "Analysis of variances (ANOVA)"
+  anova_blurb <- "An ANOVA was used to test for any  significant differences between means of three or more independent groups. A summary of the ANOVA test results for the fitted model are shown below."
+}
+
+```
+
+## `r stats_tests_title`
+
+### `r anova_title`
+
+`r anova_blurb`
+
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+if(!is.null(params$stats_report_rv$anova_table)){
   params$stats_report_rv$anova_table
 }
 ```
 
-\
-
-\
-
-A t-test is a statistical test used to determine if their is a significant difference in the means of two independent groups being compared. The results of the t-test for the fitted model are shown below.
 
 ```{r}
 #| echo: false
 #| warning: false
+#| error: false
 
-if(!is.null(params$stats_report_rv$ttest_table) && params$stats_report_rv$ttest_table != ""){
-  params$stats_report_rv$ttest_table
+# t-test headers/blurbs/results
+ttest_title <- ""
+ttest_blurb <- ""
+ttest_table <- ""
+
+if(!is.null(params$stats_report_rv$ttest_table)){
+  ttest_title <- "T-test"
+  ttest_blurb <- "A t-test was performed to determine if there was a significant difference in the means of two independent groups being compared. A summary of the t-test results on the fitted model are shown below."
+  ttest_table <- params$stats_report_rv$ttest_table
+}
+
+```
+
+### `r ttest_title`
+
+`r ttest_blurb`
+
+`r ttest_table`
+
+
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+
+# chi-sq test headers/blurbs/results
+chi_sq_title <- ""
+chi_sq_blurb <- ""
+
+if(!is.null(params$stats_report_rv$chisq_res)){
+  chi_sq_title <- "Chi-squared test"
+  chi_sq_blurb <- "A chi-squared test was used to determine for a significant association between two categorical variables. The results of the chi-squared test for the fitted model are shown below."
 }
 ```
 
-\
+### `r chi_sq_title`
 
-\
+`r chi_sq_blurb`
 
-<!-- The Chi-square test is used to determine whether there is a significant association between two categorical variables. The results of the chi square test for the fitted model are shown below. -->
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
 
-<!-- ```{r} -->
-<!-- #| echo: false -->
-<!-- #| warning: false -->
+if(!is.null(params$stats_report_rv$chisq_res)){
+  params$stats_report_rv$chisq_res
+}
+```
 
-<!-- if(!is.null(params$stats_report_rv$chisq_res) && params$stats_report_rv$chisq_res != ""){ -->
-<!--   params$stats_report_rv$chisq_res -->
-<!-- } -->
-<!-- ``` -->
-
-\
-
-\
-
-\
-
-\
 ---
+
