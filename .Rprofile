@@ -75,3 +75,5 @@ source("R/reporting.R", local = T)
 source("R/reportMaker.R", local = T)
 source("R/wordCloud.R", local = T)
 source("R/app.R")
+
+textApp()

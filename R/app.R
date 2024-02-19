@@ -44,7 +44,6 @@
 # Now using renv::restore() & lockfile to manage packages
 if(!require('pacman'))install.packages('pacman')
 # library(pacman)
-# 
 # pacman::p_load(
 #   berryFunctions, # for adding in rows easily
 #   devtools, dplyr, DT,
