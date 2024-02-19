@@ -1,6 +1,6 @@
 source("renv/activate.R")
 if (!requireNamespace("renv")) install.packages("renv")
-renv::restore(clean = T, prompt = "confirm")
+renv::restore(clean = T)
 
 # library cal on all req packages
 library(berryFunctions)
