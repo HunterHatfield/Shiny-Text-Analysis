@@ -1,12 +1,52 @@
 
 ##### DASBOARD APP ######
 
-if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+if (!requireNamespace("renv")) install.packages("renv")
 renv::restore(clean = T)
+
+library(berryFunctions)
+library(devtools)
+library(dplyr)
+library(DT)
+library(finalfit)
+library(forcats)
+library(ggfortify)
+library(ggplot2)
+library(hunspell)
+library(janitor)
+library(kableExtra)
+library(MASS)
+library(modelsummary)
+library(nortest)
+library(openxlsx)
+library(plotly)
+library(purrr)
+library(quarto)
+library(readr)
+library(reshape2)
+library(rmarkdown)
+library(rstatix)
+library(scales)
+library(schoRsch)
+library(shiny)
+library(shinyalert)
+library(shinycssloaders)
+library(shinydashboard)
+library(shinyFiles)
+library(shinyjs)
+library(sjmisc)
+library(sjPlot)
+library(stringr)
+library(tidyr)
+library(tidytext)
+library(tm)
+library(waiter)
+library(wordcloud2)
+library(xgxr)
 
 
 # Now using renv::restore() & lockfile to manage packages
-# if(!require('pacman'))install.packages('pacman')
+if(!require('pacman'))install.packages('pacman')
 # library(pacman)
 # 
 # pacman::p_load(
@@ -65,118 +105,118 @@ source("R/wordCloud.R", local = T)
 
 
 textApp <- function(){
-
+  
   ############# Main UI ###########################
   ui <- dashboardPage(skin = "black",
-  
-    dashboardHeader(title = "Text Analysis"),
-    
-    dashboardSidebar(
-      sidebarMenu(id = "sidebar",
-                  
-        menuItem("  Home", 
-                 tabName = "home", 
-                 icon = icon("house")
-        ),
-        menuItem("  Import data", 
-                 tabName = "textSelectorTab",
-                 icon = icon("file-import")
-        ),
-        menuItem("  Text preparation", 
-                 tabName = "textPrepTab", 
-                 icon = icon("filter")
-        ),
-        menuItem("  Visualise", 
-                 tabName = "textFreqTab",
-                 icon = icon("chart-column")
-        ),
-        menuItem("Search/Concordance (under construction)",
-                 tabName = "concordanceTab",
-                 icon = icon("dashboard")
-        ),
-        menuItem("Statistical Analysis", 
-                 tabName = "statsTab",
-                 icon = icon("calculator")
-        ),
-       menuItem("Report", 
-                tabName = "reportingTab",
-                icon = icon("scroll")
-        )
-       
-      ), # end sidebar menu
-      
-      column(12,
-        hr(class = "hr-blank"),
-        hr(class = "hr-blank"),
-        hr(class = "hr-blank"),
-        hr(class = "hr-blank"),
-  
-        h4("Dev notes:", style = "color: lightgray;"),
-        em("I've added <<__>> around blurbs which could be improved on Let me know if you have any suggestions for them.", style = "color: lightgray;"),
-        hr(class = "hr-blank"),
-        em("I tested out editing the home tab's text to having 4 actions (import, visualise, analyse, report), but it makes the landing page look too complicated & users would have to scroll to read all the steps and get to the start button. I think having a clear and concise 3 calls to action (import, analyse/visualise/?, report) gives a good overview of the app and memorable steps for the landing page. But what to call step 2... analyse, visualise or something else? I guess analyse includes visualise/search/concordance/stats stuff...", style = "color: lightgray;")
-      )
-      
-      
-    ), # end dashboard sidebar
-    
-    dashboardBody(
-      
-      # Linking to external style sheets without package
-      # tags$link(rel = "stylesheet", type="text/css",
-      #           href="./www/styles.css"),
-      # tags$link(rel = "stylesheet", type="text/css",
-      #           href="./www/button-styles.css"),
-      # tags$link(rel = "stylesheet", type="text/css",
-      #           href="./www/error-styles.css"),
-      
-      # Linking to external style sheet in package
-      includeCSS("./www/styles.css"),
-      includeCSS("./www/button-styles.css"),
-      includeCSS("./www/error-styles.css"),
-      
-      tabItems(
-        # Inserting inner UI items into the tabs 
-        tabItem(tabName = "home", 
-                homeUI("home")
-                ),
-        
-        tabItem(tabName = "textSelectorTab",
-                textSelectorUI("textSelector",  
-                               label = "Choose text file(s):")
-                ),
-        
-        # Text preparation UI
-        tabItem(tabName = "textPrepTab", 
-                textPrepUI("textPrep")
-                ),
-        
-        # Text frequency UI
-        tabItem(tabName = "textFreqTab",
-                  # textFreqUI("textFreq")
-                reportingUI("reporting")
-                ),
-        
-        # Concordance UI
-        # tabItem(tabName = "concordanceTab",
-        #         # concordanceUI("concordance")
-        #         ),
-        
-        # Stat UI
-        tabItem(tabName = "statsTab",
-                statsUI("stats")
-        ),
-        tabItem(tabName = "reportingTab",
-                reportMakerUI("reportMaker")
-        )
-      )
-    ) # end dashboard body
+                      
+                      dashboardHeader(title = "Text Analysis"),
+                      
+                      dashboardSidebar(
+                        sidebarMenu(id = "sidebar",
+                                    
+                                    menuItem("  Home", 
+                                             tabName = "home", 
+                                             icon = icon("house")
+                                    ),
+                                    menuItem("  Import data", 
+                                             tabName = "textSelectorTab",
+                                             icon = icon("file-import")
+                                    ),
+                                    menuItem("  Text preparation", 
+                                             tabName = "textPrepTab", 
+                                             icon = icon("filter")
+                                    ),
+                                    menuItem("  Visualise", 
+                                             tabName = "textFreqTab",
+                                             icon = icon("chart-column")
+                                    ),
+                                    menuItem("Search/Concordance (under construction)",
+                                             tabName = "concordanceTab",
+                                             icon = icon("dashboard")
+                                    ),
+                                    menuItem("Statistical Analysis", 
+                                             tabName = "statsTab",
+                                             icon = icon("calculator")
+                                    ),
+                                    menuItem("Report", 
+                                             tabName = "reportingTab",
+                                             icon = icon("scroll")
+                                    )
+                                    
+                        ), # end sidebar menu
+                        
+                        column(12,
+                               hr(class = "hr-blank"),
+                               hr(class = "hr-blank"),
+                               hr(class = "hr-blank"),
+                               hr(class = "hr-blank"),
+                               
+                               h4("Dev notes:", style = "color: lightgray;"),
+                               em("I've added <<__>> around blurbs which could be improved on Let me know if you have any suggestions for them.", style = "color: lightgray;"),
+                               hr(class = "hr-blank"),
+                               em("I tested out editing the home tab's text to having 4 actions (import, visualise, analyse, report), but it makes the landing page look too complicated & users would have to scroll to read all the steps and get to the start button. I think having a clear and concise 3 calls to action (import, analyse/visualise/?, report) gives a good overview of the app and memorable steps for the landing page. But what to call step 2... analyse, visualise or something else? I guess analyse includes visualise/search/concordance/stats stuff...", style = "color: lightgray;")
+                        )
+                        
+                        
+                      ), # end dashboard sidebar
+                      
+                      dashboardBody(
+                        
+                        # Linking to external style sheets without package
+                        # tags$link(rel = "stylesheet", type="text/css",
+                        #           href="./www/styles.css"),
+                        # tags$link(rel = "stylesheet", type="text/css",
+                        #           href="./www/button-styles.css"),
+                        # tags$link(rel = "stylesheet", type="text/css",
+                        #           href="./www/error-styles.css"),
+                        
+                        # Linking to external style sheet in package
+                        includeCSS("./www/styles.css"),
+                        includeCSS("./www/button-styles.css"),
+                        includeCSS("./www/error-styles.css"),
+                        
+                        tabItems(
+                          # Inserting inner UI items into the tabs 
+                          tabItem(tabName = "home", 
+                                  homeUI("home")
+                          ),
+                          
+                          tabItem(tabName = "textSelectorTab",
+                                  textSelectorUI("textSelector",  
+                                                 label = "Choose text file(s):")
+                          ),
+                          
+                          # Text preparation UI
+                          tabItem(tabName = "textPrepTab", 
+                                  textPrepUI("textPrep")
+                          ),
+                          
+                          # Text frequency UI
+                          tabItem(tabName = "textFreqTab",
+                                  # textFreqUI("textFreq")
+                                  reportingUI("reporting")
+                          ),
+                          
+                          # Concordance UI
+                          # tabItem(tabName = "concordanceTab",
+                          #         # concordanceUI("concordance")
+                          #         ),
+                          
+                          # Stat UI
+                          tabItem(tabName = "statsTab",
+                                  statsUI("stats")
+                          ),
+                          tabItem(tabName = "reportingTab",
+                                  reportMakerUI("reportMaker")
+                          )
+                        )
+                      ) # end dashboard body
   )
   
   ############# Main server ###########################
   server <- function(input, output, session) {
     
-  
+    
     # Create reactive value list within server - 
     # results in reactive value list private to each 
     # user session
@@ -233,7 +273,7 @@ textApp <- function(){
     #   return()
     # }
     
-  
+    
     textPrepAttempt <- try(textPrepServer("textPrep", rv = rv))
     if("try-error" %in% class(textPrepAttempt)){
       shinyalert(
@@ -250,7 +290,7 @@ textApp <- function(){
       return()
     }
     
-  
+    
     # testServer("test", rv = rv)
     reportingServerAttempt <- try(reportingServer("reporting",
                                                   rv = rv))
@@ -313,14 +353,8 @@ textApp <- function(){
   
   # Run the application 
   shinyApp(ui = ui, server = server)
-
+  
 }
 
-# Testing 
-# library(shiny)
-  # runApp(list(
-  #   ui = ui,
-  #   server = server
-  # ))
+textApp()
 
-# })
