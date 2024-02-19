@@ -1,6 +1,6 @@
 source("renv/activate.R")
 if (!requireNamespace("renv")) install.packages("renv")
-renv::restore(clean = T)
+renv::restore(clean = T, prompt = "confirm")
 
 # library cal on all req packages
 library(berryFunctions)
@@ -74,3 +74,4 @@ source("R/reporting.R", local = T)
 # source("textFrequency.R", local = T)
 source("R/reportMaker.R", local = T)
 source("R/wordCloud.R", local = T)
+source("R/app.R")
