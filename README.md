@@ -1,13 +1,33 @@
-# Shiny-Text-Analysis
+# Shiny Text Analysis App
 
-(README as of 17th Feb following previous app version)
+A Shiny application designed and developed by Hunter Hatfield and Emelia Hogg to perform no-code text mining and analysis. 
 
-This app is designed by Hunter Hatfield and developed by Emelia Hogg, and was created to perform no-code text mining and analysis. 
+--- 
 
-## Access
+## Running the app
 
-The app can be accessed through RStudio via the following commands:
+Automatically run this Shiny application by downloading the app files and double-clicking on `ShinyTextApp.Rproj`. 
 
-`devtools::load_all()`
+### 1. Download or clone app files to your machine
 
-`textApp()`
+Download and save the repository files to your machine through `Code > Download .zip`.
+
+Alternatively, this repository can cloned into your R session using the repository URL: <https://github.com/HunterHatfield/Shiny-Text-Analysis>.
+
+### 2. Lauch `ShinyTextApp.Rproj`
+
+Open the R project file `ShinyTextApp.Rproj`. This project and its associated `.Rprofile` will automatically call on all package dependencies for the app, R files, and run the `textApp()`. This will lauch the Shiny application on a local server.
+
+--- 
+
+## (Optional) Manually lauch through R Studio
+
+This app can be manually launched through in RStudio by calling on the `textApp()` function which is sourced in `R/app.R`
+
+In the RStudio console, run the command: `textApp()` to lauch the app on a local server.
+
+## Troubleshooting
+
+
+
+
