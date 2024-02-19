@@ -18,6 +18,8 @@ Alternatively, this repository can cloned into your R session using the reposito
 
 Open the R project file `ShinyTextApp.Rproj`. This project and its associated `.Rprofile` will automatically call on all package dependencies for the app, R files, and run the `textApp()`. This will lauch the Shiny application on a local server.
 
+![Demo](./www/`Lauch Demo.gif`)
+
 --- 
 
 ## (Optional) Manually lauch through R Studio
