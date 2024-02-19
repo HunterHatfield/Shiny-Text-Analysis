@@ -97,7 +97,6 @@ A corpus consisting of `r num_files` documents was submitted for analysis. A tot
 `r summary_stats_subtitle`
 
 `r counts_subtitle`
-\
 
 ```{r}
 #| echo: false
@@ -122,9 +121,6 @@ if(!is.null(data)){
 }
 ```
 
-
----
-
 <!-- Correlation matrix -->
 
 ```{r}
@@ -141,10 +137,7 @@ if(!is.null(params$stats_report_rv$corr_plot_non_plotly)){
 ```
 
 ## `r correlation_title`
-
 `r correlation_blurb`
-
-\
 
 ```{r}
 #| echo: false
@@ -155,8 +148,6 @@ if(!is.null(params$stats_report_rv$corr_plot_non_plotly)){
   params$stats_report_rv$corr_plot_non_plotly
 }
 ```
-
-\
 
 ---
 
@@ -179,9 +170,7 @@ if(!is.null(params$stats_report_rv$formula_reg)){
 ```
 
 ## `r reg_title`
-
 `r reg_blurb`
-
 `r formula`
 
 ```{r}
@@ -193,9 +182,6 @@ if(!is.null(params$stats_report_rv$reg_summary_raw)){
   params$stats_report_rv$reg_summary_raw
 }
 ```
-
-
----
 
 ```{r}
 #| echo: false
@@ -210,11 +196,9 @@ if(!is.null(params$stats_report_rv$residual_plots)){
   resid_blurb <- "The residual plots for the fitted regression model are shown below."
   resid_plots <- params$stats_report_rv$residual_plots
 }
-
 ```
 
 ### `r resid_title`
-
 `r resid_blurb`
 
 ```{r}
@@ -226,7 +210,6 @@ if(!is.null(params$stats_report_rv$residual_plots)){
 }
 ```
 
----
 
 ```{r}
 #| echo: false
@@ -266,7 +249,6 @@ if(!is.null(params$stats_report_rv$anova_table)){
 ## `r stats_tests_title`
 
 ### `r anova_title`
-
 `r anova_blurb`
 
 ```{r}
@@ -277,7 +259,6 @@ if(!is.null(params$stats_report_rv$anova_table)){
   params$stats_report_rv$anova_table
 }
 ```
-
 
 ```{r}
 #| echo: false
@@ -295,7 +276,6 @@ if(!is.null(params$stats_report_rv$ttest_res)){
 ```
 
 ### `r ttest_title`
-
 `r ttest_blurb`
 
 ```{r}
@@ -306,7 +286,6 @@ if(!is.null(params$stats_report_rv$ttest_res)){
   params$stats_report_rv$ttest_res
 }
 ```
-
 
 ```{r}
 #| echo: false
@@ -324,7 +303,6 @@ if(!is.null(params$stats_report_rv$chisq_res)){
 ```
 
 ### `r chi_sq_title`
-
 `r chi_sq_blurb`
 
 ```{r}
@@ -336,5 +314,3 @@ if(!is.null(params$stats_report_rv$chisq_res)){
   params$stats_report_rv$chisq_res
 }
 ```
-
----

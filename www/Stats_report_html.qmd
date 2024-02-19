@@ -86,7 +86,7 @@ if(!is.null(params$report_rv$content_tf_idf)){
 
 ## Corpus summary statistics
 
-A corpus consisting of `r num_files` documents was submitted for analysis. A total of `r num_stops` stop-words were omitted from their contents.
+A corpus consisting of `r num_files` documents was submitted for analysis. In addition, `r num_stops` stop-words were omitted from their contents.
 
 `r summary_stats_subtitle`
 \
@@ -114,19 +114,6 @@ if(!is.null(data)){
     # fontsize(size = 10, part = "body") %>%
     # theme_booktabs() %>% # default theme
     autofit()
-}
-```
-
-
-```{r}
-#| echo: false
-#| warning: false
-#| error: false
-
-# Generating titles for stuff
-corr_title <- ""
-if(!is.null(params$stats_report_rv$corr_plot)){
-  corr_title <- "Correlation heat-map"
 }
 ```
 

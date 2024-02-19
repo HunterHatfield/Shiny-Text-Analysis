@@ -36,10 +36,10 @@ gutenbergRUI <- function(id, label = "Enter the Project Gutenberg text ID:"){
   )
 }
 
-gutenbergRServer <- function(id, rv = rv){
+gutenbergRServer <- function(id, rv = NULL){
   moduleServer(
     id, 
-    function(input, output, session, rv){
+    function(input, output, session){
       output$title1 <- renderText({
         paste("Project Gutenberg")
       })

@@ -35,10 +35,10 @@ rvestUI <- function(id, label = "Enter a webpage link:"){
   )
 }
 
-rvestServer <- function(id, rv = rv){
+rvestServer <- function(id, rv = NULL){
   moduleServer(
     id, 
-    function(input, output, session, rv){
+    function(input, output, session){
       
       output$title1 <- renderText({
         paste("Web Scraping")

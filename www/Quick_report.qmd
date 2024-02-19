@@ -219,8 +219,8 @@ The method aims to decrease weighting of common terms and increase weighting of 
 #| warning: false
 #| echo: false
 
-tf_idf_subtitle_1 <- NULL
-tf_idf_subtitle_2 <- NULL
+tf_idf_subtitle_1 <- ""
+tf_idf_subtitle_2 <- ""
 
 # First check if user wants to include tf_idf stuff
 if(!is.null(params$report_rv$tf_idf_plot)){

@@ -1,92 +1,74 @@
 
 ##### DASBOARD APP ######
 
-# devtools::load_all() - automatically saves all open files, source()s every file in R/, loads all datasets in data/ then puts your cursor in the console
-# run the actual app: textApp() in the console
+if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+renv::restore(clean = T)
 
-# usethis::edit_r_profile() - to edit Rprofile (code that runs every time opening R)
-# Call usethis::use_description() to create a description file
-# Remove any calls to source(), since load_all() automatically sources all .Rfiles in R/.
 
-# Need to eventually all library()  with usethis::use_package("name")
-# usethis::use_package("shiny")
-# usethis::use_package("DT")
-# usethis::use_package("shinyFiles")
-# usethis::use_package("readr")
-# usethis::use_package("dplyr")
-# usethis::use_package("shinydashboard")
-# usethis::use_package("purrr")
-# usethis::use_package("tidytext")
-# usethis::use_package("devtools")
-# usethis::use_package("openxlsx")
-
-# install.packages("sjmisc")
-
-if(!require('pacman'))install.packages('pacman')
-library(pacman)
-
-pacman::p_load(
-  berryFunctions, # for adding in rows easily
-  devtools,
-  dplyr,
-  DT,
-  finalfit,
-  forcats,
-  ggfortify,
-  ggplot2,
-  hunspell,
-  janitor,
-  kableExtra,
-  MASS,
-  modelsummary,
-  nortest,
-  openxlsx,
-  plotly,
-  purrr,
-  quarto,
-  readr,
-  reshape2,
-  rmarkdown,
-  rstatix,
-  scales, # For the corr plot
-  schoRsch,
-  shiny,
-  shinyalert,
-  shinydashboard,
-  shinyFiles,
-  shinyjs,
-  sjmisc,
-  sjPlot,
-  stringr,
-  tidyr,
-  tidytext,
-  tm,
-  wordcloud2,
-  xgxr # For the corr plot
-  )
+# Now using renv::restore() & lockfile to manage packages
+# if(!require('pacman'))install.packages('pacman')
+# library(pacman)
+# 
+# pacman::p_load(
+#   berryFunctions, # for adding in rows easily
+#   devtools, dplyr, DT,
+#   finalfit, forcats,
+#   ggfortify,ggplot2,
+#   hunspell,
+#   janitor,
+#   kableExtra,
+#   MASS, modelsummary,
+#   nortest,
+#   openxlsx,
+#   plotly, purrr,
+#   quarto,
+#   readr, reshape2, rmarkdown, rstatix,
+#   scales, schoRsch,
+#   shiny, shinyalert, shinycssloaders,
+#   shinydashboard, shinyFiles, shinyjs,
+#   sjmisc, sjPlot, stringr,
+#   tidyr, tidytext, tm,
+#   waiter, wordcloud2,
+#   xgxr # For the corr plot
+#   )
 
 # Setting shiny options
-# file upload limit to 10MB (override 5MB limit)
-options(shiny.maxRequestSize = 10*1024^2)
-
-# ensures that missing values are represented consistently as the string 'string' in the JSON representation of the DataTable
+# file upload limit to 500MB (0.5GB) (override 5MB limit)
+options(shiny.maxRequestSize = 500*1024^2)
 # options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
 options(htmlwidgets.TOJSON_ARGS = NULL)
+# ensures that missing values are represented consistently as the string 'string' in the JSON representation of the DataTable
 options(DT.TOJSON_ARGS = list(na = 'string'))
+options(spinner.type = 7, spinner.color = "royalblue")
+
+# Sourcing non-reactive utility functions
+
+source("R/utils.R")
+# Sourcing each .R file
+source("R/home.R", local = T)
+source("R/upload.R", local = T)
+source("R/csv.R", local = T)
+source("R/gutenbergR.R", local = T)
+source("R/rvest.R", local = T)
+source("R/twitteR.R", local = T)
+source("R/secondaryUpload.R", local = T)
+source("R/textSelector.R", local = T)
+source("R/stats.R", local = T)
+source("R/stopwords.R", local = T)
+source("R/tokenize.R", local = T)
+source("R/textPrep.R", local = T)
+source("R/reporting.R", local = T)
+# source("textFrequency.R", local = T)
+source("R/reportMaker.R", local = T)
+source("R/wordCloud.R", local = T)
 
 
-rv <- shiny::reactiveValues() # creating reactive values list
 
-# Reactive value lists for reports
-report_rv <- shiny::reactiveValues()
-mini_rv <- shiny::reactiveValues()
-stats_report_rv <- shiny::reactiveValues()
+textApp <- function(){
 
-textApp <- function(...){
-  
   ############# Main UI ###########################
   ui <- dashboardPage(skin = "black",
-
+  
     dashboardHeader(title = "Text Analysis"),
     
     dashboardSidebar(
@@ -96,19 +78,19 @@ textApp <- function(...){
                  tabName = "home", 
                  icon = icon("house")
         ),
-        menuItem("  Text Selector", 
+        menuItem("  Import data", 
                  tabName = "textSelectorTab",
                  icon = icon("file-import")
         ),
-        menuItem("  Text Preparation", 
+        menuItem("  Text preparation", 
                  tabName = "textPrepTab", 
                  icon = icon("filter")
         ),
-        menuItem("  Text Frequency", 
+        menuItem("  Visualise", 
                  tabName = "textFreqTab",
                  icon = icon("chart-column")
         ),
-        menuItem("Search/Concordance (in progress...)",
+        menuItem("Search/Concordance (under construction)",
                  tabName = "concordanceTab",
                  icon = icon("dashboard")
         ),
@@ -116,17 +98,39 @@ textApp <- function(...){
                  tabName = "statsTab",
                  icon = icon("calculator")
         ),
-       menuItem("Reporting (editing...)", 
+       menuItem("Report", 
                 tabName = "reportingTab",
                 icon = icon("scroll")
         )
        
-      ) # end sidebar menu
+      ), # end sidebar menu
+      
+      column(12,
+        hr(class = "hr-blank"),
+        hr(class = "hr-blank"),
+        hr(class = "hr-blank"),
+        hr(class = "hr-blank"),
+  
+        h4("Dev notes:", style = "color: lightgray;"),
+        em("I've added <<__>> around blurbs which could be improved on Let me know if you have any suggestions for them.", style = "color: lightgray;"),
+        hr(class = "hr-blank"),
+        em("I tested out editing the home tab's text to having 4 actions (import, visualise, analyse, report), but it makes the landing page look too complicated & users would have to scroll to read all the steps and get to the start button. I think having a clear and concise 3 calls to action (import, analyse/visualise/?, report) gives a good overview of the app and memorable steps for the landing page. But what to call step 2... analyse, visualise or something else? I guess analyse includes visualise/search/concordance/stats stuff...", style = "color: lightgray;")
+      )
+      
+      
     ), # end dashboard sidebar
     
     dashboardBody(
       
-      # Linking to external style sheet
+      # Linking to external style sheets without package
+      # tags$link(rel = "stylesheet", type="text/css",
+      #           href="./www/styles.css"),
+      # tags$link(rel = "stylesheet", type="text/css",
+      #           href="./www/button-styles.css"),
+      # tags$link(rel = "stylesheet", type="text/css",
+      #           href="./www/error-styles.css"),
+      
+      # Linking to external style sheet in package
       includeCSS("./www/styles.css"),
       includeCSS("./www/button-styles.css"),
       includeCSS("./www/error-styles.css"),
@@ -149,7 +153,8 @@ textApp <- function(...){
         
         # Text frequency UI
         tabItem(tabName = "textFreqTab",
-                  textFreqUI("textFreq")
+                  # textFreqUI("textFreq")
+                reportingUI("reporting")
                 ),
         
         # Concordance UI
@@ -167,13 +172,19 @@ textApp <- function(...){
       )
     ) # end dashboard body
   )
-
+  
   ############# Main server ###########################
   server <- function(input, output, session) {
     
-    # inner module servers
+  
+    # Create reactive value list within server - 
+    # results in reactive value list private to each 
+    # user session
+    rv <- shiny::reactiveValues() # creating reactive values list
+    print("reactive value list init")
     
-    homeAttempt <- try(homeServer("home", rv=rv, parent = session))
+    # Inner module servers
+    homeAttempt <- try(homeServer("home", parent = session))
     if("try-error" %in% class(homeAttempt)){
       shinyalert(
         title = "Hey bull! Stop running around in my china shop!",
@@ -189,11 +200,12 @@ textApp <- function(...){
       return()
     }
     
-    textSelectorAttempt <- try(textSelectorServer("textSelector", rv = rv))
+    textSelectorAttempt <- try(textSelectorServer("textSelector", 
+                                                  rv = rv))
     if("try-error" %in% class(textSelectorAttempt)){
       shinyalert(
         title = "The text selector server broke!",
-        text = "The text selector tab's backend server returned a fatal error. Refresh your app and try again.",
+        text = "No more file uploads for you >:(",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -205,29 +217,48 @@ textApp <- function(...){
       return()
     }
     
-    textFreqAttempt <- try(textFreqServer("textFreq", rv = rv))
-    if("try-error" %in% class(textFreqAttempt)){
-      shinyalert(
-        title = "The text frequency server broke!",
-        text = "The text frequency tab's backend server returned a fatal error. Refresh your app and try again.",
-        size = "xs", 
-        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
-        html = FALSE, type = "info",
-        showConfirmButton = TRUE, showCancelButton = FALSE,
-        confirmButtonText = "Dismiss",
-        confirmButtonCol = "#4169E1",
-        timer = 0, imageUrl = "", animation = TRUE
-      )
-      return()
-    }
+    # textFreqAttempt <- try(textFreqServer("textFreq", rv = rv))
+    # if("try-error" %in% class(textFreqAttempt)){
+    #   shinyalert(
+    #     title = "The text frequency server broke!",
+    #     text = "No graphs for you :(",
+    #     size = "xs", 
+    #     closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+    #     html = FALSE, type = "info",
+    #     showConfirmButton = TRUE, showCancelButton = FALSE,
+    #     confirmButtonText = "Dismiss",
+    #     confirmButtonCol = "#4169E1",
+    #     timer = 0, imageUrl = "", animation = TRUE
+    #   )
+    #   return()
+    # }
     
-    
+  
     textPrepAttempt <- try(textPrepServer("textPrep", rv = rv))
     if("try-error" %in% class(textPrepAttempt)){
       shinyalert(
         title = "The text preparation server broke!",
-        text = "The text preparation tab's backend server returned a fatal error. Refresh your app and try again.",
+        text = "It's so not preppy in here :/",
         size = "xs", 
+        closeOnEsc = TRUE, closeOnClickOutside = TRUE,
+        html = FALSE, type = "info",
+        showConfirmButton = TRUE, showCancelButton = FALSE,
+        confirmButtonText = "Dismiss",
+        confirmButtonCol = "#4169E1",
+        timer = 0, imageUrl = "", animation = TRUE
+      )
+      return()
+    }
+    
+  
+    # testServer("test", rv = rv)
+    reportingServerAttempt <- try(reportingServer("reporting",
+                                                  rv = rv))
+    if("try-error" %in% class(reportingServerAttempt)){
+      shinyalert(
+        title = "Reporting tab error",
+        text = "There was a fatal error in the server function of the reporting module. Refresh your app and try again.",
+        size = "xs",
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
         showConfirmButton = TRUE, showCancelButton = FALSE,
@@ -242,7 +273,7 @@ textApp <- function(...){
     if("try-error" %in% class(statsServerAttempt)){
       shinyalert(
         title = "The statistical analysis tab just broke!",
-        text = "The statistics tab's backend server returned a fatal error. Refresh your app and try again.",
+        text = "Statistical insights? Never heard of her!",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -254,11 +285,11 @@ textApp <- function(...){
       return()
     }
     
-    reportMakerAttempt <- try(reportMakerServer("reportMaker", rv = rv, report_rv = report_rv))
+    reportMakerAttempt <- try(reportMakerServer("reportMaker", rv = rv))
     if("try-error" %in% class(reportMakerAttempt)){
       shinyalert(
         title = "The reporting tab just broke!",
-        text = "The reporting tab's backend server returned a fatal error. Refresh your app and try again.",
+        text = "How will you ever share your passion for text analysis?!",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -270,20 +301,26 @@ textApp <- function(...){
       return()
     }
     
+    
     onStop(function() {
-      cat("\n This will run on session stop")
-      outputDir <- "R"
+      cat("\n Session stopped.")
       
       cat("\n rv list:")
       print(rv)
-      cat("\n report_rv list:")
-      print(report_rv)
     })
     
-
   }
   
   # Run the application 
   shinyApp(ui = ui, server = server)
+
 }
 
+# Testing 
+# library(shiny)
+  # runApp(list(
+  #   ui = ui,
+  #   server = server
+  # ))
+
+# })

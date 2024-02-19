@@ -86,17 +86,14 @@ if(!is.null(params$report_rv$content_tf_idf)){
 }
 ```
 
-------------------------------------------------------------------------
+---
 
-## Summary statistics
+## Corpus summary statistics
 
-A corpus consisting of `r num_files` documents was submitted for analysis. A total of `r num_stops` stop-words were omitted from their contents.
+A corpus consisting of `r num_files` documents was submitted for analysis. In addition, `r num_stops` stop-words were omitted from their contents.
 
 `r summary_stats_subtitle`
-\
-
 `r counts_subtitle`
-\
 
 ```{r}
 #| echo: false
@@ -121,26 +118,25 @@ if(!is.null(data)){
 }
 ```
 
-```{r }
+```{r}
 #| echo: false
 #| warning: false
 #| error: false
+#| message: false
+token_freq_title <- ""
+token_freq_blurb <- ""
 
-# Generating titles for stuff
-if(!is.null(params$report_rv$tf_idf_plot)){
-  tf_idf_title <- "Term frequency-inverse document frequency (tf-idf)"
-} else {
-  tf_idf_title <- NULL
+if(!is.null(params$report_rv$token_freq_plot)){
+  token_freq_title <- "Token frequency"
+  token_freq_blurb <- "The figure below plot presents the most frequently occuring tokens in the submitted text data."
 }
 ```
 
+## `r token_freq_title`
+
+`r token_freq_blurb`
+
 \
-
-## Token frequency
-
-### Most frequent terms across the corpus
-
-This plot presents the most common tokens in your text data by calculating their frequency (number of times occurring) (Fig. 1).
 
 ```{r}
 #| echo: false
@@ -151,18 +147,26 @@ This plot presents the most common tokens in your text data by calculating their
 
 if(!is.null(params$report_rv$token_freq_plot)){
   params$report_rv$token_freq_plot
-} else {
-  paste("Token frequency plot could not be downloaded.")
 }
 ```
 
-\
 
-## Token frequency comparison
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+#| message: false
+comp_freq_title <- ""
+comp_freq_blurb <- ""
 
-Fig. 2 plots the proportion of the total tokens that a particular token takes up in the single text compared to the corpus token proportions.
+if(!is.null(params$report_rv$comp_freq_plot)){
+  comp_freq_title <- "Token frequency comparison"
+  comp_freq_blurb <- "Explore textual distinctions within a corpus by plotting the token proportions of an individual document against the combined token proportions of the rest of the corpus—tokens near the central line indicate similar usage, while those distant reveal variations in proportions."
+}
+```
 
-Tokens closer to the line have similar frequencies in both sets of texts.\
+## `r comp_freq_title`
+`r comp_freq_blurb`
 
 
 ```{r}
@@ -173,20 +177,29 @@ Tokens closer to the line have similar frequencies in both sets of texts.\
 
 if(!is.null(params$report_rv$comp_freq_plot)){
   params$report_rv$comp_freq_plot
-} else {
-  paste("Token frequency comparison plot could not be downloaded.")
 }
 ```
 
-\
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+#| message: false
+zipfs_title <- ""
+zipfs_blurb <- ""
 
-## Zipf's Law
+if(!is.null(params$report_rv$zipfs_plot)){
+  zipfs_title <- "Zipf's Law"
+  zipfs_blurb <- "Zipf's law states that the frequency of a word appearing is inversely proportional to its rank. This inverse proportional relationship is visualised by plotting these values generated. from the uploaded corpus on log scales."
+}
+```
 
-Zipf's law states that the frequency of a word appearing is inversely proportional to its rank.
+## `r zipfs_title`
 
-![](zipfs_law.png){width="30%"}\
+<!-- ![](zipfs_law.png){fig-align="center" width="25%"}\ -->
 
-This inverse proportional relationship is visualised by plotting these values on log scales in Fig. 3.
+`r zipfs_blurb`
+
 
 ```{r}
 #| echo: false
@@ -197,65 +210,61 @@ This inverse proportional relationship is visualised by plotting these values on
 
 if(!is.null(params$report_rv$zipfs_plot)){
   params$report_rv$zipfs_plot
-} else {
-  paste("Zipf's law plot could not be downloaded.")
 }
 ```
 
-\
+
+```{r}
+#| echo: false
+#| warning: false
+#| error: false
+#| message: false
+tf_idf_title <- ""
+tf_idf_blurb <- ""
+tf_idf_subtitle_1 <- ""
+tf_idf_subtitle_2 <- ""
+
+if(!is.null(params$report_rv$tf_idf_plot) && !is.null(params$report_rv$tf_idf_IDs) 
+   && !is.null(params$report_rv$content_tf_idf)){
+  tf_idf_title <- "Term frequency-inverse document frequency (tf-idf)"
+  tf_idf_blurb <- "Term frequency-inverse document frequency (tf-idf) is a method used to quantify which words are important to a document. Tf-idf is the product of a term's frequency and the inverse document frequency, producing a statistic which measures how important a term is to a document. The method aims to decrease weighting of common terms and increase weighting of terms with low frequencies."
+  
+  # Generating blurb about which terms most important
+  # Extract IDs tf-idf is performed on
+  id1 <- params$report_rv$tf_idf_IDs[1]
+  id2 <- params$report_rv$tf_idf_IDs[2]
+
+  # Extract list of most important words according to tf-idf
+  # for each document.
+  tf_idf_id1 <- params$report_rv$content_tf_idf %>%
+    filter(ID == id1) %>%
+    arrange(desc(tf_idf)) %>%
+    select(Token)
+  tf_idf_id2 <- params$report_rv$content_tf_idf %>%
+    filter(ID == id2) %>%
+    arrange(desc(tf_idf)) %>%
+    select(Token)
+
+  tf_idf_subtitle_1 <-  paste("Tf-idf analysis shows some of the most important words to the document",
+                            id1, " are: ", tf_idf_id1$Token[1], ",",
+                            tf_idf_id1$Token[2],
+                            ", and ",
+                            tf_idf_id1$Token[3], ".",
+                            collapse = ",")
+    tf_idf_subtitle_2 <-  paste("Furthermore, the most important words to the document",
+                            id2, " are: ", tf_idf_id2$Token[1], ",",
+                            tf_idf_id2$Token[2],
+                            ", and ",
+                            tf_idf_id2$Token[3], ".",
+                            collapse = ",")
+}
+```
 
 ## `r tf_idf_title`
 
-Term frequency-inverse document frequency (tf-idf) is a method used to quantify which words are important to a document.
+`r tf_idf_blurb`
 
-Tf-idf is the product of a term's frequency and the inverse document frequency, producing a statistic which measures how important a term is to a document.
-
-![](idf_eqn.png){fig-align="center" width="50%"}
-
-The method aims to decrease weighting of common terms and increase weighting of terms with low frequencies.
-
-```{r}
-#| include: false
-#| warning: false
-#| echo: false
-
-tf_idf_subtitle_1 <- NULL
-tf_idf_subtitle_2 <- NULL
-
-# First check if user wants to include tf_idf stuff
-if(!is.null(params$report_rv$tf_idf_plot)){
-
-# Extract IDs tf-idf is performed on
-id1 <- params$report_rv$tf_idf_IDs[1]
-id2 <- params$report_rv$tf_idf_IDs[2]
-
-# Extract list of most important words according to tf-idf
-# for each document.
-tf_idf_id1 <- params$report_rv$content_tf_idf %>%
-  filter(ID == id1) %>%
-  arrange(desc(tf_idf)) %>%
-  select(Token)
-
-tf_idf_id2 <- params$report_rv$content_tf_idf %>%
-  filter(ID == id2) %>%
-  arrange(desc(tf_idf)) %>%
-  select(Token)
-
-tf_idf_subtitle_1 <-  paste("Tf-idf analysis shows some of the most important words to the document",
-                          id1, " are: ", tf_idf_id1$Token[1], ",",
-                          tf_idf_id1$Token[2],
-                          ", and ", 
-                          tf_idf_id1$Token[3], ".",
-                          collapse = ",")
-tf_idf_subtitle_2 <-  paste("Furthermore, the most important words to the document",
-                          id2, " according to tf-idf analysis are: ", tf_idf_id2$Token[1], ",",
-                          tf_idf_id2$Token[2],
-                          ", and ", 
-                          tf_idf_id2$Token[3], ".",
-                          collapse = ",")
-}
-
-```
+<!-- ![](idf_eqn.png){fig-align="center" width="45%"} -->
 
 ```{r}
 #| echo: false
@@ -265,13 +274,11 @@ tf_idf_subtitle_2 <-  paste("Furthermore, the most important words to the docume
 
 if(!is.null(params$report_rv$tf_idf_plot)){
   params$report_rv$tf_idf_plot
-} else {
-  paste("Tf-idf plot could not be downloaded.")
 }
 ```
 
-\
-
 `r tf_idf_subtitle_1`
 `r tf_idf_subtitle_2`
+
+\
 

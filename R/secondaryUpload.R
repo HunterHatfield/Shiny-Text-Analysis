@@ -22,20 +22,21 @@ secondaryUI <- function(id){
 ###### SERVER ######
 # Takes in id and a list of reactive values which is assumed to contain a tibble of the file contents called 'content' and thus accessed by the function as rv$content.
 # Also takes in a list of reactive values (can be empty)
-secondaryServer <- function(id, rv = rv){
+secondaryServer <- function(id, rv = NULL){
   moduleServer(id, 
     function(input, output, session){
       
       #############################
       #### Secondary upload UI ####
       #############################
+      
       output$secondaryUploadUI <- renderUI({
         
         ns <- NS(id)
         true_UI <- tagList(
           
-          h3("Secondary upload"),
-          p("Upload a secondary .csv/.tsv file to adjoin."),
+          h3("Secondary data"),
+          p("Import a secondary .csv/.tsv file to adjoin."),
           
           # Table upload with fileInput
           fileInput(session$ns("csvtsvUpload2"), label = NULL, 
@@ -50,7 +51,7 @@ secondaryServer <- function(id, rv = rv){
         ) # end tagList
         
         false_UI <- tagList(
-          em("Note: to adjoin a secondary table, submit your primary upload 
+          em("Note: to adjoin a secondary table, submit your primary data 
              first.", style = "color: grey")
         )
         
@@ -252,9 +253,11 @@ secondaryServer <- function(id, rv = rv){
                                                  content_prepared = rv$content_joined, 
                                                  content_edited = rv$content_joined, 
                                                  content_tf_idf = NULL)
-        
+
         # Saving content_primary list containing data & characteristics in main rv list
         rv$content_primary <- content_primary
+        rv$content_to_visualise <- NULL
+        rv$content_stats <- NULL
         
       }) # end submit join observe event
       

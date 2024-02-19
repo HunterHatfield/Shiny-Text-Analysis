@@ -1,24 +1,15 @@
-Package: TextAppv5 (test)
-Title: Testing Package For Text App (Hogg & Hatfield)
+Package: ShinyTextAnalysis
+Title: Shiny Text Analysis App (Hogg & Hatfield)
 Version: 0.0.0.9000
 Authors@R: 
     person("Emelia", "Hogg", , "emeliahogg@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: This is a testing package for a text analysis app developed for research purposes.
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+Description: This package is developing for a text analysis app for research purposes.
+License: use_mit_license()
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Imports: 
     devtools,
-    dplyr,
-    DT,
-    openxlsx,
-    purrr,
-    readr,
-    shiny,
-    shinydashboard,
-    shinyFiles,
-    tidytext
+    renv
 Type: Shiny

@@ -8,21 +8,22 @@ textSelectorUI <- function(id, label = "Choose file(s):"){
     sidebarLayout(
       sidebarPanel(
 
-        h1("01 | Select"), 
-        em("Upload text for analysis by choosing your own files, scraping webpages, or through a public domain of texts provided by Project Gutenberg."),
+        h1("01 | Import"), 
+        em("<<Import files containing text for analysis in the form of .txt, .csv, or .tsv files.>>"),
         hr(),
 
         # Add ns() around method & paste0 stln used in reporting
         # later on
-        h3("Primary upload"),
+        h3("Primary data"),
         radioButtons(inputId = "method",
                      label = "Choose a method:",
                      choiceNames = list(
-                       'Text file upload', '.csv/.tsv file upload',
-                       'Project Gutenberg'
+                       'Text file import', '.csv/.tsv file upload' # ,
+                       # 'Project Gutenberg'
                      ),
                      choiceValues = list(
-                       "upload", "csv", "gutenbergR")
+                       "upload", "csv" #, "gutenbergR"
+                       )
         ),
         hr(),
         
@@ -65,14 +66,15 @@ textSelectorUI <- function(id, label = "Choose file(s):"){
               collapsible = T,
               width = 12,
               
-              h2("Submitted Files"),
+              h3("Imported data"),
               em(textOutput(ns("num_submitted_subtitle"))),
               
               p(),
               wellPanel(
                 em(textOutput(ns("submitted_subtitle"))),
                 DT::dataTableOutput(ns("content_display")), 
-                h2(textOutput(ns("selected_title"))),
+                hr(class = 'hr-blank'),
+                h4(textOutput(ns("selected_title"))),
                 em(textOutput(ns("selectedRowContent")))
               ),
               
@@ -87,7 +89,7 @@ textSelectorUI <- function(id, label = "Choose file(s):"){
 
 ############## SERVER LOGIC ##########################################
 
-textSelectorServer <- function(id, rv = rv, session = session){
+textSelectorServer <- function(id, rv = NULL, session = session){
   moduleServer(id, function(input, output, session){ 
 
     # Inner modules for file uploads, csv uploads and secondary uploads
@@ -96,7 +98,7 @@ textSelectorServer <- function(id, rv = rv, session = session){
     if("try-error" %in% class(uploadServerAttempt)){
       shinyalert(
         title = "File uploads just broke!",
-        text = "The file upload module's backend server returned a fatal error. Refresh your app and try again.",
+        text = "No more file uploads for you >:(",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -112,7 +114,7 @@ textSelectorServer <- function(id, rv = rv, session = session){
     if("try-error" %in% class(csvServerAttempt)){
       shinyalert(
         title = ".csv uploads just broke!",
-        text = "The csv upload module's backend server returned a fatal error. Refresh your app and try again.",
+        text = "No more .csv uploads for you >:(",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -128,7 +130,7 @@ textSelectorServer <- function(id, rv = rv, session = session){
     if("try-error" %in% class(secondaryServerAttempt)){
       shinyalert(
         title = "Secondary uploads just broke!",
-        text = "The secondary upload module's backend server returned a fatal error. Refresh your app and try again.",
+        text = "No more joining for you >:(",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -139,7 +141,7 @@ textSelectorServer <- function(id, rv = rv, session = session){
       )
       return()
     } 
-    
+      
     # old gutenberg server
     # gutenbergRServer("gutenbergR", rv = rv)
       
@@ -150,7 +152,7 @@ textSelectorServer <- function(id, rv = rv, session = session){
         if(is.null(input$content_display_rows_selected)){
           return(NULL)
         } 
-        "Selected file contents:"
+        "Document contents preview:"
       })
       
       output$submitted_subtitle <- renderText({
@@ -221,7 +223,8 @@ textSelectorServer <- function(id, rv = rv, session = session){
         if(length(input$content_display_rows_selected) == 0){
           return(NULL)
         }
-        selectedRows()$Contents
+        
+        paste0(substr(selectedRows()$Contents, start = 1, stop = 1000), "...")
       })
       
     } # end module function

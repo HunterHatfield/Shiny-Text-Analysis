@@ -11,9 +11,9 @@ homeUI <- function(id){
     fluidPage( 
 
       h1("Kia ora.", style = "font-size: 10vw;"),
-      p("This interactive  app is designed for mining, exploring and visualising text data. Follow the steps below to get started, or take a look around using the sidebar to your left."),
+      p("<<This interactive  app is designed for mining, exploring and visualising text data. Follow the steps below to get started, or take a look around using the sidebar to your left.>>"),
       
-      em("Developed at the University of Otago by Hunter Hatfield & Emelia Hogg with ShinyR (v1.7.0)."),
+      em("<<Developed at the University of Otago by Hunter Hatfield & Emelia Hogg with ShinyR (v1.7.0).>>"),
       
       fluidRow(style = "margin: 1vw;",
         
@@ -24,19 +24,20 @@ homeUI <- function(id){
         ),
         fluidRow(
           column(12,{
-            p("Choose from various methods to select and import text data.")
+            p("<<Choose from various methods to select and import your text data.>>")
           }),
         ),
         fluidRow(
           column(12, {
-            h1("2| Explore", style = "color: royalblue;")
+            h1("2| Analyse", style = "color: royalblue;")
           }),
         ),
         fluidRow(
           column(12,{
-            p("Understand your text data and generate insights with interactive widgets and visualisations.")
+            p("<<Understand your text data and generate insights with interactive visualisations.>>")
           }),
         ),
+        
         fluidRow(
           column(12, {
             h1("3| Report", style = "color: royalblue;")
@@ -44,7 +45,7 @@ homeUI <- function(id){
         ),
         fluidRow(
           column(12,{
-            p("Generate a report of your findings, in a format of your choice. Currently supported formats include PDF (.pdf), Microsoft Word (.docx), and HTML (.html).")
+            p("Generate a report of your findings in a format of your choice. Currently supported formats include PDF (.pdf), Microsoft Word (.docx), and HTML (.html).")
           }),
         ),
       
@@ -66,7 +67,7 @@ homeUI <- function(id){
 }
 
 ###### SERVER ######
-homeServer <- function(id, rv, parent){
+homeServer <- function(id, parent){
   moduleServer(
     id, 
     function(input, output, session = parent){

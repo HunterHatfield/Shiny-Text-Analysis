@@ -94,8 +94,8 @@ if(!is.null(params$report_rv$content_tf_idf)){
 A corpus consisting of `r num_files` documents was submitted for analysis. A total of `r num_stops` stop-words were omitted from their contents.
 
 `r summary_stats_subtitle`
-
 `r counts_subtitle`
+
 \
 
 ```{r}
@@ -120,8 +120,6 @@ if(!is.null(data)){
     autofit()
 }
 ```
-
----
 
 <!-- Correlation matrix -->
 
@@ -151,9 +149,6 @@ if(!is.null(params$stats_report_rv$corr_plot_non_plotly)){
   params$stats_report_rv$corr_plot_non_plotly
 }
 ```
-
-
----
 
 ```{r regression}
 #| echo: false
@@ -191,8 +186,6 @@ if(!is.null(params$stats_report_rv$reg_summary_raw)){
 ```
 
 
----
-
 ```{r}
 #| echo: false
 #| warning: false
@@ -221,8 +214,6 @@ if(!is.null(params$stats_report_rv$residual_plots)){
   params$stats_report_rv$residual_plots
 }
 ```
-
----
 
 ```{r}
 #| echo: false
@@ -334,7 +325,4 @@ if(!is.null(params$stats_report_rv$chisq_res)){
   params$stats_report_rv$chisq_res
 }
 ```
-
----
-
 

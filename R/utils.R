@@ -63,33 +63,40 @@ join_secondary <- function(content_primary, content_secondary,
 # Resets rv list values to NULL inorder to reset downstream graphs & widgets
 clear_reactives <- function(){
   
-  rv$files <- NULL
-  rv$csvtsv_file <- NULL
-  rv$content <- NULL
-  rv$numFiles <- nrow(rv$content) # obviously going to be 0 
+  rv <- shiny::reactiveValues()
+  return(rv)
   
-  rv$content_primary <- NULL
-  rv$content_to_visualise <- NULL
-  rv$content_to_visualise_DT <- NULL
+  if(!is.null(rv$files)){
+    rv$files <- NULL
+    rv$csvtsv_file <- NULL
+    rv$content <- NULL
+    rv$numFiles <- nrow(rv$content) # obviously going to be 0 
+    
+    rv$content_primary <- NULL
+    rv$content_to_visualise <- NULL
+    rv$content_to_visualise_DT <- NULL
+    
+    rv$content_secondary <- NULL
+    rv$secondary_file <- NULL
+    
+    rv$content_stop_rm <- NULL
+    rv$content_parameterised <- NULL
+    rv$content_prepared <- NULL
+    rv$content_edited <- NULL
+    rv$is_tokenised <- NULL
+    rv$is_stop_rm <- NULL
+    
+    rv$content_freq <- NULL
+    rv$content_tf_idf <- NULL
+    rv$content_zipf <- NULL
+    
+    rv$content_stats <- NULL
+    
+    mini_rv <- NULL
+    report_rv <- NULL
+    stats_report_rv <- NULL
+  }
   
-  rv$content_secondary <- NULL
-  rv$secondary_file <- NULL
-  
-  rv$content_stop_rm <- NULL
-  rv$content_parameterised <- NULL
-  rv$content_prepared <- NULL
-  rv$content_edited <- NULL
-  rv$is_tokenised <- NULL
-  rv$is_stop_rm <- NULL
-  
-  rv$content_freq <- NULL
-  rv$content_tf_idf <- NULL
-  rv$content_zipf <- NULL
-  
-  rv$content_stats <- NULL
-  
-  mini_rv <- NULL
-  report_rv <- NULL
 }
 
 
@@ -710,6 +717,11 @@ perform_regression <- function(formula, regression_type, data){
   
   return(res)
 }
+
+
+
+
+
 
 
 

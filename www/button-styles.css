@@ -44,7 +44,7 @@
     color: white;
 } 
 
-/* Append button */
+/* Delete buttons */
 .btn-danger{
     width: 100%;
     border: 1px solid crimson;
@@ -55,6 +55,7 @@
     border: 1px solid crimson;
     color: white;
 } 
+
 
 /*
 DT buttons
@@ -67,9 +68,11 @@ button.dt-button.buttons-csv{
   width: 100%;
   border: 1px solid royalblue;
 }
-button.dt-button.buttons-csv:hover{
+button.dt-button.buttons-csv.buttons-html5:hover:not(.disabled){
   border-radius: 5px;
   color: white;
-  background: royalblue;
+  background: none;
+  background-color: royalblue;
   border: 1px solid royalblue;
 }
+

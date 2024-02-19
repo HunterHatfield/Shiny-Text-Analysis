@@ -7,9 +7,9 @@ csvUI <- function(id, label = "Choose text file(s):"){
   ns <- NS(id)
   tagList(
 
-    h1("Upload a table"),
-    p("Upload a file containing comma separated values (.csv) or tab separated values (.tsv) for primary text analysis."),
-    em("Note: file upload size is limited to 10MB"),
+    h1("Import a table"),
+    p("<<Import a file containing comma separated values (.csv) or tab separated values (.tsv) for text mining.>>"),
+    em("Note: individual file size limited to 30MB."),
     hr(),
     
     # File uploading
@@ -21,7 +21,8 @@ csvUI <- function(id, label = "Choose text file(s):"){
     
     wellPanel(
       em(textOutput(ns("subtitle3"))),
-      DT::dataTableOutput(ns("file_tibble")),
+      DT::dataTableOutput(ns("file_tibble")) %>%
+        withSpinner(),
     ),
     
     fluidRow(
@@ -38,17 +39,11 @@ csvUI <- function(id, label = "Choose text file(s):"){
   )
 }
 
-csvServer <- function(id, rv = rv){
+csvServer <- function(id, rv = NULL){
   moduleServer(
     id, 
     function(input, output, session){
       
-      # extracting uploaded files from input
-      # csvtsv_file <- reactive({
-      #   req(input$csvtsvUpload)
-      #   
-      #   parseFilePaths(roots = volumes, input$csvtsvUpload)
-      # })
       
       # saving files() to a reactive value
       observe({
@@ -71,7 +66,7 @@ csvServer <- function(id, rv = rv){
             mutate(type = tools::file_ext(datapath)) %>%
             rename('File Name' = name,
                    "File Type" = type,
-                   "Size (KB)" = size,
+                   "Size (bytes)" = size,
                    "Local datapath" = datapath)
         }
       })
@@ -144,10 +139,14 @@ csvServer <- function(id, rv = rv){
                                                    csvtsv_contents(),
                                                  content_primary_tf_idf = NULL)
         
+
+        
         # Saving content_primary list containing data & characteristics in main rv list
         rv$content_primary <- content_primary
+        rv$content_to_visualise <- NULL
+        rv$content_stats <- NULL
 
-        rv$numFiles <- nrow(rv$content_primary$data)
+        # rv$numFiles <- nrow(rv$content_primary$data)
         
         # Notification for when files successfully uploaded
         # When submit button clicked
@@ -167,9 +166,9 @@ csvServer <- function(id, rv = rv){
       
       
       # Num files always updating to number of rows in content
-      observe({
-        rv$numFiles <- nrow(rv$content_primary$data)
-      })
+      # observe({
+      #   rv$numFiles <- nrow(rv$content_primary$data)
+      # })
       
     }
   )

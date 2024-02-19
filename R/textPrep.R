@@ -8,20 +8,21 @@ textPrepUI <- function(id) {
     fluidPage(
       wellPanel(
         h1("02 | Text Preparation"),
-        em("Include stop-words, tokenise, and/or filter your text data below."),
+        em("<<Include stop-words, tokenise, and/or filter your text data below.>>"),
       ),
       
       fluidRow(
         # Box for data editing
-        box(title = NULL,
+        box(title = "Mutate & filter (optional)",
           status = "primary",
           solidHeader = T,
           collapsible = T,
+          collapsed = T,
           width = 12,
           fluidRow(
             column(4,
               h3("Mutate"),
-              p("Edit your text data by double-clicking on the table and/or add a column using the mutating tools."),
+              p("<<Edit your text data by double-clicking on the table and/or add a column using the mutating tools.>>"),
 
               # Radio buttons to render which type of mutation controls
               radioButtons(ns("mutate_option"),
@@ -114,7 +115,8 @@ textPrepUI <- function(id) {
               # Display DT to filter data
               wellPanel(
                 # DT::dataTableOutput(ns("content_prepared_DT")),
-                DT::DTOutput(ns("content_prepared_DT")),
+                DT::DTOutput(ns("content_prepared_DT")) %>%
+                  withSpinner(),
                 hr(class = "hr-blank"),
               ),
               fluidRow(
@@ -147,7 +149,7 @@ textPrepUI <- function(id) {
         column(5,
           tabBox(
             side = "left",
-            selected = "Stop-words",
+            selected = "Tokenisation",
             width = 12,
             tabPanel(title = "Stop-words",
                      stopWordsUI(ns("stopwords"))
@@ -159,8 +161,11 @@ textPrepUI <- function(id) {
 
             tabPanel(title = "Stemming",
               h3("Stemming"),
-              p("Performing stemming of the current tokenised data."),
-              em("Note: data must be tokenised to perform stemming."),
+              p("Stemming is a linguistic technique that trims words down to their base or root form, removing prefixes and suffixes. For example, the words 'runner', 'running' and 'ran' have the same root: 'run'. "),
+              # p("Stemming is typically performed to enhance the efficiency of text analysis and improve the accuracy of searches."),
+              p("Your data must be tokenised into words to perform stemming."),
+              tags$a(href="https://en.wikipedia.org/wiki/Stemming", 
+                     "Learn more about stemming here"),
               
               selectInput(ns("data_to_stem"), 
                           label = "Select a dataset:", 
@@ -173,7 +178,7 @@ textPrepUI <- function(id) {
               fluidRow(
                 column(6,
                   actionButton(ns("submit_stemming"),
-                    label = "Submit",
+                    label = "Stem",
                     class = "btn-success"
                   ),
                 ),
@@ -187,26 +192,6 @@ textPrepUI <- function(id) {
             ), # end stemming tabpanel
           ), # end tab box
 
-          box(title = NULL,
-            status = "success",
-            solidHeader = T,
-            collapsible = T,
-            width = 12,
-            h3("Download data"),
-            p("Save a copy of the prepared data to your device."),
-            fluidRow(
-              column(6,
-                downloadButton(ns("download_parameterised_csv"),
-                  label = "Save as .csv"
-                )
-              ),
-              column(6, 
-                downloadButton(ns("download_parameterised_tsv"),
-                  label = "Save as .tsv"
-                )
-              ),
-            ),
-          ), # end box
         ), # end col 1
 
         column(7,
@@ -217,12 +202,23 @@ textPrepUI <- function(id) {
 
               h2("Prepared data"),
               hr(class = "hr-blank"),
-              DT::dataTableOutput(ns("content_prepared_DT_2")),
+              DT::dataTableOutput(ns("content_prepared_DT_2")) %>%
+                withSpinner(),
               
               hr(class = "hr-blank"),
               fluidRow(
-                column(8, 
-                       hr(class = "hr-blank")),
+                column(4,
+                       downloadButton(ns("download_parameterised_csv"),
+                                      label = "Save (.csv)"
+                       )
+                ),
+                column(4, 
+                       downloadButton(ns("download_parameterised_tsv"),
+                                      label = "Save (.tsv)"
+                       )
+                ),
+                # column(2,
+                #        hr(class = "hr-blank")),
                 column(4,
                        actionButton(ns("revert_all"),
                                     label = "Revert all edits",
@@ -240,7 +236,7 @@ textPrepUI <- function(id) {
 
 
 #### TEXT PREP SERVER ####
-textPrepServer <- function(id, rv = rv) {
+textPrepServer <- function(id, rv = NULL) {
   moduleServer(id,function(input, output, session) {
     
       # Inner modules for file uploads, csv uploads and secondary uploads
@@ -274,6 +270,7 @@ textPrepServer <- function(id, rv = rv) {
         )
         return()
       }
+      
       
       # Initialising datatable data to be initial upload
       observe({
@@ -755,31 +752,6 @@ textPrepServer <- function(id, rv = rv) {
       })
       
 
-
-      ###########################
-      #### Downloading data #####
-      ###########################
-      # Rendering a download button with downloadHandler()
-      output$download_parameterised_csv <- downloadHandler(
-        filename = function() {
-          paste("Parameterised_Content.csv")
-        },
-        content = function(file) {
-          write_delim(as.data.frame(rv$content_prepared_display_2), file,
-            delim = ","
-          )
-        }
-      )
-
-      output$download_parameterised_tsv <- downloadHandler(
-        filename = function() {
-          paste("Parameterised_Content.tsv")
-        },
-        content = function(file) {
-          write_tsv(as.data.frame(rv$content_prepared_display_2), file)
-        }
-      )
-
       # Creating datatable 2 of content parameterised after stop word removal
       output$content_prepared_DT_2 <- DT::renderDataTable(
         # server = F, 
@@ -1015,6 +987,30 @@ textPrepServer <- function(id, rv = rv) {
         }
       }) # end observe event undo stemming
       
+      
+      ###########################
+      #### Downloading data #####
+      ###########################
+      # Rendering a download button with downloadHandler()
+      output$download_parameterised_csv <- downloadHandler(
+        filename = function() {
+          paste("Prepared_text_data.csv")
+        },
+        content = function(file) {
+          write_delim(as.data.frame(rv$content_prepared_display_2), file,
+                      delim = ","
+          )
+        }
+      )
+      
+      output$download_parameterised_tsv <- downloadHandler(
+        filename = function() {
+          paste("Prepared_text_data.tsv")
+        },
+        content = function(file) {
+          write_tsv(as.data.frame(rv$content_prepared_display_2), file)
+        }
+      )
       
       
       ######################

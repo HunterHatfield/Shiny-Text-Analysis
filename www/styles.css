@@ -55,7 +55,10 @@ em {
 
 #shiny-tab-home {
     margin: 1vw;
-    padding: 5vw 12vw 5vw 5vw;
+    /*padding: 4.5vw 12vw 5vw 5vw;*/
+    padding-top: 4vw;
+    padding-left: 6vw;
+    padding-right: 8vw;
 }
 
 .title-fluid-row {

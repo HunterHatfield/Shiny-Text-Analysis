@@ -18,16 +18,15 @@ uploadUI <- function(id, label = "Choose file(s):"){
   tagList(
     shinyjs::useShinyjs(),
     
-    h1("File Upload"),
-    p("Upload text files (.txt) to extract text data from."),
-    em("Note: file upload size is limited to 10MB."),
+    h1("Import files"),
+    p("Import text files (.txt) to mine text data from."),
+    em("Note: individual file size limited to 30MB."),
     hr(),
     
     fluidRow(
       column(12, {
         
-        # Implementation with fileInput - as shinyFiles only allows user 
-        # to browse the file system of the shiny host
+        # Implementation with fileInput
         fileInput(ns("fileUpload"), label = NULL, 
                   multiple = TRUE, accept = c(".txt"), 
                   placeholder = "No file(s) selected.")
@@ -37,7 +36,8 @@ uploadUI <- function(id, label = "Choose file(s):"){
     fluidRow(
       column(12, 
              em(textOutput(ns("selected_subtitle"))),
-             DT::dataTableOutput(ns("file_display")),
+             DT::dataTableOutput(ns("file_display")) %>%
+               withSpinner(),
              hr(class = "hr-blank")
              )
     ),
@@ -64,7 +64,7 @@ uploadUI <- function(id, label = "Choose file(s):"){
 }
 
 ###### SERVER ######
-uploadServer <- function(id, rv, parent){
+uploadServer <- function(id, rv = NULL, parent){
   moduleServer(id, function(input, output, session){
       
       # saving files() to a reactive value
@@ -89,7 +89,7 @@ uploadServer <- function(id, rv, parent){
           mutate(type = tools::file_ext(datapath)) %>%
           rename('File Name' = name,
                  "File Type" = type,
-                 "Size (KB)" = size,
+                 "Size (bytes)" = size,
                  "Local datapath" = datapath)
       })
       
@@ -146,14 +146,15 @@ uploadServer <- function(id, rv, parent){
                                                  content_edited = content(),
                                                  content_primary_tf_idf = NULL)
         
-        # Old method of singular data assignment w/ no characteristics
-        rv$content <- content()
-        
+
         # Saving content_primary list containing data & characteristics in main rv list
         rv$content_primary <- content_primary
+        rv$content_to_visualise <- NULL
+        rv$content_stats <- NULL
+        
         
         # calculating number of rows in content()
-        rv$numFiles <- nrow(rv$content_primary$data)
+        # rv$numFiles <- nrow(rv$content_primary$data)
         
         output$title2 <- renderText({
           if(is.null(rv$files)){

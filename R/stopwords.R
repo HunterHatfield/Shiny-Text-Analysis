@@ -9,14 +9,15 @@
 # Depends on 1 function, remove_stop_words(), in utils.R
 
 data(stop_words)
-rv$is_stop_removed <- FALSE
 
 ##### STOPWORDS MODULE UI ####
 stopWordsUI <- function(id) {
   ns <- NS(id)
   tagList(
     h3("Stop-word selection"),
-    p("Stop-words, like 'the' and 'and,' are common but lack meaningful content. Removing them helps us to focus on essential words, making text analysis more efficient and accurate."),
+    p("Stop words are frequently occurring words such as 'the,' 'and,' and 'is.' While ubiquitous and essential in language, stop words often add noise to text data. Removing stop words enables your analyses to spotlight the significant terms, leading to more precise and insightful results."),
+    p("Choose and eliminate stop words below to refine your text and elevate the quality of your textual data."),
+    
     tags$a(href="https://smltar.com/stopwords", 
            "Learn more about stop-words here"),
     
@@ -24,7 +25,7 @@ stopWordsUI <- function(id) {
     
     # Select a dataset to alter
     selectInput(ns("data_stop_rm"), 
-                label = "Select a dataset to alter:", 
+                label = "Select a dataset:", 
                 choices = list("N/A" = "na")),
     
     # Select a column to remove stop-words from
@@ -34,7 +35,7 @@ stopWordsUI <- function(id) {
     
     # checkbox input for including default stop words 
     checkboxInput(ns("default_check"),
-                  label = "Include default stop-word list"
+                  label = "Include default english stop-words"
     ),
     
     # textbox input for extra stop words
@@ -64,24 +65,19 @@ stopWordsUI <- function(id) {
     ),
     hr(),
     h4("Submitted stop-words"),
-    p("Default English stop-words are sourced from the tidytext package in R."),
-    tags$a(href="https://rdrr.io/cran/tidytext/man/stop_words.html", 
-           "View tidytext docs here"),
-    wellPanel(
-      p(textOutput(ns("stop_word_display"))),
-      DT::dataTableOutput(ns("stop_words_table")),
-      # downloadButton(ns("download_stop_words"),
-      #                label = "Download stop-words (.csv)"
-      # )
-    ),
+    HTML("<p> Default english stop words sourced from R package <a href='https://rdrr.io/cran/tidytext/man/stop_words.html'>tidytext</a>.</p>"),
     
-    
+    p(textOutput(ns("stop_word_display"))),
+    DT::dataTableOutput(ns("stop_words_table")) %>%
+      withSpinner(),
+   hr(class = "hr-blank")
+
     
   )
 }
 
 #### STOPWORDS SERVER ####
-stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = rv) {
+stopWordsServer <- function(id, stop_word_list = stop_word_list, rv = NULL) {
   moduleServer(id, function(input, output, session) {
     
     observe({
