@@ -1,8 +1,10 @@
 source("renv/activate.R")
 if (!requireNamespace("renv")) install.packages("renv")
-renv::restore(clean = T, prompt = F)
+renv::restore(library = renv_lib, 
+              lockfile = renv_lock, 
+              prompt = FALSE)
 
-# library cal on all req packages
+# library call on all req packages
 library(berryFunctions)
 library(devtools)
 library(dplyr)
