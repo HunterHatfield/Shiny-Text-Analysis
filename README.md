@@ -14,9 +14,9 @@ Download and save the repository files to your machine through `Code > Download 
 
 Alternatively, this repository can cloned into your R session using the repository URL: <https://github.com/HunterHatfield/Shiny-Text-Analysis>.
 
-### 2. Lauch `ShinyTextApp.Rproj`
+### 2. Launch `ShinyTextApp.Rproj`
 
-Open the R project file `ShinyTextApp.Rproj`. This project and its associated `.Rprofile` will automatically call on all package dependencies for the app, R files, and run the `textApp()`. This will lauch the Shiny application on a local server.
+Open the R project file `ShinyTextApp.Rproj`. This project and its associated `.Rprofile` will automatically call on all package dependencies for the app, R files, and run the `textApp()`. This will launch the Shiny application on a local server.
 
 ![Demo](Launch_Demo.gif)
 
