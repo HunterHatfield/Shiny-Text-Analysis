@@ -4,10 +4,43 @@
       #################################################### 
        # utils.R - helper functions for Text Analysis App 
       ####################################################
-                  ###########################
-                          ############
+                  ########################
 
-                      
+
+##############################
+### startTextApp function ####
+##############################                                    
+# Sources all files and runs text analysis app
+runTextApp <- function(){
+  sourceFiles()
+  textApp()
+}
+
+#############################
+### sourceFiles function ####
+#############################                                    
+# Source all files
+sourceFiles <- function(){
+  # Sourcing all R files
+  source("R/home.R", local = T)
+  source("R/upload.R", local = T)
+  source("R/csv.R", local = T)
+  source("R/gutenbergR.R", local = T)
+  source("R/rvest.R", local = T)
+  source("R/twitteR.R", local = T)
+  source("R/secondaryUpload.R", local = T)
+  source("R/textSelector.R", local = T)
+  source("R/stats.R", local = T)
+  source("R/stopwords.R", local = T)
+  source("R/tokenize.R", local = T)
+  source("R/textPrep.R", local = T)
+  source("R/reporting.R", local = T)
+  # source("textFrequency.R", local = T)
+  source("R/reportMaker.R", local = T)
+  source("R/wordCloud.R", local = T)
+  
+  source("R/app.R")
+}
                               
 ################################
 ### join_secondary function ####

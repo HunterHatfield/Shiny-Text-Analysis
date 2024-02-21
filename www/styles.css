@@ -80,6 +80,16 @@ em {
     background-color: royalblue;
 }
 
+/* Styling top navbar buttons */
+.navbar-custom-menu li {
+  border: none;
+  padding: 5px 0px 0px;
+}
+div.navbar-custom-menu{
+  padding-right: 8px;
+  padding-top: 3px;
+}
+
 
 /* Main header logo style */
 
@@ -250,6 +260,14 @@ form.well{
 /* Icons in sidebar */
 i.fas{
   padding-right: 5px;
+}
+
+/* Icons in top header */
+i.fas.fa-rotate-right{
+  padding-right: 0px;
+}
+i.fas.fa-door-open{
+  padding-right: 0px;
 }
 
 div#shiny-notification-panel{

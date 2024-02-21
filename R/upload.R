@@ -5,9 +5,6 @@
 
 # Create a unique file name
 # fileName <- sprintf("%s_%s.csv", as.integer(Sys.time()), digest::digest(data))
-# assign('data',data2,envir=.GlobalEnv) # assign to global env
-
-outputDir <- "R"
 
 #############################
 ### UI for upload section ###

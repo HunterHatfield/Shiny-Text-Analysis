@@ -97,8 +97,8 @@ textSelectorServer <- function(id, rv = NULL, session = session){
                                             rv = rv, parent = session))
     if("try-error" %in% class(uploadServerAttempt)){
       shinyalert(
-        title = "File uploads just broke!",
-        text = "No more file uploads for you >:(",
+        title = "The file upload server call returned a fatal error.",
+        text = "Reload the app and ensure all files sourced properly.",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -113,8 +113,8 @@ textSelectorServer <- function(id, rv = NULL, session = session){
     csvServerAttempt <- try(csvServer("csv", rv = rv))
     if("try-error" %in% class(csvServerAttempt)){
       shinyalert(
-        title = ".csv uploads just broke!",
-        text = "No more .csv uploads for you >:(",
+        title = "The CSV upload server call returned a fatal error.",
+         text = "Reload the app and ensure all files sourced properly.",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -129,8 +129,8 @@ textSelectorServer <- function(id, rv = NULL, session = session){
     secondaryServerAttempt <- try(secondaryServer("secondary", rv = rv))
     if("try-error" %in% class(secondaryServerAttempt)){
       shinyalert(
-        title = "Secondary uploads just broke!",
-        text = "No more joining for you >:(",
+        title = "The secondary upload server call returned a fatal error.",
+        text = "Reload the app and ensure all files sourced properly.",
         size = "xs", 
         closeOnEsc = TRUE, closeOnClickOutside = TRUE,
         html = FALSE, type = "info",
@@ -145,8 +145,7 @@ textSelectorServer <- function(id, rv = NULL, session = session){
     # old gutenberg server
     # gutenbergRServer("gutenbergR", rv = rv)
       
-      
-      
+
       #### Subtitles ####
       output$selected_title <- renderText({
         if(is.null(input$content_display_rows_selected)){
@@ -186,10 +185,8 @@ textSelectorServer <- function(id, rv = NULL, session = session){
       output$content_display <- DT::renderDataTable(
         rv$content_primary$data,
         options = list(
-          paging = TRUE,
-          pageLength = 5,
-          scrollX = TRUE,
-          scrollY = TRUE,
+          paging = TRUE, pageLength = 5,
+          scrollX = TRUE, scrollY = TRUE,
           dom = 'frtip',
           rowCallback = JS(rowCallback),
           columnDefs =

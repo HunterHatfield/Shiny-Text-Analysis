@@ -20,6 +20,31 @@
     color: white;
 } 
 
+.btn-top-reload{
+    width: 100%;
+    color: white;
+    background-color: #1D1D1D;
+    border: none;
+}
+.btn-top-reload:hover{
+    width: 100%;
+    background-color: rgba(255, 166, 0, 0.704);
+    color: white;
+    border: none;
+} 
+.btn-top-exit{
+    width: 100%;
+    color: white;
+    background-color: #1D1D1D;
+    border: none;
+}
+.btn-top-exit:hover{
+    width: 100%;
+    background-color: crimson;
+    color: white;
+    border:none;
+} 
+
 /* Submit buttons - #8AB92D */
 .btn-success{
     width: 100%;
