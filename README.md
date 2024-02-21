@@ -30,6 +30,8 @@ Refresh the app by reloading your browser page or by hitting  the 'Reload' icon 
 
 Exit the app by clicking the 'Exit' icon in the app's header, or by clicking the small red 'Stop' button at the top right of the R console window.
 
+![Run demo](Run.GIF)
+
 --- 
 
 ## (Optional) Editing and manually lauching through R Studio
