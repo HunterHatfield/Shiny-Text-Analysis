@@ -5,14 +5,12 @@ This comprehensive linguistic analysis tool is designed with researchers in mind
 Designed with researchers in mind, this app provides a seamless experience from data input to insightful findings. Upon completion of analysis, users can conveniently generate reports in PDF, Word, or HTML formats, allowing for easy dissemination of research findings.
 
 Whether exploring linguistic patterns, examining language evolution, or conducting corpus-based studies, this app empowers researchers with the tools they need to unlock the secrets hidden within textual data.
- 
-An R Shiny application developed by Hunter Hatfield and Emelia Hogg with the Department of Linguistics at the University of Otago. 
 
---- 
+An R Shiny application developed by Hunter Hatfield and Emelia Hogg with the Department of Linguistics at the University of Otago.
 
 ## Running the app
 
-Run this Shiny application by downloading the app files, double-clicking on `ShinyTextApp.Rproj` and executing the function `runTextApp()`. 
+Run this Shiny application by downloading the app files, double-clicking on `ShinyTextApp.Rproj` and executing the function `runTextApp()`.
 
 Please note that on the first run of the app, any dependencies not already on your local machine may take several minutes to install.
 
@@ -24,7 +22,7 @@ Alternatively, this repository can cloned into your R session using the reposito
 
 ### 2. Launch `ShinyTextApp.Rproj`
 
-Open the R project file `ShinyTextApp.Rproj`. This project and its associated `.Rprofile` will automatically call on all package dependencies for the app, R files, and run the `textApp()`. 
+Open the R project file `ShinyTextApp.Rproj`. This project and its associated `.Rprofile` will automatically call on all package dependencies for the app, R files, and run the `textApp()`.
 
 ![Demo](Launch_Demo.gif)
 
@@ -32,31 +30,34 @@ Open the R project file `ShinyTextApp.Rproj`. This project and its associated `.
 
 Execute the command `runTextApp()` in the R console. This will launch the Shiny application on a local server.
 
-To run the app, execute  the 'runTextApp()' function in the  console line just below this message.
+To run the app, execute the 'runTextApp()' function in the console line just below this message.
 
-Refresh the app by reloading your browser page or by hitting  the 'Reload' icon in the app's header.
+Refresh the app by reloading your browser page or by hitting the 'Reload' icon in the app's header.
 
 Exit the app by clicking the 'Exit' icon in the app's header, or by clicking the small red 'Stop' button at the top right of the R console window.
 
 ![Run demo](Run.GIF)
 
---- 
-
-## (Optional) Editing and manually lauching through R Studio
+### (Optional) Editing and manually lauching through R Studio
 
 This app can be launched through in RStudio by calling on the `runTextApp()` function which is sourced in `R/app.R`. If any changes have been made, ensure all app files are sourced before the app is initialized again.
 
-## Troubleshooting
+# Troubleshooting
 
-For issues with package downloads, try removing current packages and re-installing required packages with the following: 
+For issues with package downloads, try removing current packages and re-installing required packages with the following:
 
 `remove.packages(rownames(installed.packages()))`
 
-This removes the currently installed packages. 
+This removes the currently installed packages.
 
-`source("R/utils.R")`
-`installPackages()`
+`source("R/utils.R")` `installPackages()`
 
 These lines source the file `utils.R` and calls on the `installPackages()` function, which installs any missing dependencies.
 
+# About the authors
 
+This R Shiny application was developed by Hunter Hatfield ([hunter.hatfield\@otago.ac.nz](mailto:hunter.hatfield@otago.ac.nz){.email}) and Emelia Hogg ([emeliahogg\@gmail.com](mailto:emeliahogg@gmail.com){.email}) with the Department of Linguistics at the University of Otago and Shiny (v1.7.0).
+
+Learn more about English and Linguistics at Otago [here](https://www.otago.ac.nz/english-linguistics/linguistics).
+
+Learn more about developing apps with Shiny [here](https://www.rstudio.com/products/shiny/).

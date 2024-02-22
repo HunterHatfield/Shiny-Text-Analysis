@@ -18,7 +18,7 @@ csvUI <- function(id, label = "Choose text file(s):"){
               multiple = FALSE, accept = c(".csv", ".tsv"), 
               placeholder = "No file(s) selected."),
     
-    hr(),
+    # hr(),
     
     wellPanel(
       em(textOutput(ns("subtitle3"))),

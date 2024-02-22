@@ -136,7 +136,7 @@ reportMakerUI <- function(id){
           width = 4, 
           
           h3("Select format"),
-          hr(class = "hr-blank"),
+          # hr(class = "hr-blank"),
           selectInput(ns("report_format"), 
                       label = "Choose a format for your report:", 
                       choices = list("HTML file (.html)" ="html", 
