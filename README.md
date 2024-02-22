@@ -1,6 +1,12 @@
 # Shiny Text Analysis App
 
-A Shiny application designed and developed by Hunter Hatfield and Emelia Hogg to perform no-code text mining and analysis. 
+This comprehensive linguistic analysis tool is designed with researchers in mind to facilitate analysis of text data with ease and precision. Equipped with advanced features, this app enables users to effortlessly import text files or CSV tables for analysis. It facilitates the removal of stop words, tokenization, and the generation of various plots including token frequency plots, illustrations of Zipf's Law, and TF-IDF analyses. Furthermore, researchers can conduct statistical testing using regression models and other tests to delve deeper into their data.
+
+Designed with researchers in mind, this app provides a seamless experience from data input to insightful findings. Upon completion of analysis, users can conveniently generate reports in PDF, Word, or HTML formats, allowing for easy dissemination of research findings.
+
+Whether exploring linguistic patterns, examining language evolution, or conducting corpus-based studies, this app empowers researchers with the tools they need to unlock the secrets hidden within textual data.
+ 
+An R Shiny application developed by Hunter Hatfield and Emelia Hogg with the Department of Linguistics at the University of Otago. 
 
 --- 
 
