@@ -14,6 +14,8 @@ An R Shiny application developed by Hunter Hatfield and Emelia Hogg with the Dep
 
 Run this Shiny application by downloading the app files, double-clicking on `ShinyTextApp.Rproj` and executing the function `runTextApp()`. 
 
+Please note that on the first run of the app, any dependencies not already on your local machine may take several minutes to install.
+
 ### 1. Download or clone app files to your machine
 
 Download and save the repository files to your machine through `Code > Download .zip`.
