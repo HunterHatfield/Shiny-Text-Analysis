@@ -226,7 +226,7 @@ statsUI <- function(id){
           column(
             width = 4,
             
-            h3("Select regression type"),
+            h4("Select regression type"),
             radioButtons(ns("regression_type"), 
                          label = NULL,
                          choices = list("Linear" = "linear", 
@@ -236,13 +236,22 @@ statsUI <- function(id){
                          )
             ),
             
+            hr(class = "hr-blank"),
+            
+            # Here render UI based on radio button selection
+            # Rendering same ui to choose vars for liner, log 
+            # and poisson, however different ui for mixed 
+            # regression to choose random & fixed effects
+            h4("Specify formula"),
+            uiOutput(ns("perform_regression"))
+            
           ), # end column
           
           column(
             width = 8,
             box(
               status = "primary",
-              collapsible = T,
+              collapsible = F,
               solidHeader = T,
               width = 12,
               
@@ -270,38 +279,29 @@ statsUI <- function(id){
               # Add other regression types
               
             ), # end information box
+            
+            hr(class = "hr-blank"),
+            
+            box(
+              status = "primary",
+              collapsible = T,
+              solidHeader = T,
+              width = 12,
+              tabsetPanel(
+                tabPanel("Tabularised summary", 
+                         uiOutput(ns("lin_log_pois_res")) %>%
+                           withSpinner()
+                ),
+                tabPanel("Raw model summary", 
+                         verbatimTextOutput(ns("reg_result_raw")) %>%
+                           withSpinner()
+                )
+              ),
+            )
           ), # end column
           
         ), # end regression type & info fluid row
         
-        hr(), 
-        
-        fluidRow(
-          column(width = 4, 
-                 # Here render UI based on radio button selection
-                 # Rendering same ui to choose vars for liner, log 
-                 # and poisson, however different ui for mixed 
-                 # regression to choose random & fixed effects
-                 h3("Specify formula"),
-                 uiOutput(ns("perform_regression"))
-          ),
-          
-          column(width = 8, 
-                 wellPanel(
-                   tabsetPanel(
-                     tabPanel("Tabularised summary", 
-                              uiOutput(ns("lin_log_pois_res")) %>%
-                                withSpinner()
-                      ),
-                     tabPanel("Raw model summary", 
-                              verbatimTextOutput(ns("reg_result_raw")) %>%
-                                withSpinner()
-                     )
-                   ),
-                 )
-          )
-          
-        ) # end fluid row
       ), # end regression analysis well panel 
       
       wellPanel(
@@ -320,7 +320,7 @@ statsUI <- function(id){
       wellPanel(
         
         h2("Further Statistical Testing"),
-        p("Perform analyses of variances, t-tests, and/or Chi-squared tests based on your previously specified formula."),
+        p("Perform analyses of variances, t-tests, non-parametric tests, and/or Chi-squared tests based on your previously specified formula."),
         hr(),
         
         navlistPanel(
@@ -1261,6 +1261,7 @@ statsServer <- function(id, rv = NULL){
       ttest_res <- reactive({
         req(rv$content_stats)
         req(rv$formula_reg)
+        req(nrow(rv$content_stats) < 5000)
         tt_formula <- try(as.formula(rv$formula_reg))
         
         try(rstatix::t_test(data = rv$content_stats, 

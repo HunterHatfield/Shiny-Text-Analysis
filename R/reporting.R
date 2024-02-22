@@ -775,8 +775,6 @@ reportingServer <- function(id, rv = NULL){
         mutate(Source = input$comp_freq_single_ID_input) %>%
         select(-ID)
       
-      print("comp freq single props created:")
-      print(res)
       return(res)
       
     }) # end comp freq single 
@@ -876,10 +874,8 @@ reportingServer <- function(id, rv = NULL){
       
       # checking if mutate worked
       if("try-error" %in% class(content_comp_freq)){
-        print("content_comp_freq try error detected")
         return(NULL)
       } else {
-        print("content_comp_freq success")
         return(content_comp_freq)
       }
     })
@@ -889,8 +885,6 @@ reportingServer <- function(id, rv = NULL){
     observe({
       req(content_comp_freq())
       rv$content_to_visualise$content_comp_freq <- content_comp_freq()
-      print("assigned content_comp_freq() to rv list:")
-      print(rv$content_to_visualise$content_comp_freq)
     })
     
     
@@ -969,7 +963,6 @@ reportingServer <- function(id, rv = NULL){
                                 rv$content_to_visualise$content_comp_freq$Corpus))
       
       if("try-error" %in% class(corr_test)){
-        print("corr_test failed w try error, returning NULL for corr_test")
         return(NULL)
       } else {
         return(corr_test)
