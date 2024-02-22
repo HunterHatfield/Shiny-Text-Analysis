@@ -1,12 +1,21 @@
 
 ######## Statistical Analysis Tab Module ############
 
+
+waiting_screen_stats <- tagList(
+  spin_flower(),
+  h4("Performing regression analysis..."),
+  em("For datasets with over 10,000 observations, regression analysis may take a couple of minutes.")
+) 
+
 #### Stats Tab Module UI ####
 statsUI <- function(id){
   ns <- NS(id)
   tagList(
     
     fluidPage(
+      useWaiter(),
+      
       wellPanel(
         h1("04 | Statistical Analysis"),
         em("<<Perform exploratory data analyses, regression analyses and model checking through a customisable workflow.>>"),
@@ -36,12 +45,12 @@ statsUI <- function(id){
                               actionButton(ns("submit_filters"), 
                                            label = "Submit", 
                                            class = "btn-primary")
-                              ),
+                       ),
                        column(width = 6, 
                               actionButton(ns("undo_filters"), 
                                            label = "Undo", 
                                            class = "btn-danger")
-                              )
+                       )
                      ),
                      
                      hr(),
@@ -59,14 +68,12 @@ statsUI <- function(id){
                         solidHeader = T,
                         collapsible = T,
                         width = 12,
-                      
-                      uiOutput(ns("content_stats_display")),
-                      # DT::dataTableOutput(ns("content_stats_raw")),
-                      # DT::dataTableOutput(ns("content_stats_summary")),
-                      hr(class = "hr-blank")
+                        
+                        uiOutput(ns("content_stats_display")),
+                        hr(class = "hr-blank")
                     ),
                   ),
-          ),
+        ),
       ),
       
       wellPanel(
@@ -135,9 +142,9 @@ statsUI <- function(id){
                               class = "btn-success"),
                  
                  
-                
-            ), # end column
- 
+                 
+          ), # end column
+          
         ), # end fluid row
         
         hr(),
@@ -163,11 +170,11 @@ statsUI <- function(id){
                               choices = list("Shapiro-Wilk (default)" = "shapiro", 
                                              "Anderson-Darling (n > 500)" = "anderson"))
                  
-                 ), # end normality testing column
+          ), # end normality testing column
           column(width = 5, 
                  plotOutput(ns("eda_qqplot")) %>%
                    withSpinner()
-                 ),
+          ),
           column(width = 4, 
                  h3("Statistical Test for Normality"),
                  p("<<Test for approximation of a variable to the theoretical normal distribution. Results containing a significantly low p-value may indicate the null hypothesis of normality could be rejected.>>"),
@@ -188,24 +195,24 @@ statsUI <- function(id){
                      withSpinner()
                  ),
                  
-                 ),
+          ),
         ) # end fluid row
-
+        
       ), # end EDA well panel
       
       fluidRow(
-          box(title = NULL, 
-              status = "primary", 
-              solidHeader = T, 
-              collapsible = T,
-              width = 12,
-              
-              plotlyOutput(ns("corr_plot")) %>%
-                withSpinner(),
-              
-          ), # end box
-          
-          
+        box(title = NULL, 
+            status = "primary", 
+            solidHeader = T, 
+            collapsible = T,
+            width = 12,
+            
+            plotlyOutput(ns("corr_plot")) %>%
+              withSpinner(),
+            
+        ), # end box
+        
+        
       ), # end corr plot fluid row
       
       wellPanel(
@@ -215,54 +222,54 @@ statsUI <- function(id){
         hr(), 
         
         fluidRow(
-            column(
-              width = 4,
-              
-              h3("Select regression type"),
-              radioButtons(ns("regression_type"), 
-                           label = NULL,
-                           choices = list("Linear" = "linear", 
-                                          "Logistic" = "logistic", 
-                                          "Poisson" = "poisson", 
-                                          "Mixed effects" = "mixed"
-                           )
-              ),
-              
-            ), # end column
+          column(
+            width = 4,
             
-            column(
-              width = 8,
-              box(
-                status = "primary",
-                collapsible = T,
-                solidHeader = T,
-                width = 12,
-                
-                # Here render UI based on radio button selection
-                conditionalPanel(
-                  condition = paste0("input['", ns("regression_type"), 
-                                     "'] == 'linear' "),
-                  uiOutput(ns("info_linear"))
-                ),
-                conditionalPanel(
-                  condition = paste0("input['", ns("regression_type"), 
-                                     "'] == 'logistic' "),
-                  uiOutput(ns("info_logistic"))
-                ),
-                conditionalPanel(
-                  condition = paste0("input['", ns("regression_type"), 
-                                     "'] == 'poisson' "),
-                  uiOutput(ns("info_poisson"))
-                ),
-                conditionalPanel(
-                  condition = paste0("input['", ns("regression_type"), 
-                                     "'] == 'mixed' "),
-                  uiOutput(ns("info_mixed"))
-                ),
-                # Add other regression types
-                
-              ), # end information box
-            ), # end column
+            h3("Select regression type"),
+            radioButtons(ns("regression_type"), 
+                         label = NULL,
+                         choices = list("Linear" = "linear", 
+                                        "Logistic" = "logistic", 
+                                        "Poisson" = "poisson", 
+                                        "Mixed effects" = "mixed"
+                         )
+            ),
+            
+          ), # end column
+          
+          column(
+            width = 8,
+            box(
+              status = "primary",
+              collapsible = T,
+              solidHeader = T,
+              width = 12,
+              
+              # Here render UI based on radio button selection
+              conditionalPanel(
+                condition = paste0("input['", ns("regression_type"), 
+                                   "'] == 'linear' "),
+                uiOutput(ns("info_linear"))
+              ),
+              conditionalPanel(
+                condition = paste0("input['", ns("regression_type"), 
+                                   "'] == 'logistic' "),
+                uiOutput(ns("info_logistic"))
+              ),
+              conditionalPanel(
+                condition = paste0("input['", ns("regression_type"), 
+                                   "'] == 'poisson' "),
+                uiOutput(ns("info_poisson"))
+              ),
+              conditionalPanel(
+                condition = paste0("input['", ns("regression_type"), 
+                                   "'] == 'mixed' "),
+                uiOutput(ns("info_mixed"))
+              ),
+              # Add other regression types
+              
+            ), # end information box
+          ), # end column
           
         ), # end regression type & info fluid row
         
@@ -276,19 +283,22 @@ statsUI <- function(id){
                  # regression to choose random & fixed effects
                  h3("Specify formula"),
                  uiOutput(ns("perform_regression"))
-                 ),
+          ),
           
           column(width = 8, 
-                   wellPanel(
-                     tabsetPanel(
-                       tabPanel("Tabularised summary", uiOutput(ns("lin_log_pois_res"))), 
-                       tabPanel("Raw model summary", 
-                                verbatimTextOutput(ns("reg_result_raw")) %>%
-                                  withSpinner()
-                                )
-                     ),
-                   )
+                 wellPanel(
+                   tabsetPanel(
+                     tabPanel("Tabularised summary", 
+                              uiOutput(ns("lin_log_pois_res")) %>%
+                                withSpinner()
+                      ),
+                     tabPanel("Raw model summary", 
+                              verbatimTextOutput(ns("reg_result_raw")) %>%
+                                withSpinner()
+                     )
+                   ),
                  )
+          )
           
         ) # end fluid row
       ), # end regression analysis well panel 
@@ -305,112 +315,112 @@ statsUI <- function(id){
         
       ), # end model checking well panel
       
-    
+      
       wellPanel(
         
         h2("Further Statistical Testing"),
         p("<<Perform analyses of variances, t-tests, and/or Chi-squared tests based on previously specified formulas.>>"),
         hr(),
         
-         navlistPanel(
-           tabPanel(
-             
-             "Analysis of Variances (ANOVA)", 
-                    h3("Analysis of Variances (ANOVA)"),
-                    p("The ANOVA test is used to determine if there is a statistically significant difference between the means of three or more independent groups."),
-                    hr(),
-             
-               tabsetPanel(
-                 tabPanel("Tabularised summary", 
-                          tableOutput(ns("anova_table")) %>%
-                            withSpinner()
-                          ), 
-                 tabPanel("Raw model summary", 
-                          verbatimTextOutput(ns("anova_res_raw")) %>%
-                            withSpinner()
-                          )
-               ),
-           ), 
-           tabPanel("T-test", 
-                    h3("T-test"), 
-                    p("A t-test is a statistical test used to determine if their is a significant difference in the means of two independent groups being compared."),
-                    hr(),
-                    tabsetPanel(
-                      tabPanel("Tabularised summary", 
-                               htmlOutput(ns("t_test_res_table")) %>%
-                                 withSpinner()
-                               ), 
-                      tabPanel("Raw model summary", 
-                               verbatimTextOutput(ns("t_test_res_raw")) %>%
-                                 withSpinner()
-                               )
-                    ),
-           ), 
-           tabPanel("Chi-square test", 
-                    h3("Chi-square test"), 
-                    p("The Chi-square test is used to determine whether there is a significant association between two categorical variables."),
-                    hr(),
-                    uiOutput(ns("perform_chisq"))
-                    
-           ), 
-           tabPanel("Non-parametric tests", 
-                    
-                    h3("Non-parametric Tests"),
-                    p("Non-parametric tests do not require any assumptions to be made about data being analyzed, so can be used to analyze data that is not normally distributed or does not meet the assumptions of parametric tests."),
-                    hr(),
-                    
-                    tabsetPanel(
-                      tabPanel("Kruskal-Wallis", 
-                               
-                               h3("Kruskal-Wallis"), 
-                               p("The Kruskal-Wallis test is used to test whether there are statistically significant differences between the medians of two or more independent groups. As this test is non-parametric, it does not assume normality of residuals.
+        navlistPanel(
+          tabPanel(
+            
+            "Analysis of Variances (ANOVA)", 
+            h3("Analysis of Variances (ANOVA)"),
+            p("The ANOVA test is used to determine if there is a statistically significant difference between the means of three or more independent groups."),
+            hr(),
+            
+            tabsetPanel(
+              tabPanel("Tabularised summary", 
+                       tableOutput(ns("anova_table")) %>%
+                         withSpinner()
+              ), 
+              tabPanel("Raw model summary", 
+                       verbatimTextOutput(ns("anova_res_raw")) %>%
+                         withSpinner()
+              )
+            ),
+          ), 
+          tabPanel("T-test", 
+                   h3("T-test"), 
+                   p("A t-test is a statistical test used to determine if their is a significant difference in the means of two independent groups being compared."),
+                   hr(),
+                   tabsetPanel(
+                     tabPanel("Tabularised summary", 
+                              htmlOutput(ns("t_test_res_table")) %>%
+                                withSpinner()
+                     ), 
+                     tabPanel("Raw model summary", 
+                              verbatimTextOutput(ns("t_test_res_raw")) %>%
+                                withSpinner()
+                     )
+                   ),
+          ), 
+          tabPanel("Chi-square test", 
+                   h3("Chi-square test"), 
+                   p("The Chi-square test is used to determine whether there is a significant association between two categorical variables."),
+                   hr(),
+                   uiOutput(ns("perform_chisq"))
+                   
+          ), 
+          tabPanel("Non-parametric tests", 
+                   
+                   h3("Non-parametric Tests"),
+                   p("Non-parametric tests do not require any assumptions to be made about data being analyzed, so can be used to analyze data that is not normally distributed or does not meet the assumptions of parametric tests."),
+                   hr(),
+                   
+                   tabsetPanel(
+                     tabPanel("Kruskal-Wallis", 
+                              
+                              h3("Kruskal-Wallis"), 
+                              p("The Kruskal-Wallis test is used to test whether there are statistically significant differences between the medians of two or more independent groups. As this test is non-parametric, it does not assume normality of residuals.
 The parametric equivalent of the Kruskal-Wallis is the one-way ANOVA."),
-                               
-                               verbatimTextOutput(ns("kw_res")) %>%
-                                  withSpinner()
-                               
-                               ), 
-                      tabPanel("Welch one-way test", 
-                               
-                               h3("Welch one-way test"),
-                               p("The Welch one-way test is used to test if there is a statistically significant difference in the means of two or more groups. This test is useful when the assumption of equal variances between groups is violated."),
-                               p("The parametric equivalent of the Welch one-way test is the independent samples t-test."),
-                               
-                               verbatimTextOutput(ns("welch_res")) %>%
-                                 withSpinner(),
-                               
-                               ),
-                      
-                      tabPanel("Mann-Whitney U Test", 
-                               
-                               h3("Mann-Whitney U Test"),
-                               p("The Mann-Whitney U Test (also know as the Wilcoxon rank-sum test) is used to compare two independent samples which are not normally distributed and of small size (n < 30)"),
-                               p("The parametric equivalent of this test is the two-sample independent t-test."),
-                               
-                               verbatimTextOutput(ns("mann_wil_res")) %>%
-                                 withSpinner(),
-                               
-                      ),
-                      
-                      
-                    ), # end tabset panel of non-para tests
-                  
-           ), 
-         ),
+
+verbatimTextOutput(ns("kw_res")) %>%
+  withSpinner()
+
+                     ), 
+tabPanel("Welch one-way test", 
+         
+         h3("Welch one-way test"),
+         p("The Welch one-way test is used to test if there is a statistically significant difference in the means of two or more groups. This test is useful when the assumption of equal variances between groups is violated."),
+         p("The parametric equivalent of the Welch one-way test is the independent samples t-test."),
+         
+         verbatimTextOutput(ns("welch_res")) %>%
+           withSpinner(),
+         
+),
+
+tabPanel("Mann-Whitney U Test", 
+         
+         h3("Mann-Whitney U Test"),
+         p("The Mann-Whitney U Test (also know as the Wilcoxon rank-sum test) is used to compare two independent samples which are not normally distributed and of small size (n < 30)"),
+         p("The parametric equivalent of this test is the two-sample independent t-test."),
+         
+         verbatimTextOutput(ns("mann_wil_res")) %>%
+           withSpinner(),
+         
+),
+
+
+                   ), # end tabset panel of non-para tests
+
+          ), 
+        ),
       )
-      
-      
+
+
     ) # end fluidPage
   ) # end tagList
 } # end module UI
 
-  
+
 ### Stats Tab Module Server-side logic ####
 statsServer <- function(id, rv = NULL){
   moduleServer(
     id, 
     function(input, output, session){
-
+      
       #######################
       ### Dataset chooser ###
       #######################
@@ -436,41 +446,41 @@ statsServer <- function(id, rv = NULL){
       # Content stats is rendered to be whatever is selected in drop-down
       # Rendering whatever dataset selected in datatable display. Needs to be
       # rendered as diff sets selected before select button clicked
-
+      
       observeEvent(input$content_stats_choose_button, {
         req(rv$content_primary$data)
-
+        
         if(input$content_stats_choose == "Primary data (raw)"){
           req(rv$content_primary$data)
           rv$content_stats <- try(rv$content_primary$data %>%
-            clean_names())
+                                    clean_names())
         } else if(input$content_stats_choose == "Primary data (prepared)"){
           req(rv$content_primary$content_prepared)
           rv$content_stats <- try(rv$content_primary$content_prepared %>%
-            clean_names())
+                                    clean_names())
         } else if(input$content_stats_choose == "Subset one (original)"){
           req(rv$subset_one$data)
           rv$content_stats <- try(rv$subset_one$data %>%
-            clean_names())
+                                    clean_names())
         } else if(input$content_stats_choose == "Subset two (original)"){
           req(rv$subset_two$data)
           rv$content_stats <- try(rv$subset_two$data %>%
-            clean_names())
+                                    clean_names())
         } else if(input$content_stats_choose == "Subset one (prepared)"){
           req(rv$subset_one$content_prepared)
           rv$content_stats <- try(rv$subset_one$content_prepared %>%
-            clean_names())
+                                    clean_names())
         } else if(input$content_stats_choose == "Subset two (prepared)"){
           req(rv$subset_two$content_prepared)
           rv$content_stats <- try(rv$subset_two$content_prepared %>%
-            clean_names())
+                                    clean_names())
         } else if(input$content_stats_choose == "Visualised"){
           req(rv$content_to_visualise_DT)
           req(rv$content_to_visualise$content_tf_idf)
           rv$content_stats <- try(rv$content_to_visualise$content_tf_idf %>%
-            #full_join(rv$content_to_visualise$plotting_data, by = c('ID', 'Token')) %>%
-            dplyr::select(-`Term freq.`, -`Mean token count`, -`Corpus token count`) %>%
-            clean_names())
+                                    #full_join(rv$content_to_visualise$plotting_data, by = c('ID', 'Token')) %>%
+                                    dplyr::select(-`Term freq.`, -`Mean token count`, -`Corpus token count`) %>%
+                                    clean_names())
         }
         
         # Saving content_stats to display in DT
@@ -541,44 +551,42 @@ statsServer <- function(id, rv = NULL){
       output$content_stats_summary <- 
         DT::renderDataTable({
           
-          # req(rv$content_stats_summary)
-          # req(try(nrow(rv$content_stats_summary)) > 0)
           validate(need(rv$content_stats_summary,
                         "Summary statistics only available for 
                         submitted numeric variables."))
           
           DT::datatable(rv$content_stats_summary,
-            rownames=FALSE, 
-            colnames = c("", "N", "Missing N", "Missing %", "Mean", "SD", 
-                         "Min", "25% quartile", "Median", "75% quartile", "Max"),
-            options = list(dom = 't', 
-                           scrollX = TRUE, 
-                           paging=FALSE,
-                           fixedColumns = list(leftColumns = 1, 
-                                               rightColumns = 0),
-                           searching = FALSE
-            )
+                        rownames=FALSE, 
+                        colnames = c("", "N", "Missing N", "Missing %", "Mean", "SD", 
+                                     "Min", "25% quartile", "Median", "75% quartile", "Max"),
+                        options = list(dom = 't', 
+                                       scrollX = TRUE, 
+                                       paging=FALSE,
+                                       fixedColumns = list(leftColumns = 1, 
+                                                           rightColumns = 0),
+                                       searching = FALSE
+                        )
           )
-      })
+        })
       
       # Generating ui for content stats display. If user selects checkbox to
       # show summary stats, this will be rendered instead of raw data
       output$content_stats_display <- renderUI({
         validate(need(rv$content_stats,
                       "Select and submit text data to continue"))
-
+        
         ns <- NS(id)
         raw <- tagList(
           DT::dataTableOutput(ns("content_stats_raw")) %>%
             withSpinner()
-          )
-
+        )
+        
         summary_stats <- tagList(
           DT::dataTableOutput(ns("content_stats_summary")) %>%
             withSpinner(),
           em("Summary statistics only available for submitted numeric variables.")
-          )
-
+        )
+        
         # Rendering either raw or summary of content stats depending on input
         if(input$show_eda_summary_stats){
           summary_stats
@@ -586,20 +594,6 @@ statsServer <- function(id, rv = NULL){
           raw
         }
       })
-      
-      # Used renderUI instead as show/hide doesn't fully hide validate errors
-      # showing/hiding diff datatables for if summary stats or not
-      # observe({
-      #   if(input$show_eda_summary_stats) {
-      #     hide(id = "content_stats_raw")
-      #     show(id = "stats_summary_note")
-      #     show(id = "content_stats_summary")
-      #   } else {
-      #     show(id = "content_stats_raw")
-      #     hide(id = "content_stats_summary")
-      #     hide(id = "stats_summary_note")
-      #   }
-      # })
       
       #### Filtering data #####
       # When submit filters clicked, subset content_stats by filtered rows
@@ -641,9 +635,9 @@ statsServer <- function(id, rv = NULL){
                           selected = 
                             colnames(rv$content_stats)[ncol(rv$content_stats)])
       })
-
+      
       # Plotting a histogram of selected variable
-
+      
       # Token frequency plot for entire corpus
       # Creating frequency plot, where users can customise min
       # frequency of a token to be displayed on the plot
@@ -667,7 +661,7 @@ statsServer <- function(id, rv = NULL){
         apply_transformation(var = rv$content_stats[[selected_var]],
                              transformation = transformation)
       })
-
+      
       # Validate statements to ensure numeric value selected for histogram
       # Not necessary to check if tokenised anymore
       eda_hist_plot <- reactive({
@@ -676,7 +670,7 @@ statsServer <- function(id, rv = NULL){
         req(is.numeric(rv$content_stats[[input$eda_hist_var]]))
         req(eda_hist_plot_breaks())
         
-
+        
         # Creating histogram. If include density curve is selected, 
         # the probability / proportion density is 
         # plotted instead of frequency.
@@ -686,9 +680,9 @@ statsServer <- function(id, rv = NULL){
              xlab = input$eda_hist_var,
              col = "white",
              prob = input$include_density_curve)
-
+        
       }) # end reactive val eda hist plot
-
+      
       # If checkbox to include density curve is checked, the 
       # lines function is used to render on top of histogram
       output$eda_hist_plot_display <- renderPlot({
@@ -700,7 +694,7 @@ statsServer <- function(id, rv = NULL){
         ))
         validate(need(eda_hist_plot_var(),"Transformation invalid."))
         validate(need(eda_hist_plot(),"Histogram could not be rendered. Ensure you have uploaded and selected valid numeric data."))
-
+        
         eda_hist_plot()
         
         if(input$include_density_curve == TRUE){
@@ -799,7 +793,8 @@ statsServer <- function(id, rv = NULL){
         
         # Filtering to only include numeric data
         content_stats_numeric <- rv$content_stats %>%
-          dplyr::select(where(is.numeric))
+          dplyr::select(where(is.numeric)) %>%
+          dplyr::select(-std_dev_token_count)
         
         # Creating correlation matrix
         # & reshaping data to has three cols (pair of vars & cor coef)
@@ -831,7 +826,8 @@ statsServer <- function(id, rv = NULL){
         
         # Filtering to only include numeric data
         content_stats_numeric <- rv$content_stats %>%
-          dplyr::select(where(is.numeric))
+          dplyr::select(where(is.numeric)) %>%
+          dplyr::select(-std_dev_token_count)
         
         # Creating correlation matrix
         corr <- round(cor(content_stats_numeric), 3)
@@ -933,11 +929,11 @@ statsServer <- function(id, rv = NULL){
                          rv$content_stats, 
                          selected = NULL, 
                          multiple = TRUE
-                         ),
+          ),
           
           checkboxInput(ns("include_interaction_lin_log_pois"), 
                         label = "Include interaction (optional)"
-                        ),
+          ),
           
           # If include interaction box ticked, 
           conditionalPanel(
@@ -956,7 +952,6 @@ statsServer <- function(id, rv = NULL){
                                "'] == 'mixed' "),
             uiOutput(ns("perform_mixed"))
           ),
-
           
           p("Selected regression formula:"),
           verbatimTextOutput(ns("formula_reg")),
@@ -965,7 +960,7 @@ statsServer <- function(id, rv = NULL){
           actionButton(ns("submit_regression"), 
                        label = "Submit", 
                        class = "btn-success")
-  
+          
         )
       }) # end renderUI 
       
@@ -995,7 +990,7 @@ statsServer <- function(id, rv = NULL){
                   interactions)
         }
       })
-
+      
       
       # Render text to display selected formula
       output$formula_reg <- renderPrint({
@@ -1010,12 +1005,15 @@ statsServer <- function(id, rv = NULL){
       observeEvent(input$submit_regression, {
         req(rv$content_stats)
         req(formula_reg()) # req(rv$formula_reg) 
+        
+        # waiter_show(html = waiting_screen_stats, color = "royalblue")
+        
         rv$formula_reg <- formula_reg()
         
         # First checking that regression can happen w try statement, 
         reg_model <- try(perform_regression(rv$formula_reg, 
-                                     input$regression_type,
-                                     rv$content_stats))
+                                            input$regression_type,
+                                            rv$content_stats))
         # If the try-catch produced error (class try-error), 
         # indicate with rv$is_valid_regression <- FALSE for global use 
         # If valid then indicate opposite 
@@ -1025,34 +1023,36 @@ statsServer <- function(id, rv = NULL){
         } else { # regression is valid so save summary too
           rv$is_valid_regression <- TRUE
           rv$reg_model <- reg_model
-          rv$reg_summary_raw <- 
-            summary(perform_regression(rv$formula_reg, 
-                                       input$regression_type,
-                                       rv$content_stats))
+          # rv$reg_summary_raw <- 
+          #   summary(perform_regression(rv$formula_reg, 
+          #                              input$regression_type,
+          #                              rv$content_stats))
+          rv$reg_summary_raw <- summary(reg_model)
         }
-
+        
+        # waiter_hide()
+        
       }) # end observe event 
       
       output$lin_log_pois_res <- renderUI({
         
         validate(need(rv$content_stats,  "Select a valid dataset to perform regression analyses."))
-        req(rv$content_stats)
         
         ns <- NS(id)
         
         # UI to be displayed if valid regression submitted
         validUI <- tagList(
           # Rendering results table as html output since using kable
-          htmlOutput(ns("reg_model")) %>%
-            withSpinner()
+          htmlOutput(ns("reg_model"))
         )
         
         # UI to be displayed if regression produces error (invalid)
         invalidUI <- tagList(
-          p("Submitted regression resulted in the following error:"),
+          em("Submitted regression model is invalid and could not be run. Check the raw model summary for more information."),
           verbatimTextOutput(ns("reg_error")) %>%
             withSpinner()
         )
+        
         
         validate(
           need(!is.null(rv$is_valid_regression), 
@@ -1065,18 +1065,18 @@ statsServer <- function(id, rv = NULL){
           return(invalidUI)
         }
       })
-      
+    
       # Render text with regression error if present
       output$reg_error <- renderPrint({
         req(rv$reg_error)
-        rv$reg_error
+        return(rv$reg_error)
       })
       
       # Render datatable of regression results
       # Using tab_model to generate, then returning HTML
       output$reg_model <- renderText({
-        validate(need(rv$content_stats, "Select a valid dataset."),
-                 need(rv$reg_model, "Invalid regression model."))
+        validate(need(rv$content_stats, "Select a valid dataset."))
+        req(rv$reg_model)
         table <- sjPlot::tab_model(rv$reg_model,
                                    show.fstat = TRUE,
                                    show.aic = TRUE,
@@ -1092,14 +1092,16 @@ statsServer <- function(id, rv = NULL){
         
         rv$reg_result_table <- table # saving table in rv list
         
-        HTML(table$knitr)
+        return(HTML(table$knitr))
       })
       
       
       # Rendering raw model output
       output$reg_result_raw <- renderPrint({
+        validate(need(rv$content_stats, "Select a valid dataset."),
+                 need(rv$reg_summary_raw, "Invalid regression model."))
         validate(need(!is.null(rv$is_valid_regression), 
-               "Invalid formula submitted."))
+                      "Invalid formula submitted."))
         if(rv$is_valid_regression){
           rv$reg_summary_raw
         } else {
@@ -1125,7 +1127,7 @@ statsServer <- function(id, rv = NULL){
                                   selected = NULL, 
                                   multiple = TRUE
                    ),
-                  ), 
+            ), 
             column(width = 6, 
                    # Var selector for random effects
                    varSelectInput(ns("mixed_random_slopes_2"), 
@@ -1133,9 +1135,9 @@ statsServer <- function(id, rv = NULL){
                                   rv$content_stats, 
                                   selected = NULL, 
                                   multiple = TRUE)
-                   ),
+            ),
           ),
-            
+          
           fluidRow(
             column(width = 6, 
                    
@@ -1145,7 +1147,7 @@ statsServer <- function(id, rv = NULL){
                                   rv$content_stats, 
                                   selected = NULL, 
                                   multiple = FALSE)
-                   ),
+            ),
             
             column(width = 6, 
                    # varSelectize used to enable nothing to be selected
@@ -1157,10 +1159,10 @@ statsServer <- function(id, rv = NULL){
                                      selected = NULL,
                                      options = list(create = TRUE, 
                                                     maxItems = 1))
-             )
-             
             )
+            
           )
+        )
       }) # end renderUI 
       
       # Generating residual plots for fitted model
@@ -1182,11 +1184,12 @@ statsServer <- function(id, rv = NULL){
                   panel.grid.minor = element_blank())
         }
       })
-
+      
       # Displaying residual plots
       output$residual_plots <- renderPlot({
-        req(residual_plots())
         validate(need(residual_plots(), "Submit a valid regression model to render residual plots."))
+        
+        req(residual_plots())
         residual_plots()
       })
       
@@ -1227,7 +1230,7 @@ statsServer <- function(id, rv = NULL){
         validate(
           need(rv$anova_table, paste0("ANOVA could not be performed given the current (or lack of) model formula.", 
                                       rv$anova_table))
-          )
+        )
         rv$anova_table
       })
       
@@ -1250,24 +1253,27 @@ statsServer <- function(id, rv = NULL){
       # Rendering raw t-test result
       output$t_test_res_raw <- renderPrint({
         # Check that the t-test result is not an error
+        validate(need(nrow(rv$content_stats) < 5000, "T-test cannot be rendered for models with over 5,000 observations."))
         validate(
           need(rv$ttest_res, paste0("T-test could not be performed given the current (or lack of) model formula.", 
                                     rv$ttest_res))
         )
-
+        
+        
         rv$ttest_res
       })
       
       # Rendering formatted t-test result, rendering HTML with kable
       output$t_test_res_table <- renderText({
         # Check that the t-test result is not an error
+        validate(need(nrow(rv$content_stats) < 5000, "T-test cannot be rendered for models with over 5,000 observations."))
         validate(
           need(rv$ttest_res, paste0("T-test could not be performed given the current (or lack of) model formula.", 
                                     rv$ttest_res))
         )
         req(rv$ttest_res)
         table <- kable(rv$ttest_res) %>% 
-                  kable_styling(latex_options = 'striped')
+          kable_styling(latex_options = 'striped')
         
         rv$ttest_table <- table
         
@@ -1387,27 +1393,27 @@ statsServer <- function(id, rv = NULL){
         req(rv$formula_reg)
         formula <- try(as.formula(rv$formula_reg))
         res <- try(wilcox.test(formula, data = rv$content_stats))
-
+        
         if("try-error" %in% class(res)){
           paste0("Invalid variables selected. Error returned: ", res)
         } else {
           res
         }
-
+        
       })
-
+      
       observe({
         req(mann_wil_res())
         rv$mann_wil_res <- mann_wil_res()
       })
-
+      
       output$mann_wil_res <- renderPrint({
         validate(need(rv$mann_wil_res, "Submit valid data and formula to perform Mann-Whitney test."))
-
+        
         rv$mann_wil_res
       })
       
-
+      
     }) # end module server inner function
 } # end module server
 

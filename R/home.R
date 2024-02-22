@@ -2,6 +2,11 @@
 
 ###############################
 
+waiting_screen_home <- tagList(
+  spin_flower(),
+  h4("Initialising Text Analysis App...")
+) 
+
 homeUI <- function(id){
   
   ns <- NS(id)
@@ -9,11 +14,16 @@ homeUI <- function(id){
   tagList(
 
     fluidPage( 
+      useWaiter(),
+      waiterPreloader(html = waiting_screen_home, color = "royalblue"),
 
       h1("Kia ora.", style = "font-size: 10vw;"),
       p("<<This interactive  app is designed for mining, exploring and visualising text data. Follow the steps below to get started, or take a look around using the sidebar to your left.>>"),
       
       em("<<Developed at the University of Otago by Hunter Hatfield & Emelia Hogg with ShinyR (v1.7.0).>>"),
+      hr(),
+      em("TESTING ENV 3"),
+      
       
       fluidRow(style = "margin: 1vw;",
         

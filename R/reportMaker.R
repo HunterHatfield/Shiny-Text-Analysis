@@ -3,14 +3,18 @@
 # Report maker module for Text Analysis App #
 #############################################
 
-outputDir <- "R"
-
 ##### Reporting tab module ######
+
+waiting_screen_reportMarker <- tagList(
+  spin_flower(),
+  h4("Rendering report...")
+) 
 
 reportMakerUI <- function(id){
   ns <- NS(id)
   tagList(
     useShinyjs(),
+    useWaiter(),
     
     #### REPORT SECTION ####
     wellPanel(
@@ -168,25 +172,6 @@ reportMakerServer <- function(id, rv = NULL){
     report_rv <- shiny::reactiveValues()
     stats_report_rv <- shiny::reactiveValues()
     
-    # Summary stats stuff 
-    # total_tokens <- reactive({
-    #   rv$content_tf_idf$`Corpus token count`[1]
-    # })
-    # mean_token_count <- reactive({
-    #   rv$content_tf_idf$`Mean token count`[1]
-    # })
-    # sd_token_count <- reactive({
-    #   sd(rv$content_tf_idf$`Token Count`)
-    # })
-    # numStop <- reactive({
-    #   if(is.null(rv$stop_words_final)){
-    #     return(0)
-    #   } else {
-    #     return(nrow(rv$stop_words_final))
-    #   }
-    # })
-    
-    
     ###############################################
     ## Figure report selection onClick/renderUI  ##
     ###############################################
@@ -242,7 +227,6 @@ reportMakerServer <- function(id, rv = NULL){
     shinyjs::onclick("add_word_cloud", {
       print(input$add_word_cloud)
       if(!input$add_word_cloud){
-        print("adding actual wordcloud")
         req(rv$word_cloud)
         report_rv$word_cloud <- rv$word_cloud
       } else { # tickbox not selected, remove vals
@@ -556,9 +540,6 @@ reportMakerServer <- function(id, rv = NULL){
     })
     
     
-    ######################
-    
-    
     # Formatting report. Have to return report source and file name
     # onclick functions won't work here so doing manual returns.
     report_file <- reactive({
@@ -620,25 +601,27 @@ reportMakerServer <- function(id, rv = NULL){
     output$download_report <- downloadHandler(
       filename = function(){return(rv$report_name)},
       content = function(file) {
-        
+        waiter_show(html = waiting_screen_reportMarker, color = "darkblue")
         # generating report with rmarkdown::render() 
         rmarkdown::render(rv$report_file , 
                           output_file = file,
                           params = list(report_rv = report_rv)
         )
+        waiter_hide()
       }
     )
     
     output$download_stats_report <- downloadHandler(
       filename = function(){return(rv$stats_report_name)},
       content = function(file) {
-        
+        waiter_show(html = waiting_screen_reportMarker, color = "darkblue")
         # generating report with rmarkdown::render() 
         rmarkdown::render(rv$stats_report_file, 
                           output_file = file,
                           params = list(report_rv = report_rv, 
                                         stats_report_rv = stats_report_rv)
         )
+        waiter_hide()
       }
     )
     

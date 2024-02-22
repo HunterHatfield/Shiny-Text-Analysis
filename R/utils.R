@@ -8,27 +8,11 @@
 
 
 ##############################
-### startTextApp function ####
+### runTextApp function ####
 ##############################                                    
 # Sources all files and runs text analysis app
 runTextApp <- function(){
-  source("R/home.R", local = T)
-  source("R/upload.R", local = T)
-  source("R/csv.R", local = T)
-  source("R/gutenbergR.R", local = T)
-  source("R/rvest.R", local = T)
-  source("R/twitteR.R", local = T)
-  source("R/secondaryUpload.R", local = T)
-  source("R/textSelector.R", local = T)
-  source("R/stats.R", local = T)
-  source("R/stopwords.R", local = T)
-  source("R/tokenize.R", local = T)
-  source("R/textPrep.R", local = T)
-  source("R/reporting.R", local = T)
-  # source("textFrequency.R", local = T)
-  source("R/reportMaker.R", local = T)
-  source("R/wordCloud.R", local = T)
-  source("R/app.R")
+  sourceFiles()
   textApp()
 }
 
@@ -38,22 +22,22 @@ runTextApp <- function(){
 # Source all files
 sourceFiles <- function(){
   # Sourcing all R files
-  source("R/home.R", local = T)
-  source("R/upload.R", local = T)
-  source("R/csv.R", local = T)
-  source("R/gutenbergR.R", local = T)
-  source("R/rvest.R", local = T)
-  source("R/twitteR.R", local = T)
-  source("R/secondaryUpload.R", local = T)
-  source("R/textSelector.R", local = T)
-  source("R/stats.R", local = T)
-  source("R/stopwords.R", local = T)
-  source("R/tokenize.R", local = T)
-  source("R/textPrep.R", local = T)
-  source("R/reporting.R", local = T)
-  # source("textFrequency.R", local = T)
-  source("R/reportMaker.R", local = T)
-  source("R/wordCloud.R", local = T)
+  source("R/home.R")
+  source("R/upload.R")
+  source("R/csv.R")
+  source("R/gutenbergR.R")
+  source("R/rvest.R")
+  source("R/twitteR.R")
+  source("R/secondaryUpload.R")
+  source("R/textSelector.R")
+  source("R/stats.R")
+  source("R/stopwords.R")
+  source("R/tokenize.R")
+  source("R/textPrep.R")
+  source("R/reporting.R")
+  # source("textFrequency.R")
+  source("R/reportMaker.R")
+  source("R/wordCloud.R")
   
   source("R/app.R")
 }
@@ -124,6 +108,8 @@ clear_reactives <- function(){
     rv$content_primary <- NULL
     rv$content_to_visualise <- NULL
     rv$content_to_visualise_DT <- NULL
+    rv$content_prepared_display_2 <- NULL
+    rv$content_stats_DT <- NULL
     
     rv$content_secondary <- NULL
     rv$secondary_file <- NULL
@@ -152,7 +138,6 @@ clear_reactives <- function(){
 #####################################
 ###### Advanced mutate function #####
 #####################################
-
 advanced_mutate <- function(content_prepared_in, 
                             in_datatable,
                             mutate_option = "mutate_new",
@@ -747,7 +732,10 @@ formula <- function(regression_type, dependent, independent,
   return(formula)
 }
 
+
+####################################
 ### perform_regression function ####
+####################################
 # A function to perform regression and return the regression object, given 
 # a regression formula and type of regression to perform. Regression types
 # can be 'linear', 'logistic', or 'poisson' 

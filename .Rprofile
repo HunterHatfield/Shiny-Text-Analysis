@@ -11,12 +11,8 @@ options(htmlwidgets.TOJSON_ARGS = NULL)
 options(DT.TOJSON_ARGS = list(na = 'string'))
 options(spinner.type = 7, spinner.color = "royalblue")
 
-
-# library(devtools)
-# devtools::load_all()
-
-source("R/utils.R")
 source("R/app.R")
+source("R/utils.R")
 source("R/home.R", local = T)
 source("R/upload.R", local = T)
 source("R/csv.R", local = T)
@@ -33,6 +29,7 @@ source("R/reporting.R", local = T)
 # source("textFrequency.R", local = T)
 source("R/reportMaker.R", local = T)
 source("R/wordCloud.R", local = T)
+
 
 cat("\n 
       ----------------------------##--------------------------------

@@ -50,6 +50,8 @@ source("R/utils.R")
 #-- textApp function  --#
 #-----------------------#
 
+
+
 textApp <- function(){
   
   #  Source all relevant files first

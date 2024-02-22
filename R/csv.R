@@ -44,7 +44,6 @@ csvServer <- function(id, rv = NULL){
     id, 
     function(input, output, session){
       
-      
       # saving files() to a reactive value
       observe({
         req(input$csvtsvUpload)
@@ -138,8 +137,6 @@ csvServer <- function(id, rv = NULL){
                                                  content_edited = 
                                                    csvtsv_contents(),
                                                  content_primary_tf_idf = NULL)
-        
-
         
         # Saving content_primary list containing data & characteristics in main rv list
         rv$content_primary <- content_primary

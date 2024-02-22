@@ -150,9 +150,6 @@ uploadServer <- function(id, rv = NULL, parent){
         rv$content_stats <- NULL
         
         
-        # calculating number of rows in content()
-        # rv$numFiles <- nrow(rv$content_primary$data)
-        
         output$title2 <- renderText({
           if(is.null(rv$files)){
             return(NULL)
@@ -213,13 +210,12 @@ uploadServer <- function(id, rv = NULL, parent){
         } else {
           
           rv$content_primary$data <- updated_content()
+          rv$content_primary$content_prepared <- updated_content()
+          rv$content_primary$content_edited <- updated_content()
           rv$content_primary$is_stop_rm <- FALSE
           rv$content_primary$is_tokenised <- FALSE
           rv$content_primary$is_filtered <- FALSE
           rv$content_primary$is_mutated <- FALSE
-
-          # calculating number of rows in content
-          rv$numFiles <- nrow(rv$content_primary$data)
           
           # Notification for when files successfully uploaded
           # When append button clicked
@@ -246,11 +242,6 @@ uploadServer <- function(id, rv = NULL, parent){
         shinyjs::reset("fileUpload") # used to reset any input object
         # shinyjs::refresh() # refreshes the page
       }) # end observe event clear files
-      
-      # Using onStop
-      onStop(function() {
-        cat("Session has stopped")
-      }) # end onStop function
       
     }
   )

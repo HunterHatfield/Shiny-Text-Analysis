@@ -135,7 +135,7 @@ textPrepUI <- function(id) {
                 ),
                 column(width = 3,
                   actionButton(ns("subset_trigger"),
-                               label = "Save as subset...",
+                               label = "Save as subset",
                                class = "btn-success"
                   )
                 )

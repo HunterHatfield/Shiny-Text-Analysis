@@ -2,10 +2,16 @@
 ############################################################
 #  Reporting module for vis
 ############################################################
+waiting_screen_reporting <- tagList(
+  spin_flower(),
+  h4("Rendering visualisations...")
+)
+
 reportingUI <- function(id){
   ns <- NS(id)
   tagList(
     useShinyjs(),
+    useWaiter(),
       
       #### Header panel ####
       wellPanel(
@@ -365,6 +371,7 @@ reportingUI <- function(id){
 reportingServer <- function(id, rv = NULL){
   moduleServer(id, function(input, output, session){
     
+    
     #######################
     ### Dataset chooser ###
     #######################
@@ -417,6 +424,8 @@ reportingServer <- function(id, rv = NULL){
     ## Validate content data to visualise ##
     ########################################
     observeEvent(input$confirm_data_to_visualise, {
+      
+      waiter_show(html = waiting_screen_reporting, color = "royalblue")
       
       # Require something to be upload (content_primary) and inputs selected
       req(rv$content_primary)
@@ -548,6 +557,7 @@ reportingServer <- function(id, rv = NULL){
       # 1 ataleoftwoci…      137433           250670              110255          752010
       # 2 barnabyrudge…      256897           250670              110255          752010
       
+      waiter_hide()
     }) # end observe event input$confirm_data_to_visualise
   
     
@@ -576,9 +586,9 @@ reportingServer <- function(id, rv = NULL){
       )
     }) # end render datatable
     
-    ###########################################################################
-    ############# Reporting server 
-    #########################################################################
+    #######################################
+    ###### Reporting server 
+    ########################################
     # Reactive value list to pass to .qmd to render quick report
     mini_rv <- shiny::reactiveValues()
 
@@ -787,14 +797,10 @@ reportingServer <- function(id, rv = NULL){
           mutate(Source = "Corpus") %>%
           rename("Freq." = "n")
         
-        print("comp freq rest props created:")
-        print(res)
         return(res)
         
       } else {
         #### Validate to warn to have more than 1 ID?
-        print("comp freq rest props created as single:")
-        print(content_param_single())
         return(content_param_single())
       }
       
@@ -943,7 +949,6 @@ reportingServer <- function(id, rv = NULL){
       )
       
       # attempt conversion to ggploty
-      # plot_res <- try(ggplotly(comp_freq_plot()))
       plot_res <- try(ggplotly(rv$comp_freq_plot))
       validate(need(!inherits(plot_res, "try-error"),
                     "Select a document to compare using the siderbar. Ensure more than one document has been uploaded and a valid single document is selected to explore differences in token proportions.")
@@ -1317,7 +1322,7 @@ reportingServer <- function(id, rv = NULL){
       }
     )
 
-    # Broken - something about the tf-idf plot means downloading it
+    # Something about the tf-idf plot means downloading it
     # same way as other plots doesn't work.
     # output$download_tf_idf_plot <- downloadHandler(
     #   filename = function() {
