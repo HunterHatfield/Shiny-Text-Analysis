@@ -1,6 +1,10 @@
-source("renv/activate.R")
-if (!requireNamespace("renv")) install.packages("renv")
-renv::restore(prompt = FALSE)
+# source("renv/activate.R")
+# if (!requireNamespace("renv")) install.packages("renv")
+# renv::restore(prompt = FALSE)
+
+source("R/utils.R")
+
+installPackages()
 
 # Setting shiny options
 # file upload limit to 500MB (0.5GB) (override 5MB limit)
@@ -11,24 +15,7 @@ options(htmlwidgets.TOJSON_ARGS = NULL)
 options(DT.TOJSON_ARGS = list(na = 'string'))
 options(spinner.type = 7, spinner.color = "royalblue")
 
-source("R/app.R")
-source("R/utils.R")
-source("R/home.R", local = T)
-source("R/upload.R", local = T)
-source("R/csv.R", local = T)
-source("R/gutenbergR.R", local = T)
-source("R/rvest.R", local = T)
-source("R/twitteR.R", local = T)
-source("R/secondaryUpload.R", local = T)
-source("R/textSelector.R", local = T)
-source("R/stats.R", local = T)
-source("R/stopwords.R", local = T)
-source("R/tokenize.R", local = T)
-source("R/textPrep.R", local = T)
-source("R/reporting.R", local = T)
-# source("textFrequency.R", local = T)
-source("R/reportMaker.R", local = T)
-source("R/wordCloud.R", local = T)
+sourceFiles()
 
 
 cat("\n 

@@ -19,7 +19,8 @@ reportMakerUI <- function(id){
     #### REPORT SECTION ####
     wellPanel(
       h1(paste(c("03| Report"), sep = ",")),
-      em("Generate a report of your analysis, in a format of your choice. Currently supported formats include PDF (.pdf), Microsoft Word (.docx), and HTML (.html).")
+      p("Customize and generate detailed reports based on your current analysis. Tailor your report's format to your preferences, choosing from supported options such as PDF (.pdf), Microsoft Word (.docx), or HTML (.html) to best suit your needs."),
+      em("Note: report content is generated from a snapshot of the current rendered outputs throughout the app If certain sections have not been rendered, they will not be available to include in your report. Double check that the currently rendered visualisations are ready before downloading a report.")
     ),
 
     fluidRow(
@@ -30,7 +31,7 @@ reportMakerUI <- function(id){
           width = 4,
           
           h3("Build your report"),
-          p("<<Select available figures and/or statistical analyses results to include in your report>>"),
+          p("Select which rendered figures and/or statistical analyses to include in your report by checking available boxes below."),
           hr(),
           
           h4("Figures/visualisations"),
@@ -65,8 +66,7 @@ reportMakerUI <- function(id){
           width = 4, 
           
           h3("Selected outline"),
-          em("<<Your report will contain the following sections>>"),
-          hr(), 
+          em("Your report currently contains the following sections:"),
           
           conditionalPanel(
             condition = paste0("input['", 
@@ -135,10 +135,10 @@ reportMakerUI <- function(id){
           collapsible = T,
           width = 4, 
           
-          h3("<<Formatting options>>"),
-          hr(),
+          h3("Select format"),
+          hr(class = "hr-blank"),
           selectInput(ns("report_format"), 
-                      label = "Choose a format", 
+                      label = "Choose a format for your report:", 
                       choices = list("HTML file (.html)" ="html", 
                                      "PDF file (.pdf)" = "pdf", 
                                      "Word document (.docx)" = "word")

@@ -4,9 +4,12 @@
 # Using renv::restore() & lockfile in .Rprofile
 # Shiny options set in .Rprofile
 
+source("R/utils.R")
+
 # library call on all req packages
 library(berryFunctions)
 library(dplyr)
+library(devtools)
 library(DT)
 library(finalfit)
 library(forcats)
@@ -44,8 +47,6 @@ library(waiter)
 library(wordcloud2)
 library(xgxr)
 
-source("R/utils.R")
-
 #-----------------------#
 #-- textApp function  --#
 #-----------------------#
@@ -59,21 +60,21 @@ textApp <- function(){
   ###### Main UI ###########################
   ui <- dashboardPage(skin = "black",
                       
-        dashboardHeader(title = "Text Analysis",  
-                        tags$li(class = "dropdown", 
-                                actionButton("refresh_app", NULL,
-                                             icon = 
-                                               icon("rotate-right"),
-                                             class = "btn-top-reload")),
-                        tags$li(class = "dropdown", 
-                                actionButton("exit_app", NULL,
-                                             # icon = 
-                                             #   icon("person-from-portal"),
-                                             icon = 
-                                               icon("door-open"),
-                                             class = "btn-top-exit"))
-                        ),
-        
+                      dashboardHeader(title = "Text Analysis",  
+                                      tags$li(class = "dropdown", 
+                                              actionButton("refresh_app", NULL,
+                                                           icon = 
+                                                             icon("rotate-right"),
+                                                           class = "btn-top-reload")),
+                                      tags$li(class = "dropdown", 
+                                              actionButton("exit_app", NULL,
+                                                           # icon = 
+                                                           #   icon("person-from-portal"),
+                                                           icon = 
+                                                             icon("door-open"),
+                                                           class = "btn-top-exit"))
+                      ),
+                      
                       dashboardSidebar(
                         sidebarMenu(id = "sidebar",
                                     
@@ -104,6 +105,23 @@ textApp <- function(){
                                     menuItem("Report", 
                                              tabName = "reportingTab",
                                              icon = icon("scroll")
+                                    ),
+                                    fluidRow(style = "position: absolute; 
+                                              bottom: 15px; right: 20px; left: 30px;",
+                                             column(6, 
+                                                    tags$a(href = "https://github.com/HunterHatfield/Shiny-Text-Analysis/",
+                                                           target = "_blank", 
+                                                           tags$i(class = "fa-brands fa-github"),  
+                                                           "GitHub"
+                                                    )
+                                             ), 
+                                             column(6, 
+                                                    tags$a(href = "https://www.otago.ac.nz/english-linguistics/linguistics",
+                                                           target = "_blank", 
+                                                           tags$i(class = "fa-solid fa-building-columns"),  
+                                                           "UoO"
+                                                    )
+                                             )
                                     )
                                     
                         ), # end sidebar menu
@@ -271,7 +289,7 @@ textApp <- function(){
       return()
     }
     
-
+    
     # Function run on session end
     # onSessionEnded(function() {
     #   # If appState$refreshed is FALSE, quit
@@ -298,7 +316,7 @@ textApp <- function(){
           \n ")
       stopApp()
     })
-  
+    
     
   } # end server
   

@@ -18,7 +18,7 @@ statsUI <- function(id){
       
       wellPanel(
         h1("04 | Statistical Analysis"),
-        em("<<Perform exploratory data analyses, regression analyses and model checking through a customisable workflow.>>"),
+        p('Engage in thorough statistical analysis with your text data. Access summary statistics for insightful overviews, filter datasets to focus on specific aspects, and explore exploratory data analysis techniques such as transformations and correlation heat maps. Perform rigorous statistical regression analysis and a diverse range of parametric and non-parametric tests to uncover nuanced insights within your data.'),
       ),
       
       sidebarLayout(
@@ -38,7 +38,7 @@ statsUI <- function(id){
                      hr(),
                      
                      h4("Filter"),
-                     p("Use the interactive table to filter text data.  Save/undo filters data using the buttons below."),
+                     p("Use the interactive table to filter text data to focus on specific aspects. Save/undo filters using the buttons below."),
                      
                      fluidRow(
                        column(width = 6, 
@@ -78,6 +78,7 @@ statsUI <- function(id){
       
       wellPanel(
         h2("Exploratory Data Analysis"),
+        p("Unlock the potential of your data with exploratory data analysis (EDA). Our app empowers users to explore data patterns, identify outliers, and discover relationships through EDA techniques. Visualize distributions, correlations, and trends, gaining crucial insights for informed decision-making and deeper understanding of your data."),
         hr(),
         
         fluidRow(
@@ -153,7 +154,7 @@ statsUI <- function(id){
           column(width = 3, 
                  
                  h3("Normality tests"), 
-                 p("Explore whether a selected variable approximates a theoretical normal distribution."),
+                 p("Explore whether a selected variable approximates a theoretical normal distribution, to make informed decisions on appropriate statistical tests."),
                  hr(),
                  p("Select a variable:"),
                  
@@ -177,7 +178,7 @@ statsUI <- function(id){
           ),
           column(width = 4, 
                  h3("Statistical Test for Normality"),
-                 p("<<Test for approximation of a variable to the theoretical normal distribution. Results containing a significantly low p-value may indicate the null hypothesis of normality could be rejected.>>"),
+                 p("Test for approximation of a variable to the theoretical normal distribution. Results containing a significantly low p-value may indicate the null hypothesis of normality could be rejected."),
                  hr(),
                  
                  # Render the different statistical tests for normality depending on user
@@ -217,8 +218,8 @@ statsUI <- function(id){
       
       wellPanel(
         h2("Regression Analysis"), 
-        p("Perform regression analysis to gain a deeper understanding of the relationships between your variables and to uncover patterns and insights in your data."),
-        em("Disclaimer: Not all regression models make sense, and the validity of results from a regression model depends on several factors. Please consider carefully whether the models you fit are appropriate for your data. "),
+        p("Gain a deeper understanding of the relationships between your variables and uncover patterns and insights in your data. Regression analysis is a statistical method used to examine the relationship between one or more independent variables and a dependent variable. It helps quantify the strength and direction of these relationships, enabling predictions and understanding of how changes in the independent variables affect the dependent variable."),
+        em("Disclaimer: Not all regression models make sense, and the validity of results from a regression model depends on several factors. Please consider carefully whether the models you fit are appropriate for your data, and be sure to use model diagnostic plots to assess model fit."),
         hr(), 
         
         fluidRow(
@@ -319,7 +320,7 @@ statsUI <- function(id){
       wellPanel(
         
         h2("Further Statistical Testing"),
-        p("<<Perform analyses of variances, t-tests, and/or Chi-squared tests based on previously specified formulas.>>"),
+        p("Perform analyses of variances, t-tests, and/or Chi-squared tests based on your previously specified formula."),
         hr(),
         
         navlistPanel(
@@ -875,7 +876,12 @@ statsServer <- function(id, rv = NULL){
         ns <- NS(id)
         tagList(
           h3("Linear Regression"),
-          p("<<Linear regression is a statistical method used to predict a continuous outcome variable based on one or more predictor variables.>>")
+          p("Linear regression is a foundational statistical method used to model the relationship between a dependent variable and one or more independent variables by fitting a straight line to the data. It aims to identify and quantify the linear relationship between these variables, making it applicable to various data types where such relationships exist.."),
+          p("For example, in text analysis, linear regression could be employed with a dataset of student essays to predict the marks achieved by students. Using features like TF-IDF scores and word counts as independent variables, linear regression helps uncover associations between these features and academic performance."),
+
+          tags$a(href="https://www.datacamp.com/tutorial/linear-regression-R", 
+                 "Learn more about linear regression in R.",
+                   target = "_blank", ),
         )
       })
       
@@ -883,7 +889,14 @@ statsServer <- function(id, rv = NULL){
         ns <- NS(id)
         tagList(
           h3("Logistic Regression"),
-          em("<<Information regarding logistic regression...>>")
+          p("Logistic regression is a statistical technique used for modeling the relationship between a binary outcome variable and one or more independent variables. Unlike linear regression, it predicts the probability of a categorical outcome rather than a continuous one, making it particularly useful for binary classification tasks."), 
+          p("In text analysis, logistic regression can be applied to tasks such as sentiment analysis, where the goal is to classify text into categories such as positive or negative sentiment. For example, given a dataset of movie reviews labeled as 'positive' or 'negative', logistic regression can learn to predict the sentiment of new reviews based on features extracted from the text, such as word frequencies or TF-IDF scores."),
+          
+          tags$a(href="https://www.r-bloggers.com/2015/09/how-to-perform-a-logistic-regression-in-r/", 
+                 target = "_blank", 
+                 "Learn more about logistic regression in R."),
+          
+          
         )
       })
       

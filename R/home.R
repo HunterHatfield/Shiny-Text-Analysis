@@ -18,12 +18,9 @@ homeUI <- function(id){
       waiterPreloader(html = waiting_screen_home, color = "royalblue"),
 
       h1("Kia ora.", style = "font-size: 10vw;"),
-      p("<<This interactive  app is designed for mining, exploring and visualising text data. Follow the steps below to get started, or take a look around using the sidebar to your left.>>"),
+      p("This interactive app is designed with researches in mind and is tailored for mining, exploring, and visualizing text data. Dive in with guided steps or explore freely using the sidebar to your left."),
       
-      em("<<Developed at the University of Otago by Hunter Hatfield & Emelia Hogg with ShinyR (v1.7.0).>>"),
-      hr(),
-      em("TESTING ENV 3"),
-      
+      em("Developed at the Department of Linguistics, University of Otago by Hunter Hatfield & Emelia Hogg with ShinyR (v1.7.0)."),
       
       fluidRow(style = "margin: 1vw;",
         
@@ -34,7 +31,7 @@ homeUI <- function(id){
         ),
         fluidRow(
           column(12,{
-            p("<<Choose from various methods to select and import your text data.>>")
+            p("Import text data using various methods available for seamless integration into the analysis process.")
           }),
         ),
         fluidRow(
@@ -44,7 +41,7 @@ homeUI <- function(id){
         ),
         fluidRow(
           column(12,{
-            p("<<Understand your text data and generate insights with interactive visualisations.>>")
+            p("Understand your text data and generate insights with interactive visualisations and statistical tests.")
           }),
         ),
         

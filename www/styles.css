@@ -270,6 +270,13 @@ i.fas.fa-door-open{
   padding-right: 0px;
 }
 
+i.fa-brands.fa-github{
+  padding-right: 5px;
+}
+i.fa-solid.fa-building-columns{
+  padding-right: 5px;
+}
+
 div#shiny-notification-panel{
   position:fixed;
   top: calc(1%);
