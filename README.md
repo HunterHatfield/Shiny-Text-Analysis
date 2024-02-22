@@ -56,7 +56,7 @@ These lines source the file `utils.R` and calls on the `installPackages()` funct
 
 # About the authors
 
-This R Shiny application was developed by Hunter Hatfield ([hunter.hatfield\@otago.ac.nz](mailto:hunter.hatfield@otago.ac.nz){.email}) and Emelia Hogg ([emeliahogg\@gmail.com](mailto:emeliahogg@gmail.com){.email}) with the Department of Linguistics at the University of Otago and Shiny (v1.7.0).
+This R Shiny application was developed by Hunter Hatfield ([hunter.hatfield\@otago.ac.nz](mailto:hunter.hatfield@otago.ac.nz)) and Emelia Hogg ([emeliahogg\@gmail.com](mailto:emeliahogg@gmail.com)) with the Department of Linguistics at the University of Otago and Shiny (v1.7.0).
 
 Learn more about English and Linguistics at Otago [here](https://www.otago.ac.nz/english-linguistics/linguistics).
 
