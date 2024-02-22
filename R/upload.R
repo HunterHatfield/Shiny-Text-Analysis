@@ -40,7 +40,6 @@ uploadUI <- function(id, label = "Choose file(s):"){
     ),
     
     fluidRow(
-      
       column(4,{
         actionButton(ns("submitFiles"), 
                      label = "Submit file(s)", 

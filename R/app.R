@@ -4,12 +4,69 @@
 # Using renv::restore() & lockfile in .Rprofile
 # Shiny options set in .Rprofile
 
+# if(!require('pacman'))install.packages('pacman')
+# library(pacman)
+# 
+# pacman::p_load(
+#   berryFunctions, # for adding in rows easily
+#   devtools,
+#   dplyr,
+#   DT,
+#   finalfit,
+#   forcats,
+#   ggfortify,
+#   ggplot2,
+#   hunspell,
+#   janitor,
+#   kableExtra,
+#   MASS,
+#   modelsummary,
+#   nortest,
+#   openxlsx,
+#   plotly,
+#   purrr,
+#   quarto,
+#   readr,
+#   reshape2,
+#   rmarkdown,
+#   rstatix,
+#   scales, # For the corr plot
+#   schoRsch,
+#   shiny,
+#   shinyalert,
+#   shinydashboard,
+#   shinyFiles,
+#   shinyjs,
+#   sjmisc,
+#   sjPlot,
+#   stringr,
+#   tidyr,
+#   tidytext,
+#   tm,
+#   waiter,
+#   wordcloud2,
+#   xgxr # For the corr plot
+# )
+
+# library(c(
+#   berryFunctions, devtools, dplyr, DT,
+#   finalfit, forcats,
+#   ggfortify, ggplot2, hunspell,
+#   janitor,kableExtra,
+#   MASS, modelsummary, nortest, openxlsx, plotly,purrr, quarto, readr,
+#   reshape2, rmarkdown, rstatix, scales,  schoRsch, shiny, shinyalert,
+#   shinycssloaders, shinydashboard, shinyFiles, shinyjs,
+#   sjmisc, sjPlot,
+#   stringr, tidyr, tidytext,
+#   tm, waiter,
+#   wordcloud2, xgxr 
+# ))
+
 source("R/utils.R")
 
 # library call on all req packages
 library(berryFunctions)
 library(dplyr)
-library(devtools)
 library(DT)
 library(finalfit)
 library(forcats)
@@ -60,21 +117,21 @@ textApp <- function(){
   ###### Main UI ###########################
   ui <- dashboardPage(skin = "black",
                       
-                      dashboardHeader(title = "Text Analysis",  
-                                      tags$li(class = "dropdown", 
-                                              actionButton("refresh_app", NULL,
-                                                           icon = 
-                                                             icon("rotate-right"),
-                                                           class = "btn-top-reload")),
-                                      tags$li(class = "dropdown", 
-                                              actionButton("exit_app", NULL,
-                                                           # icon = 
-                                                           #   icon("person-from-portal"),
-                                                           icon = 
-                                                             icon("door-open"),
-                                                           class = "btn-top-exit"))
-                      ),
-                      
+        dashboardHeader(title = "Text Analysis",  
+                        tags$li(class = "dropdown", 
+                                actionButton("refresh_app", NULL,
+                                             icon = 
+                                               icon("rotate-right"),
+                                             class = "btn-top-reload")),
+                        tags$li(class = "dropdown", 
+                                actionButton("exit_app", NULL,
+                                             # icon = 
+                                             #   icon("person-from-portal"),
+                                             icon = 
+                                               icon("door-open"),
+                                             class = "btn-top-exit"))
+                        ),
+        
                       dashboardSidebar(
                         sidebarMenu(id = "sidebar",
                                     
@@ -106,23 +163,23 @@ textApp <- function(){
                                              tabName = "reportingTab",
                                              icon = icon("scroll")
                                     ),
-                                    fluidRow(style = "position: absolute; 
+                                     fluidRow(style = "position: absolute; 
                                               bottom: 15px; right: 20px; left: 30px;",
-                                             column(6, 
-                                                    tags$a(href = "https://github.com/HunterHatfield/Shiny-Text-Analysis/",
-                                                           target = "_blank", 
-                                                           tags$i(class = "fa-brands fa-github"),  
-                                                           "GitHub"
-                                                    )
-                                             ), 
-                                             column(6, 
-                                                    tags$a(href = "https://www.otago.ac.nz/english-linguistics/linguistics",
-                                                           target = "_blank", 
-                                                           tags$i(class = "fa-solid fa-building-columns"),  
-                                                           "UoO"
-                                                    )
-                                             )
-                                    )
+                                       column(6, 
+                                              tags$a(href = "https://github.com/HunterHatfield/Shiny-Text-Analysis/",
+                                                     target = "_blank", 
+                                                     tags$i(class = "fa-brands fa-github"),  
+                                                     "GitHub"
+                                              )
+                                       ), 
+                                       column(6, 
+                                              tags$a(href = "https://www.otago.ac.nz/english-linguistics/linguistics",
+                                                     target = "_blank", 
+                                                     tags$i(class = "fa-solid fa-building-columns"),  
+                                                     "UoO"
+                                              )
+                                       )
+                                       )
                                     
                         ), # end sidebar menu
                         
@@ -289,7 +346,7 @@ textApp <- function(){
       return()
     }
     
-    
+
     # Function run on session end
     # onSessionEnded(function() {
     #   # If appState$refreshed is FALSE, quit
@@ -316,7 +373,7 @@ textApp <- function(){
           \n ")
       stopApp()
     })
-    
+  
     
   } # end server
   

@@ -4,8 +4,6 @@
 
 source("R/utils.R")
 
-installPackages()
-
 # Setting shiny options
 # file upload limit to 500MB (0.5GB) (override 5MB limit)
 options(shiny.maxRequestSize = 500*1024^2)
@@ -14,9 +12,6 @@ options(htmlwidgets.TOJSON_ARGS = NULL)
 # ensures that missing values are represented consistently as the string 'string' in the JSON representation of the DataTable
 options(DT.TOJSON_ARGS = list(na = 'string'))
 options(spinner.type = 7, spinner.color = "royalblue")
-
-sourceFiles()
-
 
 cat("\n 
       ----------------------------##--------------------------------

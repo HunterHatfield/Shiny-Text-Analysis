@@ -48,6 +48,15 @@ This app can be launched through in RStudio by calling on the `runTextApp()` fun
 
 ## Troubleshooting
 
+For issues with package downloads, try removing current packages and re-installing required packages with the following: 
 
+`remove.packages(rownames(installed.packages()))`
+
+This removes the currently installed packages. 
+
+`source("R/utils.R")`
+`installPackages()`
+
+These lines source the file `utils.R` and calls on the `installPackages()` function, which installs any missing dependencies.
 
 
