@@ -18,9 +18,9 @@ homeUI <- function(id){
       waiterPreloader(html = waiting_screen_home, color = "royalblue"),
 
       h1("Kia ora.", style = "font-size: 10vw;"),
-      p("This interactive app is designed with researches in mind and is tailored for mining, exploring, and visualizing text data. Dive in with guided steps or explore freely using the sidebar to your left."),
+      p("This interactive app is designed with researchers in mind and is tailored for mining, exploring, and visualizing text data. Dive in with guided steps or explore freely using the sidebar to your left."),
       
-      em("Developed at the Department of Linguistics, University of Otago by Hunter Hatfield & Emelia Hogg with ShinyR (v1.7.0)."),
+      em("Developed at the Department of Linguistics, University of Otago by Hunter Hatfield & Emelia Hogg. Built with ShinyR (v1.7.0)."),
       
       fluidRow(style = "margin: 1vw;",
         

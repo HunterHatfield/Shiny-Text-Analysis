@@ -904,7 +904,13 @@ statsServer <- function(id, rv = NULL){
         ns <- NS(id)
         tagList(
           h3("Poisson Regression"),
-          em("<<Information regarding poisson regression...>>")
+          p("Poisson regression is used to model count data, where a selected outcome variable represents the number of occurrences of an event in a fixed time/space period. It assumes that the counts follow a Poisson distribution, making it suitable for analyzing data such as the number of spelling mistakes in a corpus, assuming these are independent."),
+             
+             p("In Poisson regression, the natural logarithm of the expected count is modeled as a linear combination of predictor variables, allowing for the estimation of the effects predictors on the count outcome variable. This technique is valuable when the outcome variable is a count and follows a Poisson distribution, providing insights into the factors influencing the frequency of events."),
+
+          tags$a(href=" https://rpubs.com/Julian_Sampedro/1047952", 
+                 target = "_blank", 
+                 "A guide to Poisson regression in R."),
         )
       })
       
@@ -912,8 +918,12 @@ statsServer <- function(id, rv = NULL){
         ns <- NS(id)
         tagList(
           h3("Mixed Effects Regression"),
-          em("<<Information regarding mixed effects regression...>>"), 
-          # tags$a(href = "https://mspeekenbrink.github.io/sdam-r-companion/linear-mixed-effects-models.html")
+          p("Mixed effects regression models, also known as multilevel or hierarchical models, are used to analyze data which contains nested or hierarchical structures. These models extend traditional regression analysis by incorporating fixed effects, which represent the average relationship between variables, and random effects, which capture variability at different levels of nesting."),
+          p("In mixed effects models, random effects account for correlation amongst observations within higher-level units, such as individuals in groups or repeated measures within subjects. Random intercepts allow for variation in the intercept across these higher-level units, while random slopes allow for variation in the slopes of predictor variables."),
+          
+          tags$a(href="https://mspeekenbrink.github.io/sdam-r-companion/linear-mixed-effects-models.html", 
+                 target = "_blank", 
+                 "Learn more about mixed effects models in R."),
         )
       })
       

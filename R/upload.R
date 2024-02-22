@@ -16,7 +16,9 @@ uploadUI <- function(id, label = "Choose file(s):"){
     shinyjs::useShinyjs(),
     
     h1("Import files"),
-    p("Import text files (.txt) to mine text data from."),
+    p("Import text files (.txt) to mine text data from. "),
+    p("Use the file browser below to choose your .txt file(s). Use the Submit button to to create a dataset once you are ready, or use Append to add extra files where needed."),
+    
     em("Note: individual file size limited to 30MB."),
     hr(),
     

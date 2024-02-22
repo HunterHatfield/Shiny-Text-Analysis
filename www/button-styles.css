@@ -8,6 +8,12 @@
 
 }
 
+.btn-file{
+  background-color: royalblue;
+  border: 1px solid royalblue;
+  color: white;
+}
+
 /* Primary buttons */
 .btn-primary, .btn-default{
     width: 100%;

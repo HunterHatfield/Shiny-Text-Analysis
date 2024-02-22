@@ -8,7 +8,8 @@ csvUI <- function(id, label = "Choose text file(s):"){
   tagList(
 
     h1("Import a table"),
-    p("<<Import a file containing comma separated values (.csv) or tab separated values (.tsv) for text mining.>>"),
+    p("Import a file containing comma separated values (.csv) or tab separated values (.tsv) for text mining."),
+    p("Use the file browser below to choose your .csv/.tsv file. Use the Submit button to to create a dataset once you are ready, or use Append to add extra files where needed."),
     em("Note: individual file size limited to 30MB."),
     hr(),
     

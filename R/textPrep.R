@@ -8,7 +8,8 @@ textPrepUI <- function(id) {
     fluidPage(
       wellPanel(
         h1("02 | Text Preparation"),
-        em("<<Include stop-words, tokenise, and/or filter your text data below.>>"),
+        p("Prepare your text data effortlessly. Remove stop words, tokenize, and stem your data. Optionally, mutate and filter your dataset to customize your analysis further. Streamline your text preprocessing workflow for smoother data exploration and analysis."),
+        em("Note: to access visualisations, remember to tokenise your dataset using the Tokenise tool below.")
       ),
       
       fluidRow(
@@ -22,7 +23,7 @@ textPrepUI <- function(id) {
           fluidRow(
             column(4,
               h3("Mutate"),
-              p("<<Edit your text data by double-clicking on the table and/or add a column using the mutating tools.>>"),
+              p("Edit your text data by double-clicking on the table. For advanced editing, use the mutate tools to add or edit columns."),
 
               # Radio buttons to render which type of mutation controls
               radioButtons(ns("mutate_option"),

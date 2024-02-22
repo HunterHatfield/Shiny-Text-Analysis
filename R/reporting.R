@@ -16,7 +16,7 @@ reportingUI <- function(id){
       #### Header panel ####
       wellPanel(
         h1("03 | Visualisation"),
-        em("<<Generate custom visualisations by interacting with settings.>>"),
+        p("Visualize your text data with ease. Generate plots to summarise token frequencies of your corpus, compare document token frequencies, explore Zipf's Law, and gain insights into TF-IDF scores. Empower your analysis with clear, informative visualizations tailored to your text data exploration needs.")
       ),
     
       hr(class = "hr-blank"),
@@ -30,10 +30,10 @@ reportingUI <- function(id){
             # Data selection
             h3("Dataset selector"),
             selectInput(ns("data_to_visualise"),
-                        label = "Select a tokenised dataset to visualise:",
+                        label = "Select a dataset to visualise:",
                         choices = list("N/A" = "na")),
             selectInput(ns("col_name_to_visualise"),
-                        label = "Select variable to visualise:",
+                        label = "Choose which column of tokenised text to use in visualisations:", 
                         choices = list("N/A" = "na")),
             actionButton(ns("confirm_data_to_visualise"),
                          label = "Confirm",
@@ -48,7 +48,7 @@ reportingUI <- function(id){
             
             # Display tokenised text data
             h2("Prepared Text Data"),
-            p("<<Selected text data with prepartion customisations applied.>>"),
+            p("The selected dataset below will be used for visualisations. Use the Dataset selector to select a different dataset to visualise at any time."),
             hr(),
             DT::dataTableOutput(ns("content_to_visualise_DT")) %>%
               withSpinner(),
@@ -102,7 +102,7 @@ reportingUI <- function(id){
             width = 4,
             
             h3("Token frequency"),
-            p("<<This figure presents the most common tokens in your text data by calculating their frequency (number of times occuring).>>"),
+            p("Explore the most frequent tokens in your corpus with this token frequency plot. Quickly identify the top tokens based on frequency, which is the number of times a token appears in the imported corpus."),
             hr(),
             numericInput(ns("min_freq"),
                          label = "Number of most frequent tokens to display:",

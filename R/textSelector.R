@@ -9,14 +9,15 @@ textSelectorUI <- function(id, label = "Choose file(s):"){
       sidebarPanel(
 
         h1("01 | Import"), 
-        em("<<Import files containing text for analysis in the form of .txt, .csv, or .tsv files.>>"),
+        p("Import files containing text for analysis in the form of .txt, .csv, and/or .tsv files."),
+        p("Select the file type you would like to import (.txt or .csv) below,  then use the file browser to choose your file(s). Use the Submit button to create a dataset from the imported files once you are ready."),
         hr(),
 
         # Add ns() around method & paste0 stln used in reporting
         # later on
         h3("Primary data"),
         radioButtons(inputId = "method",
-                     label = "Choose a method:",
+                     label = "Choose a file type to import:",
                      choiceNames = list(
                        'Text file import', '.csv/.tsv file upload' # ,
                        # 'Project Gutenberg'

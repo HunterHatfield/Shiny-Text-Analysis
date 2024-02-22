@@ -36,7 +36,12 @@ secondaryServer <- function(id, rv = NULL){
         true_UI <- tagList(
           
           h3("Secondary data"),
-          p("Import a secondary .csv/.tsv file to adjoin."),
+          p("Merge datasets based on common columns to combine information."),
+          p("Import a secondary .csv/.tsv file to adjoin, then choose a column common to both datasets to join on."),
+          
+          tags$a(href="https://r4ds.hadley.nz/joins.html#sec-mutating-joins", 
+                 "Learn more about joins here"),
+          
           
           # Table upload with fileInput
           fileInput(session$ns("csvtsvUpload2"), label = NULL, 
